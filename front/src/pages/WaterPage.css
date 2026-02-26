@@ -1,0 +1,155 @@
+.water {
+    min-height: 100vh;
+    padding: var(--space-xl);
+    position: relative;
+    overflow: hidden;
+}
+
+.water__ambient {
+    position: absolute;
+    top: -300px;
+    right: -200px;
+    width: 700px;
+    height: 700px;
+    background: radial-gradient(circle, rgba(6, 182, 212, 0.08) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.water__header {
+    position: relative;
+    z-index: 1;
+    margin-bottom: var(--space-2xl);
+}
+
+.water__content {
+    position: relative;
+    z-index: 1;
+    max-width: 720px;
+    margin: 0 auto;
+}
+
+.water__intro {
+    text-align: center;
+    margin-bottom: var(--space-3xl);
+}
+
+.water__badge {
+    display: inline-block;
+    padding: 0.35rem 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent-secondary);
+    border: 1px solid rgba(8, 145, 178, 0.2);
+    border-radius: 999px;
+    margin-bottom: var(--space-lg);
+    background: rgba(8, 145, 178, 0.06);
+}
+
+.water__title {
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: var(--space-sm);
+    color: var(--text-primary);
+}
+
+.water__description {
+    color: var(--text-secondary);
+    font-size: 1.05rem;
+}
+
+/* Grid */
+.water__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-lg);
+}
+
+.water__app-card {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-lg) var(--space-xl);
+    text-align: left;
+    cursor: pointer;
+    transition: all var(--transition-slow);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-sm);
+}
+
+.water__app-card:hover:not(:disabled) {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-glow), var(--shadow-md);
+    border-color: rgba(59, 130, 246, 0.2);
+    background: var(--bg-secondary);
+}
+
+.water__app-card--disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.water__app-card--disabled:hover {
+    transform: none !important;
+    box-shadow: var(--shadow-sm) !important;
+}
+
+.water__app-icon {
+    font-size: 2rem;
+    flex-shrink: 0;
+    width: 52px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent-light);
+    border-radius: var(--radius-md);
+}
+
+.water__app-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.water__app-label {
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+
+.water__app-desc {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+}
+
+.water__app-arrow {
+    font-size: 1.2rem;
+    color: var(--accent);
+    transition: transform var(--transition-base);
+}
+
+.water__app-card:hover .water__app-arrow {
+    transform: translateX(4px);
+}
+
+.water__app-badge-soon {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    padding: 0.2rem 0.6rem;
+    border: 1px solid var(--border-glass);
+    border-radius: 999px;
+}
+
+@media (max-width: 640px) {
+    .water__grid {
+        grid-template-columns: 1fr;
+    }
+}

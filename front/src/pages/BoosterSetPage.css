@@ -1,0 +1,287 @@
+.booster {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: var(--space-lg);
+    gap: var(--space-lg);
+}
+
+/* ─── Header ─── */
+.booster__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-md) var(--space-xl);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+}
+
+.booster__header-left {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.booster__title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.booster__subtitle {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+}
+
+/* ─── Main Body ─── */
+.booster__body {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: var(--space-lg);
+    flex: 1;
+    min-height: 0;
+}
+
+/* ─── Left Sidebar ─── */
+.booster__sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+}
+
+.booster__section-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+    margin-bottom: var(--space-md);
+    padding-bottom: var(--space-sm);
+    border-bottom: 1px solid var(--border-glass);
+}
+
+/* ─── Config Panel ─── */
+.booster__config {
+    padding: var(--space-lg);
+}
+
+.booster__fields {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.booster__field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.booster__label {
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.booster__select {
+    padding: 0.55rem 0.75rem;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 0.88rem;
+    outline: none;
+    cursor: pointer;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    padding-right: 2rem;
+}
+
+.booster__select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.booster__select option {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+/* ─── Assets Panel ─── */
+.booster__assets {
+    padding: var(--space-lg);
+}
+
+.booster__checklist {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-lg);
+}
+
+.booster__check-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: 0.4rem 0.5rem;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background var(--transition-fast);
+}
+
+.booster__check-item:hover {
+    background: var(--accent-light);
+}
+
+.booster__checkbox {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+
+.booster__check-label {
+    font-size: 0.88rem;
+    color: var(--text-primary);
+}
+
+.booster__download-btn {
+    width: 100%;
+}
+
+/* ─── Diagram Panel ─── */
+.booster__diagram {
+    padding: var(--space-lg);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+/* ─── Bubbles Bar ─── */
+.booster__bubbles-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    padding-bottom: var(--space-md);
+    margin-bottom: var(--space-md);
+    border-bottom: 1px solid var(--border-glass);
+}
+
+.booster__bubble {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.35rem 0.85rem;
+    border: 1.5px dashed var(--border-glass);
+    border-radius: 999px;
+    background: var(--bg-primary);
+    transition: all var(--transition-slow);
+}
+
+.booster__bubble--filled {
+    border-style: solid;
+    border-color: var(--accent);
+    background: rgba(59, 130, 246, 0.06);
+    box-shadow: 0 1px 6px rgba(59, 130, 246, 0.1);
+    animation: bubblePop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes bubblePop {
+    0% {
+        transform: scale(0.9);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+.booster__bubble-value {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    transition: color var(--transition-base);
+    white-space: nowrap;
+}
+
+.booster__bubble--filled .booster__bubble-value {
+    color: var(--accent);
+}
+
+/* ─── Diagram Canvas ─── */
+.booster__diagram-canvas {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+}
+
+.booster__diagram-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-md);
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.booster__diagram-placeholder-icon {
+    font-size: 3rem;
+    opacity: 0.4;
+    animation: pulse 2.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 0.4;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.7;
+        transform: scale(1.1);
+    }
+}
+
+.booster__diagram-placeholder p {
+    font-size: 0.9rem;
+    max-width: 240px;
+}
+
+.booster__svg {
+    width: 100%;
+    max-height: 520px;
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 860px) {
+    .booster__body {
+        grid-template-columns: 1fr;
+    }
+
+    .booster__sidebar {
+        order: 2;
+    }
+
+    .booster__diagram {
+        order: 1;
+    }
+
+    .booster__header {
+        flex-direction: column;
+        gap: var(--space-md);
+        align-items: flex-start;
+    }
+}

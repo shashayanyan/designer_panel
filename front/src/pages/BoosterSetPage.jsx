@@ -83,13 +83,22 @@ function BoosterSetPage() {
                         package.
                     </p>
                 </div>
-                <button
-                    className="btn-secondary"
-                    id="btn-back-home"
-                    onClick={() => navigate('/')}
-                >
-                    ← Back to Home
-                </button>
+                <div className="booster__header-right">
+                    <button
+                        className="btn-secondary"
+                        id="btn-back-apps"
+                        onClick={() => navigate('/water')}
+                    >
+                        ← Back to Water Apps
+                    </button>
+                    <button
+                        className="btn-secondary"
+                        id="btn-back-home"
+                        onClick={() => navigate('/')}
+                    >
+                        ← Back to Home
+                    </button>
+                </div>
             </header>
 
             {/* ─── Main Body ─── */}

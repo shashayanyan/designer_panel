@@ -10,9 +10,9 @@ function LandingPage() {
             <div className="landing__ambient" />
 
             <div className="landing__content fade-in">
-                <div className="landing__badge">Designer Panel</div>
+                <div className="landing__badge">Motor Control Asset Library</div>
                 <h1 className="landing__title">
-                    Automate Your <span className="landing__highlight">Specification Projects</span>
+                    Automate Your <br></br> <span className="landing__highlight">Design Process</span>
                 </h1>
                 <p className="landing__description">
                     Configure your project setup, select assets, and download everything

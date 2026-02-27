@@ -24,6 +24,12 @@
     gap: 2px;
 }
 
+.booster__header-right {
+    display: flex;
+    flex-direction: row;
+    gap: var(--space-md);
+}
+
 .booster__title {
     font-size: 1.3rem;
     font-weight: 700;

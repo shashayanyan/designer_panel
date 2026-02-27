@@ -271,6 +271,12 @@
     max-height: 520px;
 }
 
+.booster__asset-buttons {
+    display: flex;
+    flex-direction: row;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-lg);
+}
 
 
 /* ─── Responsive ─── */

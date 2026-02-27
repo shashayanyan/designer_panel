@@ -6,23 +6,23 @@
   /* Colors — Light Premium Theme */
   --bg-primary: #f8fafc;
   --bg-secondary: #ffffff;
-  --bg-tertiary: #3987e04b;
+  --bg-tertiary: #00ff088e;
   --bg-card: rgba(255, 255, 255, 0.85);
   --bg-glass: rgba(255, 255, 255, 0.65);
   --border-glass: rgba(0, 0, 0, 0.08);
   --border-subtle: rgba(0, 0, 0, 0.05);
-  --text-primary: #1e293b;
-  --text-secondary: #475569;
+  --text-primary: #1e3b22;
+  --text-secondary: #47694e;
   --text-muted: #94a3b8;
-  --accent: #3b82f6;
+  --accent: #009305;
   --accent-hover: #2563eb;
   --accent-glow: rgba(59, 130, 246, 0.12);
-  --accent-light: rgba(59, 130, 246, 0.08);
+  --accent-light: rgba(59, 246, 75, 0.107);
   --accent-secondary: #0891b2;
   --success: #16a34a;
   --warning: #d97706;
   --danger: #dc2626;
-  --gradient-primary: linear-gradient(135deg, #3b82f6, #06b6d4);
+  --gradient-primary: linear-gradient(135deg, #209f33b1, #14d406);
   --gradient-bg: linear-gradient(180deg, #f0f4f8 0%, #f8fafc 50%, #eef2f7 100%);
   --gradient-card: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
 

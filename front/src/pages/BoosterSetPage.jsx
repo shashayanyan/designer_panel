@@ -1,5 +1,6 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import JSZip from 'jszip'
 import './BoosterSetPage.css'
 
 const CONFIG_OPTIONS = {
@@ -101,6 +102,7 @@ const StarterBlock = ({ x, y, type }) => {
 
 function BoosterSetPage() {
     const navigate = useNavigate()
+    const svgRef = useRef(null)
 
     const [config, setConfig] = useState({
         incomers: '',
@@ -128,14 +130,83 @@ function BoosterSetPage() {
         setSelectedAssets((prev) => ({ ...prev, [asset]: !prev[asset] }))
     }
 
-    const handleDownload = () => {
-        alert(
-            'Download triggered!\n\nSelected assets:\n' +
-            Object.entries(selectedAssets)
-                .filter(([, v]) => v)
-                .map(([k]) => `• ${k}`)
-                .join('\n')
-        )
+    const handleDownload = async () => {
+        const zip = new JSZip()
+
+        const filesToFetch = [
+            "ATV6A0C20Q4-SH-XX-CB-IP54.dwg",
+            "ATV6A0C20Q4-SH-XX-CB-IP54.pdf",
+            "ApplicationPack_WaterBooster_3x30kW_VSD_IP54_v1.xlsx",
+            "Application_Spec_Appendix_WaterBooster_3x30kW_VSD_IP54_v1.docx",
+            "SpecTextBlocks_WaterBooster_3x30kW_VSD_IP54_v1.txt"
+        ]
+
+        for (const fileName of filesToFetch) {
+            try {
+                const response = await fetch(`/documents/booster-set/${fileName}`)
+                if (response.ok) {
+                    const blob = await response.blob()
+                    zip.file(fileName, blob)
+                } else {
+                    console.error(`Failed to fetch ${fileName}`)
+                }
+            } catch (e) {
+                console.error(`Error fetching ${fileName}:`, e)
+            }
+        }
+
+        if (svgRef.current) {
+            const svgData = new XMLSerializer().serializeToString(svgRef.current)
+            zip.file("SingleLineDiagram.svg", svgData)
+
+            // Generate PNG
+            await new Promise((resolve) => {
+                const canvas = document.createElement("canvas")
+                // Use the viewBox dimensions of the SVG
+                canvas.width = 900
+                canvas.height = 550
+                const ctx = canvas.getContext("2d")
+
+                const img = new Image()
+                const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" })
+                const url = URL.createObjectURL(svgBlob)
+
+                img.onload = () => {
+                    ctx.fillStyle = "white"
+                    ctx.fillRect(0, 0, canvas.width, canvas.height)
+                    ctx.drawImage(img, 0, 0)
+                    canvas.toBlob((blob) => {
+                        if (blob) {
+                            zip.file("SingleLineDiagram.png", blob)
+                        }
+                        URL.revokeObjectURL(url)
+                        resolve()
+                    }, "image/png")
+                }
+
+                img.onerror = () => {
+                    console.error("Failed to render SVG to PNG")
+                    URL.revokeObjectURL(url)
+                    resolve() // Resolve anyway to proceed with ZIP generation
+                }
+                img.src = url
+            })
+        }
+
+        try {
+            const zipBlob = await zip.generateAsync({ type: "blob" })
+            const url = URL.createObjectURL(zipBlob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = "WaterBooster-3-Pumps-30kW-Asset-Pack.zip"
+            document.body.appendChild(a)
+            a.click()
+            document.body.removeChild(a)
+            URL.revokeObjectURL(url)
+        } catch (e) {
+            console.error("Error generating zip:", e)
+            alert("Failed to generate zip file.")
+        }
     }
 
     const pumpCount = parseInt(config.pumps) || 0
@@ -226,6 +297,30 @@ function BoosterSetPage() {
                     {/* Section 4: Assets */}
                     <section className="booster__assets glass-card fade-in fade-in-delay-3">
                         <h2 className="booster__section-title">Assets</h2>
+                        <div className="booster__asset-buttons">
+                            <button
+                                className="btn-secondary"
+                                id="btn-select-all"
+                                onClick={() => {
+                                    ASSET_LIST.forEach((asset) => {
+                                        setSelectedAssets((prev) => ({ ...prev, [asset]: true }))
+                                    })
+                                }}
+                            >
+                                Select All
+                            </button>
+                            <button
+                                className="btn-secondary"
+                                id="btn-clear-selection"
+                                onClick={() => {
+                                    ASSET_LIST.forEach((asset) => {
+                                        setSelectedAssets((prev) => ({ ...prev, [asset]: false }))
+                                    })
+                                }}
+                            >
+                                Clear All
+                            </button>
+                        </div>
                         <div className="booster__checklist">
                             {ASSET_LIST.map((asset) => (
                                 <label className="booster__check-item" key={asset}>
@@ -286,7 +381,7 @@ function BoosterSetPage() {
                                 <p>Complete the configuration to see the diagram</p>
                             </div>
                         ) : (
-                            <svg viewBox="0 0 900 550" className="booster__svg" xmlns="http://www.w3.org/2000/svg" style={{ minWidth: '800px' }}>
+                            <svg ref={svgRef} viewBox="0 0 900 550" className="booster__svg" xmlns="http://www.w3.org/2000/svg" style={{ minWidth: '800px', backgroundColor: 'white' }}>
                                 <g stroke="#0f172a" fill="#0f172a">
 
                                     {/* --- 1. Main Busbars (4 Wires: L1, L2, L3, PE) --- */}

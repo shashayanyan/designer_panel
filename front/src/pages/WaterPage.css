@@ -41,11 +41,11 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.12em;
-    color: var(--accent-secondary);
+    color: var(--accent);
     border: 1px solid rgba(8, 145, 178, 0.2);
     border-radius: 999px;
     margin-bottom: var(--space-lg);
-    background: rgba(8, 145, 178, 0.06);
+    background: var(--accent-light);
 }
 
 .water__title {

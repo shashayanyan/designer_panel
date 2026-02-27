@@ -1,0 +1,55 @@
+WATER BOOSTER SET - 3 PUMPS (N+1) - VSD CONTROL PANEL
+Copy/Paste Specification Clauses (v1.0)
+
+A. GENERAL
+1. The contractor shall provide a complete booster control panel assembly for a water booster set controlling three (3) pumps rated 30 kW each.
+2. The solution shall support N+1 redundancy and cascade PID pressure control using a discharge pressure feedback signal.
+3. The control panel shall be designed for early-stage specification and shall be detailed by the selected system integrator/panel builder during detailed design.
+
+B. ENCLOSURE / MECHANICAL
+1. The enclosure shall be floor standing, indoor type, minimum IP54, with provision for bottom cable entry (gland plate or equivalent).
+2. The panel shall include an earthing bar, internal wiring ducting, and clear labeling of devices, terminals, and cables.
+3. Thermal management shall be provided to keep internal component temperatures within manufacturer limits at maximum load and site ambient conditions.
+
+C. POWER DISTRIBUTION AND PROTECTION
+1. The panel shall include a main incoming isolator and/or MCCB sized for the maximum demand and the site fault level.
+2. Each VSD feeder shall include appropriate upstream short-circuit and overload protection and a means of isolation as required by applicable standards.
+3. Harmonic mitigation (line reactors, filters, or equivalent) and EMC measures shall be included where required by grid code, EMC requirements, or cable length constraints.
+
+D. VSD (VARIABLE SPEED DRIVE) FEEDERS
+1. Each pump motor shall be controlled by an individual variable speed drive suitable for 30 kW motor duty.
+2. Each VSD shall support Ethernet communications using Modbus TCP for start/stop, speed reference, and monitoring.
+3. Each VSD shall provide access to at least the following data over Modbus TCP: run status, speed feedback, current, power, energy, fault status, and fault code.
+
+E. CONTROL SYSTEM (PLC/HMI)
+1. The panel shall include a PLC with sufficient Ethernet capacity and I/O to implement:
+   - Cascade PID pressure control
+   - Pump staging/de-staging
+   - Duty/standby alternation and runtime equalization
+   - Redundancy and fault handling (N+1)
+2. The panel shall include a local HMI for operator control and monitoring (start/stop, setpoints, status, alarms, runtime).
+3. The control system shall support a redundant discharge pressure transmitter. Upon primary signal fault/out-of-range, control shall automatically switch to the redundant transmitter and alarm.
+
+F. CONTROL PHILOSOPHY - MINIMUM FUNCTIONAL REQUIREMENTS
+1. Demand detection: start lead pump when pressure falls below setpoint by a configurable margin or when demand is otherwise detected.
+2. Staging logic: add pumps when the system cannot maintain setpoint (e.g., lead speed above a configurable threshold for a configurable time).
+3. De-staging logic: remove pumps when demand decreases (e.g., average speed below a configurable threshold for a configurable time) while maintaining stable pressure.
+4. Anti-short-cycle: minimum run time and minimum stop time shall be implemented for each pump.
+5. Alternation: lead/lag assignment shall rotate automatically based on runtime to equalize wear.
+6. Failure handling: if any pump/drive becomes unavailable, remaining pumps shall continue to control pressure within available capacity and generate an alarm.
+
+G. COMMUNICATIONS - MODBUS TCP
+1. The PLC shall act as Modbus TCP client/master and each VSD shall act as Modbus TCP server.
+2. Each device shall have a unique IP address; an IP plan shall be provided.
+3. Loss of communications shall generate an alarm and the system shall transition to a defined safe state.
+
+H. CYBERSECURITY BASELINE (IEC 62443-ALIGNED)
+1. The booster control network shall be treated as an industrial control zone and shall be logically separated from corporate networks.
+2. Default passwords shall be changed; role-based access and unique user accounts shall be applied where supported.
+3. Remote access (if required) shall use secure methods with MFA and audit trail; direct internet access to the control network shall not be permitted.
+4. Security-relevant events (login attempts, configuration changes, comms loss) shall be logged.
+
+I. DOCUMENTATION AND TESTING
+1. The supplier shall provide electrical drawings (SLD, schematics, GA, terminal schedule), I/O list, network IP plan, PLC/HMI backups, and operating manuals.
+2. FAT shall verify wiring, labeling, communications, HMI, and core control sequences including staging/de-staging, alternation, and redundancy behavior.
+3. SAT shall verify field wiring, motor rotation, transmitter scaling, PID stability, and redundancy in live operation.

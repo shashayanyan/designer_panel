@@ -133,13 +133,9 @@ function BoosterSetPage() {
     const handleDownload = async () => {
         const zip = new JSZip()
 
-        const filesToFetch = [
-            "ATV6A0C20Q4-SH-XX-CB-IP54.dwg",
-            "ATV6A0C20Q4-SH-XX-CB-IP54.pdf",
-            "ApplicationPack_WaterBooster_3x30kW_VSD_IP54_v1.xlsx",
-            "Application_Spec_Appendix_WaterBooster_3x30kW_VSD_IP54_v1.docx",
-            "SpecTextBlocks_WaterBooster_3x30kW_VSD_IP54_v1.txt"
-        ]
+        // Dynamically find all files in the booster-set public folder using Vite's import.meta.glob
+        const assetModules = import.meta.glob('/public/documents/booster-set/*.*', { query: '?url' })
+        const filesToFetch = Object.keys(assetModules).map(path => path.split('/').pop())
 
         for (const fileName of filesToFetch) {
             try {

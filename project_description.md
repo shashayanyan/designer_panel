@@ -63,3 +63,12 @@ All fields are required, and they are all dropdowns.
 
 At the bottom of this section, there is a button "Download Package". Upon clicking this button, the user should be able to download all the assets in a zip file. The button is disabled until user completes all the fields in Section 2.
 
+# Extension plan :
+## Step 1 : Setup Backend + User Login
+### Tasks : 
+	1. create a postgres database and create a python (FastAPI) backend to integrate with the front
+	2. create user table with username, password, email, role
+		- role can be either Admin or User
+	3. create 2 default users : (admin, admin@designer-panel.com, passwd=des!gnPanel321) (user, user@designer-panel.com) 
+	4. create login page, and make the app accessible only for logged in users.
+

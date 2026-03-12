@@ -2,3 +2,5 @@ node_modules/
 dist/
 *.code-workspace
 dev-resources/
+venv/
+__pycache__/

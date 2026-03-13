@@ -4,3 +4,5 @@ dist/
 dev-resources/
 venv/
 __pycache__/
+read_pdf.py
+.pytest_cache/

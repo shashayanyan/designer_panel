@@ -53,7 +53,7 @@ The backend logic and authentication are handled via FastAPI.
    ```bash
    alembic upgrade head
    ```
-5. Seed the database with default user accounts:
+5. Seed the database with default user accounts, and populate the database with master data from the Excel sheets:
    ```bash
    python seed.py
    ```

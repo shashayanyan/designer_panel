@@ -72,3 +72,32 @@ At the bottom of this section, there is a button "Download Package". Upon clicki
 	3. create 2 default users : (admin, admin@designer-panel.com, passwd=des!gnPanel321) (user, user@designer-panel.com) 
 	4. create login page, and make the app accessible only for logged in users.
 
+## Step 2: Dynamic Frontend-Backend Configuration Engine
+### Purpose:
+Transition the application from static, hard-coded React mockups (like `BoosterSetPage.jsx`) into a fully dynamic configurator. The backend will become the "Single Source of Truth" (SSOT) serving Master Data, cascading rule logic, and real-time document payload generation (The Digital Twin). The frontend will evolve to fetch parameters on-the-fly, rendering UI inputs dynamically based on what the backend dictates, and ultimately retrieving custom-generated `.zip` deliverables rather than fetching static `/public/documents/*` assets.
+
+### Frontend-Backend Relationship Architecture:
+1. **Master Data Sourcing:** Frontend dropdowns (Series, Power, etc.) should **not** exist in React state objects. When a user opens an application page, the frontend calls the backend `GET /api/v1/series`, `GET /api/v1/starter-options`, etc., to populate the UI.
+2. **Cascading Constraints:** When a user selects a primary input (e.g., `Type of Motor Start: VFD`), the frontend must query the backend to filter subsequent inputs (e.g., only show `Motor Power` options that the DB confirms exist for VFDs).
+3. **The Digital Twin Payload:** The frontend form state collapses into a single JSON `DigitalTwinRequest`. This is POSTed to the backend, which runs the engineering math (evaluating `Enclosure_Rules`, quantity multipliers, etc.).
+4. **Dynamic Asset Generation:** The backend natively assembles Excel Documents (BOM, IO Params) and Word Documents (Specs) using `pandas` and `python-docx` strictly from the Twin DNA, grouping them via an in-memory `zipfile` stream. The frontend receives this binary stream and triggers the browser download, bypassing the static `public` folder entirely.
+
+### Tasks to Execute:
+1. **Purge Static Mock Data**: 
+   - Delete the hardcoded `CONFIG_OPTIONS` dictionary inside `BoosterSetPage.jsx` and similarly structured pages.
+   - Delete all static `.xlsx`, `.txt`, and `.docx` template files from the `public/documents/booster-set` folder.
+2. **Hook up React `useEffect` Queries**:
+   - Implement frontend data fetching using `axios` or `fetch` against the `master_data.py` FastAPI endpoints to populate the React Selection state.
+   - Establish dependency checks (e.g., `useEffect` listening to `config.motorStart` to re-fetch/filter the `motorPower` dropdown).
+3. **Refactor the Download API Call**:
+   - Scrap the client-side `JSZip` logic in `BoosterSetPage`'s `handleDownload()`. 
+   - Replace it with a `fetch` call pointing to `POST /api/v1/engine/generate-package`, passing the form inputs as the JSON body. Await the `application/x-zip-compressed` blob and trigger a standard anchor tag download.
+4. **Abstract to a Universal Configurator Layout (Future phase)**:
+   - Once Booster Sets are tested end-to-end, refactor the page into a generic `DynamicConfiguratorPage.jsx`.
+   - The React page should take an `applicationType` prop to ask the backend, "What schema structure should I display to the user?" allowing for new apps (HVAC, Conveyor) to be added simply by inserting new rows into the Backend Master CSVs without writing new React pages!
+
+### Required Master/Reference Files (To Be Added to Repo):
+To make Universal configurator expansion possible in the long term, the backend needs mapping tables defining how different Apps consume rules:
+- **`Applications.csv`:** A master sheet defining available App domains (e.g., ID: `APP-001`, Name: `Water Booster Set`, Root_Config_Requirements: `[motor_power, load_count, ats_included]`). 
+- **`Application_Input_Schema.csv`:** A reference dictionary mapping which UI form options the frontend should render for each specific `Application_ID`. (e.g., Booster sets require "Pumps", while HVAC requires "Fans").
+- **SVG Coordinate Maps (Optional):** If the Single Line Diagram remains dynamic, the backend may need a `DrawingTemplate.csv` outputting the specific SVG node structures coordinates/types to draw, letting React act strictly as a dumb SVG renderer.

@@ -1,5 +1,5 @@
-from pydantic import BaseModel, EmailStr
-from .models import Role
+from pydantic import BaseModel, EmailStr, ConfigDict
+from ..models import Role
 
 class UserBase(BaseModel):
     username: str
@@ -13,8 +13,7 @@ class UserResponse(UserBase):
     id: int
     role: Role
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class Token(BaseModel):
     access_token: str

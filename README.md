@@ -1,6 +1,6 @@
 # Designer Panel
 
-The Designer Panel is an internal tool to automate the process of specification projects for design engineers and firms. It allows users to configure a project setup, select parameters (e.g., number of incomers, pumps, motor power), visualize the design instantly, and download relevant assets like data sheets and drawings.
+The Designer Panel is an internal tool to automate the process of specification projects for design engineers and firms. It allows users to configure a project setup, select parameters (e.g., number of pumps, motor power), visualize the design instantly via a dynamic Single Line Diagram, and download a comprehensive asset package including data sheets, engineering specifications, and BIM objects (IFC).
 
 ## Technology Stack
 - **Frontend**: React + Vite + Custom CSS

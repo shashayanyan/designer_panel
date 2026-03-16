@@ -150,3 +150,36 @@ class AccessoryRule(Base):
     design_basis = Column(String)
     lookup_key = Column(String)
     engineering_note = Column(String)
+
+class ApplicationIOTemplate(Base):
+    __tablename__ = "application_io_template"
+    id = Column(Integer, primary_key=True, index=True)
+    application_id = Column(String)
+    tag_template = Column(String)
+    description = Column(String)
+    signal_type = Column(String)
+    interface = Column(String)
+    is_per_load = Column(Boolean)
+    required_communication_mode = Column(String)
+    alarm_linked = Column(String)
+
+class ApplicationAlarmTemplate(Base):
+    __tablename__ = "application_alarm_template"
+    id = Column(Integer, primary_key=True, index=True)
+    application_id = Column(String)
+    alarm_code_template = Column(String)
+    tag_source_template = Column(String)
+    condition = Column(String)
+    priority = Column(String)
+    is_per_load = Column(Boolean)
+    operator_message = Column(String)
+
+class ApplicationOptionMatrix(Base):
+    __tablename__ = "application_option_matrix"
+    id = Column(Integer, primary_key=True, index=True)
+    application_id = Column(String)
+    option_category = Column(String)
+    option_name = Column(String)
+    is_base_or_optional = Column(String)
+    spec_text_hint = Column(String)
+    engineering_notes = Column(String)

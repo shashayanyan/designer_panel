@@ -41,9 +41,15 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
     # Add components from Twin
     for comp in twin.components:
         row_cells = table.add_row().cells
-        row_cells[0].text = comp.item_category
+        row_cells[0].text = comp.description or comp.item_category
         row_cells[1].text = comp.part_number
         row_cells[2].text = str(comp.qty)
+        
+    if getattr(twin, 'bypass_contactor_part_number', None):
+        row_cells = table.add_row().cells
+        row_cells[0].text = "Bypass Contactor"
+        row_cells[1].text = twin.bypass_contactor_part_number
+        row_cells[2].text = str(twin.load_count)
         
     # Add accessories from Twin
     for acc in twin.accessories:

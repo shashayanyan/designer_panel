@@ -18,7 +18,8 @@ def test_generate_package_returns_valid_zip():
         "series_id": "DOL",
         "motor_power_kw": 0.06,
         "load_count": 1,
-        "ats_included": False
+        "ats_included": False,
+        "selected_assets": ["Data Sheet", "Bill of Materials", "Specification"]
     }
     
     response = client.post("/api/v1/engine/generate-package", json=request_payload)

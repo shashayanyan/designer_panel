@@ -107,6 +107,22 @@ def seed_master_data():
         df_conf_rules_clean.to_sql("configuration_rule", engine, if_exists="append", index=False)
         print("Seeded configuration_rule")
 
+        # Seed new Application Template tables
+        df_io = pd.read_csv(f"{csv_dir}/Application_IO_Templates.csv")
+        df_io_clean = clean_df(df_io, ["application_id", "tag_template", "description", "signal_type", "interface", "is_per_load", "required_communication_mode", "alarm_linked"])
+        df_io_clean.to_sql("application_io_template", engine, if_exists="append", index=False)
+        print("Seeded application_io_template")
+
+        df_alarms = pd.read_csv(f"{csv_dir}/Application_Alarm_Templates.csv")
+        df_alarms_clean = clean_df(df_alarms, ["application_id", "alarm_code_template", "tag_source_template", "condition", "priority", "is_per_load", "operator_message"])
+        df_alarms_clean.to_sql("application_alarm_template", engine, if_exists="append", index=False)
+        print("Seeded application_alarm_template")
+
+        df_options = pd.read_csv(f"{csv_dir}/Application_Option_Matrix.csv")
+        df_options_clean = clean_df(df_options, ["application_id", "option_category", "option_name", "is_base_or_optional", "spec_text_hint", "engineering_notes"])
+        df_options_clean.to_sql("application_option_matrix", engine, if_exists="append", index=False)
+        print("Seeded application_option_matrix")
+
         print("Master Data ingestion completed successfully!")
 
     except Exception as e:

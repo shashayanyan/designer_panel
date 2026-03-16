@@ -1,25 +1,7 @@
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import JSZip from 'jszip'
 import './BoosterSetPage.css'
-
-const CONFIG_OPTIONS = {
-    incomers: { label: 'Number of Incomers', options: ['1', '2'] },
-    pumps: { label: 'Number of Pumps', options: ['2', '3', '4'] },
-    motorPower: {
-        label: 'Motor Power Rate (kW)',
-        options: ['4', '7.5', '11', '15', '22.5', '30', '37', '45'],
-    },
-    motorStart: {
-        label: 'Type of Motor Start',
-        options: ['DOL', 'Star-Delta', 'Soft Starter', 'Variable Speed Drive'],
-    },
-    ipRating: { label: 'IP Rating', options: ['IP23', 'IP54'] },
-    communication: {
-        label: 'Communication',
-        options: ['No', 'ModbusTCP', 'ProfiNet'],
-    },
-}
 
 const ASSET_LIST = [
     'Data Sheet',
@@ -54,13 +36,13 @@ const MotorSymbol = ({ x, y, label, power }) => (
         <circle cx="0" cy="0" r="2" fill="currentColor" />
         <circle cx="10" cy="0" r="2" fill="currentColor" />
         <text x="0" y="50" textAnchor="middle" fontSize="10" fill="#475569" fontFamily="monospace">{label}</text>
-        <text x="0" y="65" textAnchor="middle" fontSize="10" fill="#475569" fontFamily="monospace">{power} kW</text>
+        {power && <text x="0" y="65" textAnchor="middle" fontSize="10" fill="#475569" fontFamily="monospace">{power} kW</text>}
     </g>
 )
 
 const StarterBlock = ({ x, y, type }) => {
     let symbol = null;
-    if (type === 'Variable Speed Drive') {
+    if (type === 'VSD' || type === 'Variable Speed Drive') {
         symbol = (
             <g>
                 <circle cx="0" cy="20" r="10" fill="none" stroke="currentColor" strokeWidth="1" />
@@ -70,7 +52,7 @@ const StarterBlock = ({ x, y, type }) => {
                 <polygon points="1,24 5,26 4,22" fill="currentColor" />
             </g>
         )
-    } else if (type === 'Soft Starter') {
+    } else if (type === 'SS' || type === 'Soft Starter') {
         symbol = (
             <g>
                 <line x1="-8" y1="20" x2="8" y2="20" stroke="currentColor" strokeWidth="1" />
@@ -79,8 +61,10 @@ const StarterBlock = ({ x, y, type }) => {
                 <line x1="4" y1="25" x2="8" y2="28" stroke="currentColor" strokeWidth="1" />
             </g>
         )
-    } else if (type === 'Star-Delta') {
+    } else if (type === 'YD' || type === 'Star-Delta') {
         symbol = <text x="0" y="24" textAnchor="middle" fontSize="12" fill="currentColor">Y/Δ</text>
+    } else if (type === '') {
+        symbol = null;
     } else {
         // DOL (Contactor + Thermal Overload simplified)
         symbol = (
@@ -105,13 +89,57 @@ function BoosterSetPage() {
     const svgRef = useRef(null)
 
     const [config, setConfig] = useState({
-        incomers: '',
+        incomers: '1',
         pumps: '',
-        motorPower: '',
         motorStart: '',
-        ipRating: '',
+        motorPower: '',
+        ipRating: 'IP54',
         communication: '',
     })
+
+    const [seriesList, setSeriesList] = useState([]);
+    const [starterOptionsList, setStarterOptionsList] = useState([]);
+
+    useEffect(() => {
+        const fetchMasterData = async () => {
+            try {
+                const [seriesRes, startersRes] = await Promise.all([
+                    fetch('/api/v1/series'),
+                    fetch('/api/v1/starter-options')
+                ]);
+                if (seriesRes.ok) setSeriesList(await seriesRes.json());
+                if (startersRes.ok) setStarterOptionsList(await startersRes.json());
+            } catch (error) {
+                console.error("Failed to fetch master data", error);
+            }
+        };
+        fetchMasterData();
+    }, []);
+
+    const dynamicMotorStartOptions = useMemo(() => seriesList.map(s => s.series_id), [seriesList]);
+    const dynamicMotorPowerOptions = useMemo(() => {
+        if (!config.motorStart) return [];
+        // Filter starters by selected series, get unique power ratings, sort them
+        const filtered = starterOptionsList.filter(s => s.series_id === config.motorStart);
+        const uniquePowers = [...new Set(filtered.map(s => s.rated_load_power_kw))];
+        return uniquePowers.sort((a, b) => a - b).map(p => String(p));
+    }, [config.motorStart, starterOptionsList]);
+
+    const CURRENT_CONFIG_OPTIONS = useMemo(() => ({
+        pumps: { label: 'Number of Pumps', options: ['2', '3', '4'] },
+        motorStart: {
+            label: 'Type of Motor Start',
+            options: dynamicMotorStartOptions,
+        },
+        motorPower: {
+            label: 'Motor Power Rate (kW)',
+            options: dynamicMotorPowerOptions,
+        },
+        communication: {
+            label: 'Communication',
+            options: ['No', 'ModbusTCP', 'ProfiNet'],
+        },
+    }), [dynamicMotorStartOptions, dynamicMotorPowerOptions]);
 
     const [selectedAssets, setSelectedAssets] = useState(
         ASSET_LIST.reduce((acc, a) => ({ ...acc, [a]: false }), {})
@@ -123,85 +151,109 @@ function BoosterSetPage() {
     )
 
     const handleConfigChange = (key, value) => {
-        setConfig((prev) => ({ ...prev, [key]: value }))
+        setConfig((prev) => {
+            const nextConfig = { ...prev, [key]: value };
+            // Auto-reset dependent downstream fields when parent changes
+            if (key === 'motorStart') {
+                nextConfig.motorPower = '';
+            }
+            return nextConfig;
+        });
     }
 
     const toggleAsset = (asset) => {
-        setSelectedAssets((prev) => ({ ...prev, [asset]: !prev[asset] }))
-    }
+        setSelectedAssets((prev) => ({ ...prev, [asset]: !prev[asset] }));
+    };
+
+    const selectAllAssets = () => {
+        const newState = ASSET_LIST.reduce((acc, a) => ({ ...acc, [a]: true }), {});
+        setSelectedAssets(newState);
+    };
+
+    const clearAllAssets = () => {
+        const newState = ASSET_LIST.reduce((acc, a) => ({ ...acc, [a]: false }), {});
+        setSelectedAssets(newState);
+    };
 
     const handleDownload = async () => {
-        const zip = new JSZip()
-
-        // Dynamically find all files in the booster-set public folder using Vite's import.meta.glob
-        const assetModules = import.meta.glob('/public/documents/booster-set/*.*', { query: '?url' })
-        const filesToFetch = Object.keys(assetModules).map(path => path.split('/').pop())
-
-        for (const fileName of filesToFetch) {
-            try {
-                const response = await fetch(`/documents/booster-set/${fileName}`)
-                if (response.ok) {
-                    const blob = await response.blob()
-                    zip.file(fileName, blob)
-                } else {
-                    console.error(`Failed to fetch ${fileName}`)
-                }
-            } catch (e) {
-                console.error(`Error fetching ${fileName}:`, e)
-            }
-        }
-
-        if (svgRef.current) {
-            const svgData = new XMLSerializer().serializeToString(svgRef.current)
-            zip.file("SingleLineDiagram.svg", svgData)
-
-            // Generate PNG
-            await new Promise((resolve) => {
-                const canvas = document.createElement("canvas")
-                // Use the viewBox dimensions of the SVG
-                canvas.width = 900
-                canvas.height = 550
-                const ctx = canvas.getContext("2d")
-
-                const img = new Image()
-                const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" })
-                const url = URL.createObjectURL(svgBlob)
-
-                img.onload = () => {
-                    ctx.fillStyle = "white"
-                    ctx.fillRect(0, 0, canvas.width, canvas.height)
-                    ctx.drawImage(img, 0, 0)
-                    canvas.toBlob((blob) => {
-                        if (blob) {
-                            zip.file("SingleLineDiagram.png", blob)
-                        }
-                        URL.revokeObjectURL(url)
-                        resolve()
-                    }, "image/png")
-                }
-
-                img.onerror = () => {
-                    console.error("Failed to render SVG to PNG")
-                    URL.revokeObjectURL(url)
-                    resolve() // Resolve anyway to proceed with ZIP generation
-                }
-                img.src = url
-            })
-        }
-
         try {
-            const zipBlob = await zip.generateAsync({ type: "blob" })
-            const url = URL.createObjectURL(zipBlob)
+            const ats_included = config.incomers === '2';
+            const requestPayload = {
+                series_id: config.motorStart,
+                motor_power_kw: parseFloat(config.motorPower),
+                load_count: parseInt(config.pumps),
+                ats_included: ats_included,
+                communication: config.communication,
+                selected_assets: Object.keys(selectedAssets).filter(k => selectedAssets[k])
+            };
+
+            const response = await fetch('/api/v1/engine/generate-package', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestPayload)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                console.error("Engine generation failed:", errorData);
+                alert("Failed to generate package. Valid configuration might not exist for these parameters.");
+                return;
+            }
+
+            const backendZipBlob = await response.blob();
+            // Load backend zip into JSZip to optionally append the UI Single Line Diagram
+            const zip = await JSZip.loadAsync(backendZipBlob);
+
+            if (svgRef.current) {
+                const svgData = new XMLSerializer().serializeToString(svgRef.current)
+                zip.file("Docs/SingleLineDiagram.svg", svgData)
+
+                // Generate PNG
+                await new Promise((resolve) => {
+                    const canvas = document.createElement("canvas")
+                    // Use the viewBox dimensions of the SVG
+                    canvas.width = 900
+                    canvas.height = 550
+                    const ctx = canvas.getContext("2d")
+
+                    const img = new Image()
+                    const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" })
+                    const url = URL.createObjectURL(svgBlob)
+
+                    img.onload = () => {
+                        ctx.fillStyle = "white"
+                        ctx.fillRect(0, 0, canvas.width, canvas.height)
+                        ctx.drawImage(img, 0, 0)
+                        canvas.toBlob((blob) => {
+                            if (blob) {
+                                zip.file("Docs/SingleLineDiagram.png", blob)
+                            }
+                            URL.revokeObjectURL(url)
+                            resolve()
+                        }, "image/png")
+                    }
+
+                    img.onerror = () => {
+                        console.error("Failed to render SVG to PNG")
+                        URL.revokeObjectURL(url)
+                        resolve() // Resolve anyway to proceed with ZIP generation
+                    }
+                    img.src = url
+                })
+            }
+
+            const finalZipBlob = await zip.generateAsync({ type: "blob" })
+            const url = URL.createObjectURL(finalZipBlob)
             const a = document.createElement('a')
             a.href = url
-            a.download = "WaterBooster-3-Pumps-30kW-Asset-Pack.zip"
+            a.download = `WaterBooster-${config.pumps}-Pumps-${config.motorPower}kW-Asset-Pack.zip`
             document.body.appendChild(a)
             a.click()
             document.body.removeChild(a)
             URL.revokeObjectURL(url)
         } catch (e) {
             console.error("Error generating zip:", e)
-            alert("Failed to generate zip file.")
+            alert("An error occurred while generating the package.")
         }
     }
 
@@ -249,7 +301,7 @@ function BoosterSetPage() {
                     <section className="booster__config glass-card fade-in fade-in-delay-1">
                         <h2 className="booster__section-title">Configuration</h2>
                         <div className="booster__fields">
-                            {Object.entries(CONFIG_OPTIONS).map(([key, { label, options }]) => (
+                            {Object.entries(CURRENT_CONFIG_OPTIONS).map(([key, { label, options }]) => (
                                 <div className="booster__field" key={key}>
                                     <label className="booster__label" htmlFor={`config-${key}`}>
                                         {label}
@@ -259,9 +311,10 @@ function BoosterSetPage() {
                                         className="booster__select"
                                         value={config[key]}
                                         onChange={(e) => handleConfigChange(key, e.target.value)}
+                                        disabled={options.length === 0}
                                     >
                                         <option value="" disabled>
-                                            Select…
+                                            {options.length === 0 ? "Pending..." : "Select…"}
                                         </option>
                                         {options.map((opt) => (
                                             <option key={opt} value={opt}>
@@ -278,11 +331,11 @@ function BoosterSetPage() {
                             style={{ marginTop: 'var(--space-md)', width: '100%' }}
                             id="btn-reset-config"
                             onClick={() => setConfig({
-                                incomers: '',
+                                incomers: '1',
                                 pumps: '',
                                 motorPower: '',
                                 motorStart: '',
-                                ipRating: '',
+                                ipRating: 'IP54',
                                 communication: '',
                             })}
                         >
@@ -297,22 +350,14 @@ function BoosterSetPage() {
                             <button
                                 className="btn-secondary"
                                 id="btn-select-all"
-                                onClick={() => {
-                                    ASSET_LIST.forEach((asset) => {
-                                        setSelectedAssets((prev) => ({ ...prev, [asset]: true }))
-                                    })
-                                }}
+                                onClick={selectAllAssets}
                             >
                                 Select All
                             </button>
                             <button
                                 className="btn-secondary"
                                 id="btn-clear-selection"
-                                onClick={() => {
-                                    ASSET_LIST.forEach((asset) => {
-                                        setSelectedAssets((prev) => ({ ...prev, [asset]: false }))
-                                    })
-                                }}
+                                onClick={clearAllAssets}
                             >
                                 Clear All
                             </button>
@@ -347,7 +392,7 @@ function BoosterSetPage() {
 
                     {/* Selection bubbles bar */}
                     <div className="booster__bubbles-bar">
-                        {Object.entries(CONFIG_OPTIONS).map(([key, { label }]) => {
+                        {Object.entries(CURRENT_CONFIG_OPTIONS).map(([key, { label }]) => {
                             const value = config[key]
                             const hasFilled = value !== ''
 
@@ -371,152 +416,137 @@ function BoosterSetPage() {
 
                     {/* Diagram area */}
                     <div className="booster__diagram-canvas">
-                        {!allFieldsFilled ? (
-                            <div className="booster__diagram-placeholder">
-                                <div className="booster__diagram-placeholder-icon">⚡</div>
-                                <p>Complete the configuration to see the diagram</p>
-                            </div>
-                        ) : (
-                            <svg ref={svgRef} viewBox="0 0 900 550" className="booster__svg" xmlns="http://www.w3.org/2000/svg" style={{ minWidth: '800px', backgroundColor: 'white' }}>
-                                <g stroke="#0f172a" fill="#0f172a">
+                        <svg ref={svgRef} viewBox="0 0 900 550" className="booster__svg" xmlns="http://www.w3.org/2000/svg" style={{ minWidth: '800px', backgroundColor: 'white' }}>
+                            <g stroke="#0f172a" fill="#0f172a">
 
-                                    {/* --- 1. Main Busbars (4 Wires: L1, L2, L3, PE) --- */}
-                                    <line x1="50" y1={busLines[0]} x2="850" y2={busLines[0]} strokeWidth="2" />
-                                    <line x1="50" y1={busLines[1]} x2="850" y2={busLines[1]} strokeWidth="2" />
-                                    <line x1="50" y1={busLines[2]} x2="850" y2={busLines[2]} strokeWidth="2" />
-                                    <line x1="50" y1={busLines[3]} x2="850" y2={busLines[3]} strokeWidth="2" strokeDasharray="8 4" stroke="#16a34a" />
+                                {/* --- 1. Main Busbars (4 Wires: L1, L2, L3, PE) --- */}
+                                <line x1="50" y1={busLines[0]} x2="850" y2={busLines[0]} strokeWidth="2" />
+                                <line x1="50" y1={busLines[1]} x2="850" y2={busLines[1]} strokeWidth="2" />
+                                <line x1="50" y1={busLines[2]} x2="850" y2={busLines[2]} strokeWidth="2" />
+                                <line x1="50" y1={busLines[3]} x2="850" y2={busLines[3]} strokeWidth="2" strokeDasharray="8 4" stroke="#16a34a" />
 
-                                    <text x="30" y={busLines[0] + 4} fontSize="10" fontFamily="monospace">L1</text>
-                                    <text x="30" y={busLines[1] + 4} fontSize="10" fontFamily="monospace">L2</text>
-                                    <text x="30" y={busLines[2] + 4} fontSize="10" fontFamily="monospace">L3</text>
-                                    <text x="30" y={busLines[3] + 4} fontSize="10" fontFamily="monospace" fill="#16a34a">PE</text>
+                                <text x="30" y={busLines[0] + 4} fontSize="10" fontFamily="monospace">L1</text>
+                                <text x="30" y={busLines[1] + 4} fontSize="10" fontFamily="monospace">L2</text>
+                                <text x="30" y={busLines[2] + 4} fontSize="10" fontFamily="monospace">L3</text>
+                                <text x="30" y={busLines[3] + 4} fontSize="10" fontFamily="monospace" fill="#16a34a">PE</text>
 
-                                    {/* --- 2. Incomers --- */}
-                                    {Array.from({ length: incomerCount }).map((_, i) => {
-                                        const xPos = 120 + (i * 120);
-                                        return (
-                                            <g key={`incomer-${i}`}>
-                                                {/* Incoming lines from top */}
-                                                <line x1={xPos - 10} y1="40" x2={xPos - 10} y2="60" strokeWidth="1.5" />
-                                                <line x1={xPos} y1="40" x2={xPos} y2="60" strokeWidth="1.5" />
-                                                <line x1={xPos + 10} y1="40" x2={xPos + 10} y2="60" strokeWidth="1.5" />
+                                {/* --- 2. Incomers --- */}
+                                {Array.from({ length: 1 }).map((_, i) => {
+                                    const xPos = 120 + (i * 120);
+                                    return (
+                                        <g key={`incomer-${i}`}>
+                                            {/* Incoming lines from top */}
+                                            <line x1={xPos - 10} y1="40" x2={xPos - 10} y2="60" strokeWidth="1.5" />
+                                            <line x1={xPos} y1="40" x2={xPos} y2="60" strokeWidth="1.5" />
+                                            <line x1={xPos + 10} y1="40" x2={xPos + 10} y2="60" strokeWidth="1.5" />
 
-                                                <CircuitBreaker x={xPos} y={60} label={`QF${i + 1}`} />
+                                            <CircuitBreaker x={xPos} y={60} label={`QF${i + 1}`} />
 
-                                                {/* Connecting to Busbars */}
-                                                <line x1={xPos - 10} y1="90" x2={xPos - 10} y2={busLines[0]} strokeWidth="1.5" />
-                                                <line x1={xPos} y1="90" x2={xPos} y2={busLines[1]} strokeWidth="1.5" />
-                                                <line x1={xPos + 10} y1="90" x2={xPos + 10} y2={busLines[2]} strokeWidth="1.5" />
+                                            {/* Connecting to Busbars */}
+                                            <line x1={xPos - 10} y1="90" x2={xPos - 10} y2={busLines[0]} strokeWidth="1.5" />
+                                            <line x1={xPos} y1="90" x2={xPos} y2={busLines[1]} strokeWidth="1.5" />
+                                            <line x1={xPos + 10} y1="90" x2={xPos + 10} y2={busLines[2]} strokeWidth="1.5" />
 
-                                                <circle cx={xPos - 10} cy={busLines[0]} r="3" />
-                                                <circle cx={xPos} cy={busLines[1]} r="3" />
-                                                <circle cx={xPos + 10} cy={busLines[2]} r="3" />
-                                            </g>
-                                        )
-                                    })}
-
-                                    {/* ATS / ABP Interlock if 2 Incomers */}
-                                    {incomerCount === 2 && (
-                                        <g>
-                                            <line x1="140" y1="70" x2="220" y2="70" strokeWidth="1.5" strokeDasharray="4 4" />
-                                            <rect x="165" y="62" width="30" height="16" fill="white" stroke="#0f172a" strokeWidth="1.5" />
-                                            <text x="180" y="74" textAnchor="middle" fontSize="10" fontFamily="sans-serif">ATS</text>
+                                            <circle cx={xPos - 10} cy={busLines[0]} r="3" />
+                                            <circle cx={xPos} cy={busLines[1]} r="3" />
+                                            <circle cx={xPos + 10} cy={busLines[2]} r="3" />
                                         </g>
-                                    )}
+                                    )
+                                })}
 
-                                    {/* --- 3. Pump Feeders --- */}
-                                    {Array.from({ length: pumpCount }).map((_, i) => {
-                                        const xPos = 400 + (i * 130);
-                                        return (
-                                            <g key={`pump-${i}`}>
-                                                {/* Tap off from Busbars */}
-                                                <circle cx={xPos - 10} cy={busLines[0]} r="3" />
-                                                <circle cx={xPos} cy={busLines[1]} r="3" />
-                                                <circle cx={xPos + 10} cy={busLines[2]} r="3" />
+                                {/* --- 3. Pump Feeders --- */}
+                                {Array.from({ length: pumpCount || 2 }).map((_, i) => {
+                                    const xPos = 400 + (i * 130);
+                                    return (
+                                        <g key={`pump-${i}`}>
+                                            {/* Tap off from Busbars */}
+                                            <circle cx={xPos - 10} cy={busLines[0]} r="3" />
+                                            <circle cx={xPos} cy={busLines[1]} r="3" />
+                                            <circle cx={xPos + 10} cy={busLines[2]} r="3" />
 
-                                                <line x1={xPos - 10} y1={busLines[0]} x2={xPos - 10} y2="200" strokeWidth="1.5" />
-                                                <line x1={xPos} y1={busLines[1]} x2={xPos} y2="200" strokeWidth="1.5" />
-                                                <line x1={xPos + 10} y1={busLines[2]} x2={xPos + 10} y2="200" strokeWidth="1.5" />
+                                            <line x1={xPos - 10} y1={busLines[0]} x2={xPos - 10} y2="200" strokeWidth="1.5" />
+                                            <line x1={xPos} y1={busLines[1]} x2={xPos} y2="200" strokeWidth="1.5" />
+                                            <line x1={xPos + 10} y1={busLines[2]} x2={xPos + 10} y2="200" strokeWidth="1.5" />
 
-                                                {/* Feeder Circuit Breaker */}
-                                                <CircuitBreaker x={xPos} y={200} label={`QM${i + 1}`} />
+                                            {/* Feeder Circuit Breaker */}
+                                            <CircuitBreaker x={xPos} y={200} label={`QM${i + 1}`} />
 
-                                                {/* Lines to Starter */}
-                                                <line x1={xPos - 10} y1="230" x2={xPos - 10} y2="260" strokeWidth="1.5" />
-                                                <line x1={xPos} y1="230" x2={xPos} y2="260" strokeWidth="1.5" />
-                                                <line x1={xPos + 10} y1="230" x2={xPos + 10} y2="260" strokeWidth="1.5" />
+                                            {/* Lines to Starter */}
+                                            <line x1={xPos - 10} y1="230" x2={xPos - 10} y2="260" strokeWidth="1.5" />
+                                            <line x1={xPos} y1="230" x2={xPos} y2="260" strokeWidth="1.5" />
+                                            <line x1={xPos + 10} y1="230" x2={xPos + 10} y2="260" strokeWidth="1.5" />
 
-                                                {/* Motor Starter */}
-                                                <StarterBlock x={xPos} y={260} type={config.motorStart} />
+                                            {/* Motor Starter */}
+                                            <StarterBlock x={xPos} y={260} type={config.motorStart} />
 
-                                                {/* Lines to Motor */}
-                                                <line x1={xPos - 10} y1="300" x2={xPos - 10} y2="340" strokeWidth="1.5" />
-                                                <line x1={xPos} y1="300" x2={xPos} y2="340" strokeWidth="1.5" />
-                                                <line x1={xPos + 10} y1="300" x2={xPos + 10} y2="340" strokeWidth="1.5" />
+                                            {/* Lines to Motor */}
+                                            <line x1={xPos - 10} y1="300" x2={xPos - 10} y2="340" strokeWidth="1.5" />
+                                            <line x1={xPos} y1="300" x2={xPos} y2="340" strokeWidth="1.5" />
+                                            <line x1={xPos + 10} y1="300" x2={xPos + 10} y2="340" strokeWidth="1.5" />
 
-                                                {/* Motor */}
-                                                <MotorSymbol x={xPos} y={340} label={`Pump ${i + 1}`} power={config.motorPower} />
+                                            {/* Motor */}
+                                            <MotorSymbol x={xPos} y={340} label={`Pump ${i + 1}`} power={config.motorPower} />
 
-                                                {/* PE / Ground connection from Motor to Busbar 4 */}
-                                                <line x1={xPos - 16} y1={360} x2={xPos - 30} y2={360} stroke="#16a34a" strokeWidth="1.5" />
-                                                <line x1={xPos - 30} y1={360} x2={xPos - 30} y2={busLines[3]} stroke="#16a34a" strokeWidth="1.5" strokeDasharray="4 2" />
-                                                <circle cx={xPos - 30} cy={busLines[3]} r="3" fill="#16a34a" />
-                                            </g>
-                                        )
-                                    })}
-                                    {/* --- 4. Communication Bus (Dashed Data Network) --- */}
-                                    {config.communication !== 'No' && (
-                                        <g>
-                                            {/* Main Comm Bus Line */}
-                                            <line x1="50" y1="460" x2="850" y2="460" stroke="#8b5cf6" strokeWidth="1.5" strokeDasharray="6 4" />
-                                            <text x="60" y="455" fontSize="10" fill="#8b5cf6" fontFamily="monospace" fontWeight="bold">
-                                                {config.communication} Network
-                                            </text>
-
-                                            {/* Connections from Comm Bus to each Starter */}
-                                            {Array.from({ length: pumpCount }).map((_, i) => {
-                                                const xPos = 400 + (i * 130);
-                                                // The starter block is 36px wide (-18 to +18). We connect to the right side of it.
-                                                return (
-                                                    <g key={`comm-link-${i}`}>
-                                                        <line x1={xPos + 18} y1="280" x2={xPos + 18} y2="460" stroke="#8b5cf6" strokeWidth="1" strokeDasharray="3 3" />
-                                                        <circle cx={xPos + 18} cy="460" r="3" fill="#8b5cf6" />
-                                                        <circle cx={xPos + 18} cy="280" r="2" fill="#8b5cf6" />
-                                                    </g>
-                                                )
-                                            })}
+                                            {/* PE / Ground connection from Motor to Busbar 4 */}
+                                            <line x1={xPos - 16} y1={360} x2={xPos - 30} y2={360} stroke="#16a34a" strokeWidth="1.5" />
+                                            <line x1={xPos - 30} y1={360} x2={xPos - 30} y2={busLines[3]} stroke="#16a34a" strokeWidth="1.5" strokeDasharray="4 2" />
+                                            <circle cx={xPos - 30} cy={busLines[3]} r="3" fill="#16a34a" />
                                         </g>
-                                    )}
+                                    )
+                                })}
 
-                                    {/* --- 5. Standard Title Block (Bottom Right) --- */}
-                                    <g transform="translate(670, 480)">
-                                        {/* Outer Box */}
-                                        <rect x="0" y="0" width="200" height="50" fill="#ffffff" stroke="#0f172a" strokeWidth="1.5" />
-
-                                        {/* Dividers */}
-                                        <line x1="0" y1="25" x2="200" y2="25" stroke="#0f172a" strokeWidth="1" />
-                                        <line x1="90" y1="25" x2="90" y2="50" stroke="#0f172a" strokeWidth="1" />
-
-                                        {/* Top Row: Title */}
-                                        <text x="8" y="16" fontSize="11" fontFamily="sans-serif" fontWeight="600" fill="#0f172a">
-                                            Schematic Diagram
+                                {/* --- 4. Communication Bus (Dashed Data Network) --- */}
+                                {config.communication !== 'No' && config.communication !== '' && (
+                                    <g>
+                                        {/* Main Comm Bus Line */}
+                                        <line x1="50" y1="460" x2="850" y2="460" stroke="#8b5cf6" strokeWidth="1.5" strokeDasharray="6 4" />
+                                        <text x="60" y="455" fontSize="10" fill="#8b5cf6" fontFamily="monospace" fontWeight="bold">
+                                            {config.communication} Network
                                         </text>
 
-                                        {/* Bottom Left: IP Rating */}
-                                        <text x="8" y="38" fontSize="8" fill="#475569" fontFamily="sans-serif">IP Rating:</text>
-                                        <text x="50" y="40" fontSize="10" fontWeight="bold" fill="#0f172a" fontFamily="sans-serif">
-                                            {config.ipRating}
-                                        </text>
-
-                                        {/* Bottom Right: Control Type */}
-                                        <text x="98" y="38" fontSize="8" fill="#475569" fontFamily="sans-serif">Control:</text>
-                                        <text x="135" y="40" fontSize="10" fontWeight="bold" fill="#0f172a" fontFamily="sans-serif">
-                                            {config.communication === 'No' ? 'Hardwired' : 'Network'}
-                                        </text>
+                                        {/* Connections from Comm Bus to each Starter */}
+                                        {Array.from({ length: pumpCount || 2 }).map((_, i) => {
+                                            const xPos = 400 + (i * 130);
+                                            // The starter block is 36px wide (-18 to +18). We connect to the right side of it.
+                                            return (
+                                                <g key={`comm-link-${i}`}>
+                                                    <line x1={xPos + 18} y1="280" x2={xPos + 18} y2="460" stroke="#8b5cf6" strokeWidth="1" strokeDasharray="3 3" />
+                                                    <circle cx={xPos + 18} cy="460" r="3" fill="#8b5cf6" />
+                                                    <circle cx={xPos + 18} cy="280" r="2" fill="#8b5cf6" />
+                                                </g>
+                                            )
+                                        })}
                                     </g>
+                                )}
+
+                                {/* --- 5. Standard Title Block (Bottom Right) --- */}
+                                <g transform="translate(670, 480)">
+                                    {/* Outer Box */}
+                                    <rect x="0" y="0" width="200" height="50" fill="#ffffff" stroke="#0f172a" strokeWidth="1.5" />
+
+                                    {/* Dividers */}
+                                    <line x1="0" y1="25" x2="200" y2="25" stroke="#0f172a" strokeWidth="1" />
+                                    <line x1="90" y1="25" x2="90" y2="50" stroke="#0f172a" strokeWidth="1" />
+
+                                    {/* Top Row: Title */}
+                                    <text x="8" y="16" fontSize="11" fontFamily="sans-serif" fontWeight="600" fill="#0f172a">
+                                        Schematic Diagram
+                                    </text>
+
+                                    {/* Bottom Left: IP Rating */}
+                                    <text x="8" y="38" fontSize="8" fill="#475569" fontFamily="sans-serif">IP Rating:</text>
+                                    <text x="50" y="40" fontSize="10" fontWeight="bold" fill="#0f172a" fontFamily="sans-serif">
+                                        {config.ipRating}
+                                    </text>
+
+                                    {/* Bottom Right: Control Type */}
+                                    <text x="98" y="38" fontSize="8" fill="#475569" fontFamily="sans-serif">Control:</text>
+                                    <text x="135" y="40" fontSize="10" fontWeight="bold" fill="#0f172a" fontFamily="sans-serif">
+                                        {config.communication === 'No' ? 'Hardwired' : 'Network'}
+                                    </text>
                                 </g>
-                            </svg>
-                        )}
+                            </g>
+                        </svg>
                     </div>
                 </section>
             </div>

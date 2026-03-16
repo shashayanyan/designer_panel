@@ -11,7 +11,10 @@ from ..schemas.configurator import (
     DigitalTwinResponse,
     TwinComponent,
     TwinAccessory,
-    TwinEnclosure
+    TwinEnclosure,
+    TwinIO,
+    TwinAlarm,
+    TwinOption
 )
 
 class MathSafeParser:
@@ -80,6 +83,20 @@ class ConfigurationEngine:
 
         # 2. Extract base core components
         components = []
+        
+        # Determine Core Device Type based on Series
+        core_type = ""
+        core_part = ""
+        if request.series_id == "VSD":
+            core_type = "Variable Speed Drive"
+            # As a simplified placeholder until 'drive_part_number' is formally in StarterOption, we infer it or leave blank:
+            core_part = getattr(starter, 'drive_part_number', 'VSD-PENDING-MASTER-DATA')
+            components.append(TwinComponent(item_category="Core Device", part_number=core_part, description=core_type, qty=Decimal(request.load_count)))
+        elif request.series_id == "SS":
+            core_type = "Soft Starter"
+            core_part = getattr(starter, 'soft_starter_part_number', 'SS-PENDING-MASTER-DATA')
+            components.append(TwinComponent(item_category="Core Device", part_number=core_part, description=core_type, qty=Decimal(request.load_count)))
+
         if starter.magnetic_cb_part_number:
             components.append(TwinComponent(
                 item_category="Magnetic CB", 
@@ -191,7 +208,97 @@ class ConfigurationEngine:
             components=components,
             accessories=accessories,
             drawing_template_id=dt_id,
-            notes=config_rule.rationale if config_rule else None
+            notes=config_rule.rationale if config_rule else None,
+            communication=request.communication,
+            bypass_strategy=getattr(starter, 'bypass_strategy', 'None'),
+            bypass_contactor_part_number=getattr(starter, 'bypass_contactor_part_number', None),
+            selected_assets=request.selected_assets
         )
+
+        # 8. Resolve Application-Specific Templates (IO, Alarms, Options)
+        app_id = "APP-WATER-BOOSTER" # Fixed for this specific application page
+        
+        # 8a. IO Templates -> Network Plan
+        io_templates = self.db.query(models.ApplicationIOTemplate).filter(
+            models.ApplicationIOTemplate.application_id == app_id
+        ).all()
+        
+        network_plan = []
+        for iot in io_templates:
+            # Filter by communication mode if required
+            if iot.required_communication_mode and iot.required_communication_mode != request.communication:
+                continue
+            
+            if iot.is_per_load:
+                for i in range(1, request.load_count + 1):
+                    tag = (iot.tag_template or "").replace("{i}", str(i))
+                    desc = (iot.description or "").replace("{i}", str(i))
+                    # Simple IP assignment logic if communication is ModbusTCP
+                    ip = None
+                    if request.communication == "ModbusTCP" and iot.interface == "Modbus TCP":
+                        ip = f"192.168.1.{10 + i}" # Simple sequential assignment starting .11
+                    
+                    network_plan.append(TwinIO(
+                        tag=tag,
+                        description=desc,
+                        signal_type=iot.signal_type,
+                        interface=iot.interface,
+                        ip_address=ip
+                    ))
+            else:
+                network_plan.append(TwinIO(
+                    tag=iot.tag_template,
+                    description=iot.description,
+                    signal_type=iot.signal_type,
+                    interface=iot.interface,
+                    ip_address="192.168.1.10" if request.communication == "ModbusTCP" and iot.interface == "Modbus TCP" else None
+                ))
+        response.network_plan = network_plan
+
+        # 8b. Alarm Templates -> Alarm List
+        alarm_templates = self.db.query(models.ApplicationAlarmTemplate).filter(
+            models.ApplicationAlarmTemplate.application_id == app_id
+        ).all()
+        
+        alarm_list = []
+        for alt in alarm_templates:
+            if alt.is_per_load:
+                for i in range(1, request.load_count + 1):
+                    code = (alt.alarm_code_template or "").replace("{i}", str(i))
+                    source = (alt.tag_source_template or "").replace("{i}", str(i))
+                    msg = (alt.operator_message or "").replace("{i}", str(i))
+                    alarm_list.append(TwinAlarm(
+                        code=code,
+                        source_tag=source,
+                        condition=alt.condition,
+                        priority=alt.priority,
+                        operator_message=msg
+                    ))
+            else:
+                alarm_list.append(TwinAlarm(
+                    code=alt.alarm_code_template,
+                    source_tag=alt.tag_source_template,
+                    condition=alt.condition,
+                    priority=alt.priority,
+                    operator_message=alt.operator_message
+                ))
+        response.alarm_list = alarm_list
+
+        # 8c. Option Matrix Logic
+        option_matrix = self.db.query(models.ApplicationOptionMatrix).filter(
+            models.ApplicationOptionMatrix.application_id == app_id
+        ).all()
+        
+        # In a real engine, we'd filter based on 'selected' options, 
+        # but for now we list the matrix applicable to this twin.
+        response.option_matrix = [
+            TwinOption(
+                category=opt.option_category,
+                name=opt.option_name,
+                is_base=(opt.is_base_or_optional == "Base"),
+                spec_text=opt.spec_text_hint,
+                engineering_notes=opt.engineering_notes
+            ) for opt in option_matrix
+        ]
 
         return response

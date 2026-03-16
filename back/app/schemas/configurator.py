@@ -10,6 +10,8 @@ class DigitalTwinRequest(BaseModel):
     ats_included: bool = Field(False, description="Whether an Auto Transfer Switch is included")
     control_mode: Optional[str] = Field("Local", description="Control modality (Local, Remote, Auto)")
     ip_rating: Optional[str] = Field("IP54", description="Desired enclosure IP rating")
+    communication: Optional[str] = Field("No", description="Network protocol (No, ModbusTCP, ProfiNet)")
+    selected_assets: Optional[List[str]] = Field(default_factory=list, description="Requested documents from the UI checklist")
 
 
 # --- OUTPUT SCHEMAS (DIGITAL TWIN) ---
@@ -30,6 +32,27 @@ class TwinEnclosure(BaseModel):
     dimensions_mm: str = Field(..., description="Format: HxWxD")
     mounting_type: str
 
+class TwinIO(BaseModel):
+    tag: str
+    description: str
+    signal_type: str
+    interface: str
+    ip_address: Optional[str] = None
+
+class TwinAlarm(BaseModel):
+    code: str
+    source_tag: str
+    condition: str
+    priority: str
+    operator_message: str
+
+class TwinOption(BaseModel):
+    category: str
+    name: str
+    is_base: bool
+    spec_text: Optional[str] = None
+    engineering_notes: Optional[str] = None
+
 class DigitalTwinResponse(BaseModel):
     config_id: str = Field(..., description="Unique ID for this configuration result")
     series_id: str
@@ -40,5 +63,14 @@ class DigitalTwinResponse(BaseModel):
     accessories: List[TwinAccessory]
     drawing_template_id: Optional[str] = None
     notes: Optional[str] = None
+    communication: Optional[str] = "No"
+    bypass_strategy: Optional[str] = None
+    bypass_contactor_part_number: Optional[str] = None
+    selected_assets: Optional[List[str]] = None
+    
+    # New Application Data Sheets
+    network_plan: List[TwinIO] = Field(default_factory=list)
+    alarm_list: List[TwinAlarm] = Field(default_factory=list)
+    option_matrix: List[TwinOption] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)

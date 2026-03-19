@@ -17,7 +17,7 @@ describe('LoginPage', () => {
       </BrowserRouter>
     );
     
-    expect(screen.getByPlaceholderText(/email or username/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/username or email/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/password/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /login/i })).toBeInTheDocument();
   });
@@ -36,7 +36,7 @@ describe('LoginPage', () => {
       </BrowserRouter>
     );
 
-    fireEvent.change(screen.getByPlaceholderText(/email or username/i), { target: { value: 'wrong@test.com' } });
+    fireEvent.change(screen.getByPlaceholderText(/username or email/i), { target: { value: 'wrong@test.com' } });
     fireEvent.change(screen.getByPlaceholderText(/password/i), { target: { value: 'badpass' } });
     
     const loginButton = screen.getByRole('button', { name: /login/i });

@@ -15,9 +15,9 @@ def test_generate_package_returns_valid_zip():
     the expected manifest, neutral, and docs files.
     """
     request_payload = {
-        "series_id": "DOL",
-        "motor_power_kw": 0.06,
-        "load_count": 1,
+        "series_id": "TEST_SR",
+        "motor_power_kw": 10.0,
+        "load_count": 2,
         "ats_included": False,
         "selected_assets": ["Data Sheet", "Bill of Materials", "Specification"]
     }
@@ -39,7 +39,7 @@ def test_generate_package_returns_valid_zip():
         
         # 2. Assert manifest is legitimate JSON with expected keys
         manifest_data = json.loads(zf.read("manifest.json").decode("utf-8"))
-        assert manifest_data["series"] == "DOL"
+        assert manifest_data["series"] == "TEST_SR"
         config_id = manifest_data["config_id"]
         
         # 3. Assert Sub-Directories and files exist exactly as architected
@@ -53,5 +53,5 @@ def test_generate_package_returns_valid_zip():
         
         # 4. Light verification of JSON twin extraction
         extracted_twin = json.loads(zf.read(json_path).decode("utf-8"))
-        assert extracted_twin["load_count"] == 1
-        assert extracted_twin["series_id"] == "DOL"
+        assert extracted_twin["load_count"] == 2
+        assert extracted_twin["series_id"] == "TEST_SR"

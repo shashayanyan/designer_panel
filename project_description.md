@@ -1,13 +1,25 @@
 # Project Overview
+**Last Synced:** March 19, 2026
 The project aims to provide a panel for design engineers and design firms to automate the process of specification projects. It allows the users to configure a project setup using different forms and selections and choose different assets to download as a package in the end.
 
 
 # Tech Stack (To be completed)
-- React + Vite (UI)
-- Python + FastAPI + Uvicorn
-- Postgres + Alembic
-- Docker
+- **Frontend**: React + Vite (UI)
+- **Backend**: Python + FastAPI + Uvicorn
+- **Database**: Postgres + Alembic (Production) / SQLite (In-Memory for Testing)
+- **BIM/CAD Generation**: `ifcopenshell` + `numpy`
+- **Testing Infrastructure**: Pytest (Backend API), Vitest + React Testing Library (Frontend UI)
+- **CI/CD Pipeline**: GitHub Actions (Automated verification on `main` branch pushes)
+- **Deployment**: Vercel (Frontend), Google Cloud Run (Backend)
+- **Infrastructure**: Docker
 
+
+# Current Architectural State
+*This section captures the active state of the application's core modules as of the last sync.*
+- **Configuration Engine (`rule_resolver.py`)**: A dynamic ruleset processor that parses complex payload inputs to determine valid enclosure cabinets, logic components, and asset requirements (the "Digital Twin").
+- **Asset Generators (`excel_gen.py`, `word_gen.py`, `bim_gen.py`)**: Dedicated programmatic generators that translate the Digital Twin JSON into Excel sheets, Word Spec Documents, and IFC4X3 compliant BIM objects.
+- **Zip Packaging Service (`zip_service.py`)**: Centralized service that orchestrates all file generators into structured subdirectories (`/Neutral/`, `/Docs/`, `/BIM/`) and streams the final archive out to the user.
+- **Continuous Integration (`ci.yml`)**: An automated gating system ensuring that frontend dependency installations, vitest unit evaluations, and backend fast-sqlite mocked data validations pass cleanly before merging or deployment.
 
 # User Interface
 This is the initial focus of the app for now. The goal is to have a responsive and user-friendly interface that allows users to easily configure their project setup and download the assets they need. Below is a description of pages needed.

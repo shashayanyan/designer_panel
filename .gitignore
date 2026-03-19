@@ -8,3 +8,7 @@ read_pdf.py
 .pytest_cache/
 .env
 seed.py
+.agent
+.agent/
+.agents
+.agents/

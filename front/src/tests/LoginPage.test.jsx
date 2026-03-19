@@ -19,7 +19,7 @@ describe('LoginPage', () => {
     
     expect(screen.getByPlaceholderText(/username or email/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/password/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /login/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
   });
 
   it('shows error on failed login', async () => {
@@ -39,7 +39,7 @@ describe('LoginPage', () => {
     fireEvent.change(screen.getByPlaceholderText(/username or email/i), { target: { value: 'wrong@test.com' } });
     fireEvent.change(screen.getByPlaceholderText(/password/i), { target: { value: 'badpass' } });
     
-    const loginButton = screen.getByRole('button', { name: /login/i });
+    const loginButton = screen.getByRole('button', { name: /sign in/i });
     fireEvent.click(loginButton);
 
     const errorMsg = await screen.findByText(/invalid credentials/i);

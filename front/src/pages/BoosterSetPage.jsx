@@ -84,6 +84,27 @@ const StarterBlock = ({ x, y, type }) => {
     )
 }
 
+const PLCBlock = ({ x, y }) => (
+    <g transform={`translate(${x}, ${y})`}>
+        <rect x="-30" y="0" width="60" height="40" fill="#f8fafc" stroke="currentColor" strokeWidth="1.5" />
+        <text x="0" y="24" textAnchor="middle" fontSize="14" fontWeight="bold" fill="currentColor">PLC</text>
+        <circle cx="-20" cy="40" r="1.5" fill="currentColor" />
+        <circle cx="0" cy="40" r="1.5" fill="currentColor" />
+        <circle cx="20" cy="40" r="1.5" fill="currentColor" />
+    </g>
+)
+
+const SCADABlock = ({ x, y }) => (
+    <g transform={`translate(${x}, ${y})`}>
+        {/* Workstation base */}
+        <line x1="-10" y1="35" x2="10" y2="35" stroke="currentColor" strokeWidth="2" />
+        <line x1="0" y1="35" x2="0" y2="25" stroke="currentColor" strokeWidth="2" />
+        {/* Screen */}
+        <rect x="-25" y="0" width="50" height="30" rx="3" fill="#f8fafc" stroke="currentColor" strokeWidth="1.5" />
+        <text x="0" y="19" textAnchor="middle" fontSize="10" fontWeight="bold" fill="currentColor">SCADA</text>
+    </g>
+)
+
 function BoosterSetPage() {
     const navigate = useNavigate()
     const svgRef = useRef(null)
@@ -95,6 +116,8 @@ function BoosterSetPage() {
         motorPower: '',
         ipRating: 'IP54',
         communication: '',
+        plc: '',
+        scada: '',
     })
 
     const [seriesList, setSeriesList] = useState([]);
@@ -138,6 +161,14 @@ function BoosterSetPage() {
         communication: {
             label: 'Communication',
             options: ['No', 'ModbusTCP', 'ProfiNet'],
+        },
+        scada: {
+            label: 'SCADA',
+            options: ['No', 'YES'],
+        },
+        plc: {
+            label: 'PLC',
+            options: ['No', 'YES'],
         },
     }), [dynamicMotorStartOptions, dynamicMotorPowerOptions]);
 
@@ -184,6 +215,8 @@ function BoosterSetPage() {
                 load_count: parseInt(config.pumps),
                 ats_included: ats_included,
                 communication: config.communication,
+                plc_included: config.plc,
+                scada_included: config.scada,
                 selected_assets: Object.keys(selectedAssets).filter(k => selectedAssets[k])
             };
 
@@ -264,6 +297,13 @@ function BoosterSetPage() {
     const busSpacing = 10;
     const busLines = [busYStart, busYStart + busSpacing, busYStart + busSpacing * 2, busYStart + busSpacing * 4]; // L1, L2, L3, PE(spaced extra)
 
+    // Determine Title Block Control Text
+    let controlText = 'Hardwired';
+    if (config.scada && config.plc) controlText = 'SCADA + PLC';
+    else if (config.scada) controlText = 'SCADA';
+    else if (config.plc) controlText = 'PLC';
+    else if (config.communication !== 'No' && config.communication !== '') controlText = 'Networked';
+
     return (
         <div className="booster">
             {/* ─── Section 1: Header ─── */}
@@ -325,6 +365,7 @@ function BoosterSetPage() {
                                     </select>
                                 </div>
                             ))}
+
                         </div>
                         <button
                             className="btn-reset"
@@ -337,6 +378,8 @@ function BoosterSetPage() {
                                 motorStart: '',
                                 ipRating: 'IP54',
                                 communication: '',
+                                plc: '',
+                                scada: ''
                             })}
                         >
                             Reset
@@ -400,6 +443,11 @@ function BoosterSetPage() {
                             if (key === 'motorPower' && value) displayValue = `${value} kW`
                             if (key === 'incomers' && value) displayValue = `${value} Incomer${value !== '1' ? 's' : ''}`
                             if (key === 'pumps' && value) displayValue = `${value} Pumps`
+                            if (key === 'communication' && value == 'No') displayValue = 'Hardwired'
+                            if (key === 'scada' && value) displayValue = `SCADA`
+                            if (key === 'scada' && value == 'No') displayValue = `No SCADA`
+                            if (key === 'plc' && value) displayValue = `PLC`
+                            if (key === 'plc' && value == 'No') displayValue = `No PLC`
 
                             return (
                                 <div
@@ -495,7 +543,55 @@ function BoosterSetPage() {
                                     )
                                 })}
 
-                                {/* --- 4. Communication Bus (Dashed Data Network) --- */}
+                                {/* --- 4. Control Logic (SCADA & PLC) --- */}
+                                {config.scada && config.scada === 'YES' && (
+                                    <g>
+                                        <SCADABlock x={260} y={260} />
+                                        {/* Connect SCADA to PLC or down to Comm Bus */}
+                                        {config.plc && config.plc === 'YES' ? (
+                                            <line x1="260" y1="295" x2="260" y2="360" stroke="#0ea5e9" strokeWidth="1.5" strokeDasharray="4 2" />
+                                        ) : (
+                                            <g>
+                                                <line x1="260" y1="295" x2="260" y2="460" stroke="#0ea5e9" strokeWidth="1.5" strokeDasharray="4 2" />
+                                                {(config.communication !== 'No' && config.communication !== '') && (
+                                                    <circle cx="260" cy="460" r="3" fill="#8b5cf6" />
+                                                )}
+                                            </g>
+                                        )}
+                                        <text x="265" y="325" fontSize="8" fill="#0ea5e9" fontFamily="monospace">Ethernet</text>
+                                    </g>
+                                )}
+
+                                {config.plc && config.plc === 'YES' && (
+                                    <g>
+                                        <PLCBlock x={260} y={360} />
+                                        {/* Connect PLC to Comm Bus or draw Hardwired I/O Bus */}
+                                        {(config.communication !== 'No' && config.communication !== '') ? (
+                                            <g>
+                                                <line x1="260" y1="400" x2="260" y2="460" stroke="#8b5cf6" strokeWidth="1.5" strokeDasharray="4 2" />
+                                                <circle cx="260" cy="460" r="3" fill="#8b5cf6" />
+                                            </g>
+                                        ) : (
+                                            <g>
+                                                <line x1="260" y1="400" x2="260" y2="460" stroke="#64748b" strokeWidth="1.5" strokeDasharray="4 2" />
+                                                <line x1="260" y1="460" x2="850" y2="460" stroke="#64748b" strokeWidth="1.5" strokeDasharray="4 2" />
+                                                <text x="270" y="455" fontSize="10" fill="#64748b" fontFamily="monospace" fontWeight="bold">Hardwired I/O Bus</text>
+                                                {Array.from({ length: pumpCount || 2 }).map((_, i) => {
+                                                    const xPos = 400 + (i * 130);
+                                                    return (
+                                                        <g key={`hw-link-${i}`}>
+                                                            <line x1={xPos + 18} y1="280" x2={xPos + 18} y2="460" stroke="#64748b" strokeWidth="1" strokeDasharray="4 2" />
+                                                            <circle cx={xPos + 18} cy="460" r="2.5" fill="#64748b" />
+                                                            <circle cx={xPos + 18} cy="280" r="2" fill="#64748b" />
+                                                        </g>
+                                                    )
+                                                })}
+                                            </g>
+                                        )}
+                                    </g>
+                                )}
+
+                                {/* --- 5. Communication Bus (Dashed Data Network) --- */}
                                 {config.communication !== 'No' && config.communication !== '' && (
                                     <g>
                                         {/* Main Comm Bus Line */}
@@ -519,30 +615,41 @@ function BoosterSetPage() {
                                     </g>
                                 )}
 
-                                {/* --- 5. Standard Title Block (Bottom Right) --- */}
+                                {/* --- 6. Standard Title Block (Bottom Right) --- */}
                                 <g transform="translate(670, 480)">
                                     {/* Outer Box */}
-                                    <rect x="0" y="0" width="200" height="50" fill="#ffffff" stroke="#0f172a" strokeWidth="1.5" />
+                                    <rect x="0" y="0" width="200" height="70" fill="#ffffff" stroke="#0f172a" strokeWidth="1.5" />
 
                                     {/* Dividers */}
                                     <line x1="0" y1="25" x2="200" y2="25" stroke="#0f172a" strokeWidth="1" />
-                                    <line x1="90" y1="25" x2="90" y2="50" stroke="#0f172a" strokeWidth="1" />
+                                    <line x1="90" y1="25" x2="90" y2="75" stroke="#0f172a" strokeWidth="1" />
+                                    <line x1="0" y1="48" x2="200" y2="48" stroke="#0f172a" strokeWidth="1" />
 
                                     {/* Top Row: Title */}
                                     <text x="8" y="16" fontSize="11" fontFamily="sans-serif" fontWeight="600" fill="#0f172a">
                                         Schematic Diagram
                                     </text>
 
-                                    {/* Bottom Left: IP Rating */}
+                                    {/* Middle Left: IP Rating */}
                                     <text x="8" y="38" fontSize="8" fill="#475569" fontFamily="sans-serif">IP Rating:</text>
-                                    <text x="50" y="40" fontSize="10" fontWeight="bold" fill="#0f172a" fontFamily="sans-serif">
+                                    <text x="50" y="38" fontSize="10" fontWeight="bold" fill="#0f172a" fontFamily="sans-serif">
                                         {config.ipRating}
                                     </text>
 
-                                    {/* Bottom Right: Control Type */}
+                                    {/* Middle Right: Control Type */}
                                     <text x="98" y="38" fontSize="8" fill="#475569" fontFamily="sans-serif">Control:</text>
-                                    <text x="135" y="40" fontSize="10" fontWeight="bold" fill="#0f172a" fontFamily="sans-serif">
+                                    <text x="135" y="38" fontSize="10" fontWeight="bold" fill="#0f172a" fontFamily="sans-serif">
                                         {config.communication === 'No' ? 'Hardwired' : 'Network'}
+                                    </text>
+                                    {/* Bottom Left : SCADA */}
+                                    <text x="8" y="60" fontSize="8" fill="#475569" fontFamily="sans-serif">SCADA:</text>
+                                    <text x="50" y="60" fontSize="10" fontWeight="bold" fill="#0f172a" fontFamily="sans-serif">
+                                        {config.scada ? 'Yes' : 'No'}
+                                    </text>
+                                    {/* Bottom Right : PLC */}
+                                    <text x="98" y="60" fontSize="8" fill="#475569" fontFamily="sans-serif">PLC:</text>
+                                    <text x="135" y="60" fontSize="10" fontWeight="bold" fill="#0f172a" fontFamily="sans-serif">
+                                        {config.plc ? 'Yes' : 'No'}
                                     </text>
                                 </g>
                             </g>

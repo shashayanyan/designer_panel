@@ -7,3 +7,4 @@ __pycache__/
 read_pdf.py
 .pytest_cache/
 .env
+seed.py

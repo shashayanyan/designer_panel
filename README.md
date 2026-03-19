@@ -6,6 +6,9 @@ The Designer Panel is an internal tool to automate the process of specification 
 - **Frontend**: React + Vite + Custom CSS
 - **Backend**: Python + FastAPI + Uvicorn
 - **Database**: PostgreSQL (Dockerized) + Alembic for migrations
+- **Security Layer**: `bcrypt`, OWASP `HttpOnly` cross-domain JWTs, Strict HTTP Headers
+- **Testing**: Pytest (Backend API), Vitest + React Testing Library (Frontend UI)
+- **CI/CD**: GitHub Actions
 
 ## Prerequisites
 - Node.js (v18+ recommended) and `npm`
@@ -57,9 +60,6 @@ The backend logic and authentication are handled via FastAPI.
    ```bash
    python seed.py
    ```
-   *Default Accounts seeded:*
-   - **Admin**: `admin` / `des!gnPanel321`
-   - **Standard User**: `user` / `user123`
 6. Start the FastAPI development server:
    ```bash
    uvicorn app.main:app --reload --port 8000
@@ -98,3 +98,23 @@ The frontend is built with React and Vite. It consumes the API at `http://localh
 3. Select an Application (e.g. `Booster Set`).
 4. Configure the parameters within the layout panel to see the Single Line diagram render dynamically in real-time.
 5. Click `Select All` on the assets checklist and select `Download Package` to receive the zipped documentation and auto-generated image assets.
+
+---
+
+## 4. Testing
+
+The repository enforces Continuous Integration (CI) via GitHub Actions workflows.
+
+### Backend Tests (Pytest)
+The backend tests rely on an injected, mocked SQLite in-memory database schema, completely abstracting the need for proprietary seed files or external data volumes to run successfully.
+```bash
+cd back
+pytest tests/
+```
+
+### Frontend Tests (Vitest)
+The frontend relies on Vitest to validate UI states, error handling boundaries, and mock component rendering natively.
+```bash
+cd front
+npm test
+```

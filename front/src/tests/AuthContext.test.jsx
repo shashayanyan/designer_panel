@@ -11,7 +11,7 @@ const TestComponent = () => {
         <div>
             <span data-testid="user-role">{user ? user.role : 'null'}</span>
             <span data-testid="token-value">{token ? 'has-token' : 'no-token'}</span>
-            <button onClick={() => login('mock_token_123')}>Login Test</button>
+            <button onClick={() => login('mock_token_123', { role: 'User' })}>Login Test</button>
             <button onClick={logout}>Logout Test</button>
         </div>
     );
@@ -26,7 +26,7 @@ describe('AuthContext', () => {
         vi.clearAllMocks();
     });
 
-    it('initializes with no token if not in storage', () => {
+    it('initializes with no token on load', () => {
         render(
             <AuthProvider>
                 <TestComponent />
@@ -36,10 +36,9 @@ describe('AuthContext', () => {
     });
 
     it('login function sets token and fetches user', async () => {
-        // Mock successful /me response
+        // Mock successful /me response for initial load
         fetch.mockResolvedValueOnce({
-            ok: true,
-            json: () => Promise.resolve({ username: 'testuser', role: 'User' })
+            ok: false
         });
 
         render(
@@ -52,11 +51,9 @@ describe('AuthContext', () => {
             screen.getByText('Login Test').click();
         });
 
-        // The token is set and LocalStorage has it
-        expect(localStorage.getItem('token')).toBe('mock_token_123');
-        
-        // Wait for user details to be fetched
+        // Wait for user details to be set
         const userRole = await screen.findByText('User');
         expect(userRole).toBeInTheDocument();
+        expect(screen.getByTestId('token-value').textContent).toBe('has-token');
     });
 });

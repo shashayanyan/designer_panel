@@ -10,6 +10,7 @@ The project aims to provide a panel for design engineers and design firms to aut
 - **BIM/CAD Generation**: `ifcopenshell` + `numpy`
 - **Testing Infrastructure**: Pytest (Backend API), Vitest + React Testing Library (Frontend UI)
 - **CI/CD Pipeline**: GitHub Actions (Automated verification on `main` branch pushes)
+- **Security Layer**: `bcrypt`, OWASP `HttpOnly` cross-domain JWTs, Strict HTTP Headers
 - **Deployment**: Vercel (Frontend), Google Cloud Run (Backend)
 - **Infrastructure**: Docker
 
@@ -19,7 +20,9 @@ The project aims to provide a panel for design engineers and design firms to aut
 - **Configuration Engine (`rule_resolver.py`)**: A dynamic ruleset processor that parses complex payload inputs to determine valid enclosure cabinets, logic components, and asset requirements (the "Digital Twin").
 - **Asset Generators (`excel_gen.py`, `word_gen.py`, `bim_gen.py`)**: Dedicated programmatic generators that translate the Digital Twin JSON into Excel sheets, Word Spec Documents, and IFC4X3 compliant BIM objects.
 - **Zip Packaging Service (`zip_service.py`)**: Centralized service that orchestrates all file generators into structured subdirectories (`/Neutral/`, `/Docs/`, `/BIM/`) and streams the final archive out to the user.
+- **Authentication & Security (`auth.py`, `middleware`)**: A robust session lifecycle enforcing 60-minute JWT expiries via cross-domain `HttpOnly` cookies and strict OWASP frontend defenses.
 - **Continuous Integration (`ci.yml`)**: An automated gating system ensuring that frontend dependency installations, vitest unit evaluations, and backend fast-sqlite mocked data validations pass cleanly before merging or deployment.
+- **Database Orchestration (`models.py`)**: A connected SQLAlchemy ORM graph utilizing pre-fetched `relationship()` bindings to execute high-performance `joinedload` queries, eliminating database N+1 latencies.
 
 # User Interface
 This is the initial focus of the app for now. The goal is to have a responsive and user-friendly interface that allows users to easily configure their project setup and download the assets they need. Below is a description of pages needed.

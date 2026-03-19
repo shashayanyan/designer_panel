@@ -126,9 +126,10 @@ function BoosterSetPage() {
     useEffect(() => {
         const fetchMasterData = async () => {
             try {
+                const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
                 const [seriesRes, startersRes] = await Promise.all([
-                    fetch('/api/v1/series'),
-                    fetch('/api/v1/starter-options')
+                    fetch(`${apiUrl}/api/v1/series`),
+                    fetch(`${apiUrl}/api/v1/starter-options`)
                 ]);
                 if (seriesRes.ok) setSeriesList(await seriesRes.json());
                 if (startersRes.ok) setStarterOptionsList(await startersRes.json());
@@ -220,7 +221,8 @@ function BoosterSetPage() {
                 selected_assets: Object.keys(selectedAssets).filter(k => selectedAssets[k])
             };
 
-            const response = await fetch('/api/v1/engine/generate-package', {
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+            const response = await fetch(`${apiUrl}/api/v1/engine/generate-package`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(requestPayload)

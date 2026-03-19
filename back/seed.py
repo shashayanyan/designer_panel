@@ -66,7 +66,7 @@ def seed_master_data():
         print("Seeded size_class")
 
         df_comp = pd.read_csv(f"{csv_dir}/Component_Catalog.csv")
-        df_comp_clean = clean_df(df_comp, ["part_number", "component_type", "generic_description", "manufacturer", "part_family"])
+        df_comp_clean = clean_df(df_comp, ["part_number", "component_type", "generic_description", "manufacturer", "part_family", "used_in_starter_option_ids", "notes"])
         df_comp_clean.to_sql("component_catalog", engine, if_exists="append", index=False)
         print("Seeded component_catalog")
 
@@ -88,7 +88,8 @@ def seed_master_data():
         df_vsd_raw = pd.read_csv(f"{csv_dir}/Drive_Catalog.csv")
 
         # Map SS
-        df_ss = df_ss_raw.rename(columns={
+        df_ss_supported = df_ss_raw[df_ss_raw["availability_status"] == "Supported"].copy()
+        df_ss = df_ss_supported.rename(columns={
             "soft_starter_option_id": "starter_option_id",
             "selected_soft_starter_part_number": "contactor_part_number",
             "default_magnetic_cb_part_number": "magnetic_cb_part_number",
@@ -96,7 +97,8 @@ def seed_master_data():
         })
         
         # Map VSD
-        df_vsd = df_vsd_raw.rename(columns={
+        df_vsd_supported = df_vsd_raw[df_vsd_raw["availability_status"] == "Supported"].copy()
+        df_vsd = df_vsd_supported.rename(columns={
             "drive_option_id": "starter_option_id",
             "selected_drive_part_number": "contactor_part_number",
             "default_magnetic_cb_part_number": "magnetic_cb_part_number",
@@ -106,10 +108,11 @@ def seed_master_data():
         df_starter_all = pd.concat([df_dol, df_ss, df_vsd], ignore_index=True)
         
         df_starter_clean = clean_df(df_starter_all, [
-            "starter_option_id", "series_id", "rated_load_power_kw", "size_class", 
-            "magnetic_cb_part_number", "contactor_part_number", "overload_part_number",
+            "starter_option_id", "series_id", "rated_load_power_kw", "availability_status", 
+            "selection_basis", "product_range", "controller_dims_wxhxd_mm", 
             "thermal_relay_range_text", "thermal_relay_min_a", "thermal_relay_max_a", 
-            "nominal_circuit_breaker_current_a", "data_quality_flag"
+            "nominal_circuit_breaker_current_a", "magnetic_cb_part_number", 
+            "contactor_part_number", "overload_part_number", "size_class", "data_quality_flag"
         ])
         df_starter_clean.to_sql("starter_option", engine, if_exists="append", index=False)
         print(f"Seeded starter_option (consolidated, Total: {len(df_starter_clean)} rows)")
@@ -119,7 +122,7 @@ def seed_master_data():
         df_enc_clean = clean_df(df_enc_cat, [
             "enclosure_option_id", "catalog_ref", "catalog_size_hxwxd", "mounting_type",
             "layout_dim_h_mm", "layout_dim_w_mm", "layout_dim_d_mm",
-            "ip_rating", "ik_rating", "door_type"
+            "ip_rating", "ik_rating", "door_type", "description", "data_quality_note"
         ])
         df_enc_clean.to_sql("enclosure_option", engine, if_exists="append", index=False)
         print("Seeded enclosure_option (full catalog)")
@@ -132,24 +135,32 @@ def seed_master_data():
 
         # 11. Drawing Templates (from Full Catalog)
         df_draw_cat = pd.read_csv(f"{csv_dir}/Drawing_Templates.csv")
-        df_draw_clean = clean_df(df_draw_cat, ["drawing_template_id", "series_id", "load_count", "source_status", "template_description"])
+        df_draw_clean = clean_df(df_draw_cat, ["drawing_template_id", "series_id", "load_count", "source_status", "template_description", "engineering_note"])
         df_draw_clean.to_sql("drawing_template", engine, if_exists="append", index=False)
         print("Seeded drawing_template")
 
         # 12. Configurations
-        df_cfg = df_configs[["config_id", "starter_option_id", "series_id", "load_count", "ats_included", "selected_enclosure_option_id", "drawing_template_id", "notes"]].drop_duplicates(subset=["config_id"])
+        df_cfg = df_configs[[
+            "config_id", "starter_option_id", "series_id", "rated_load_power_kw", "size_class", "load_count", 
+            "ats_included", "magnetic_cb_part_number", "magnetic_cb_qty", "contactor_part_number", 
+            "contactor_qty", "overload_part_number", "overload_qty", "selected_enclosure_option_id", 
+            "selected_enclosure_ref", "selected_enclosure_layout_dims_mm", "selected_enclosure_catalog_size", 
+            "mounting_type", "drawing_template_id", "bom_scope", "notes", "core_device_type", 
+            "core_device_part_number", "core_device_qty", "core_device_source_id", "line_contactor_role", 
+            "bypass_strategy", "bypass_contactor_part_number", "bypass_contactor_qty"
+        ]].drop_duplicates(subset=["config_id"])
         df_cfg.to_sql("configuration", engine, if_exists="append", index=False)
         print("Seeded configuration")
 
         # 13. BOM Lines
         df_bom = pd.read_csv(f"{csv_dir}/BOM_Lines.csv")
-        df_bom_clean = clean_df(df_bom, ["bom_line_id", "config_id", "line_no", "item_category", "part_number", "qty", "description"])
+        df_bom_clean = clean_df(df_bom, ["bom_line_id", "config_id", "line_no", "item_category", "part_number", "description", "qty", "uom", "source_type", "source_id"])
         df_bom_clean.to_sql("bom_line", engine, if_exists="append", index=False)
         print(f"Seeded bom_line (Total: {len(df_bom_clean)} rows)")
         
         # 14. Enclosure Rules
         df_enc_rules = pd.read_csv(f"{csv_dir}/Enclosure_Rules.csv")
-        df_conf_rules_clean = clean_df(df_enc_rules, ["rule_id", "series_id", "ats_included", "size_class", "load_count", "recommended_enclosure_option_id", "alternative_enclosure_option_ids", "rationale"])
+        df_conf_rules_clean = clean_df(df_enc_rules, ["rule_id", "series_id", "ats_included", "size_class", "load_count", "recommended_enclosure_option_id", "recommended_catalog_ref", "recommended_layout_dims_mm", "alternative_enclosure_option_ids", "rationale", "lookup_key", "recommended_summary"])
         df_conf_rules_clean.to_sql("configuration_rule", engine, if_exists="append", index=False)
         print("Seeded configuration_rule")
 

@@ -44,12 +44,18 @@ class ComponentCatalog(Base):
     generic_description = Column(String)
     manufacturer = Column(String)
     part_family = Column(String)
+    used_in_starter_option_ids = Column(String)
+    notes = Column(String)
 
 class StarterOption(Base):
     __tablename__ = "starter_option"
     starter_option_id = Column(String, primary_key=True, index=True)
     series_id = Column(String, ForeignKey("series.series_id"))
     rated_load_power_kw = Column(Numeric(6, 2))
+    availability_status = Column(String)
+    selection_basis = Column(String)
+    product_range = Column(String)
+    controller_dims_wxhxd_mm = Column(String)
     thermal_relay_range_text = Column(String)
     thermal_relay_min_a = Column(Numeric(6, 2))
     thermal_relay_max_a = Column(Numeric(6, 2))
@@ -72,6 +78,8 @@ class EnclosureOption(Base):
     ip_rating = Column(String)
     ik_rating = Column(String)
     door_type = Column(String)
+    description = Column(String)
+    data_quality_note = Column(String)
 
 class ConfigurationRule(Base):
     __tablename__ = "configuration_rule"
@@ -81,8 +89,12 @@ class ConfigurationRule(Base):
     size_class = Column(String, ForeignKey("size_class.size_class"))
     load_count = Column(Integer)
     recommended_enclosure_option_id = Column(String, ForeignKey("enclosure_option.enclosure_option_id"))
+    recommended_catalog_ref = Column(String)
+    recommended_layout_dims_mm = Column(String)
     alternative_enclosure_option_ids = Column(String)
     rationale = Column(String)
+    lookup_key = Column(String)
+    recommended_summary = Column(String)
 
 class DrawingTemplate(Base):
     __tablename__ = "drawing_template"
@@ -91,17 +103,39 @@ class DrawingTemplate(Base):
     load_count = Column(Integer)
     source_status = Column(String)
     template_description = Column(String)
+    engineering_note = Column(String)
 
 class Configuration(Base):
     __tablename__ = "configuration"
     config_id = Column(String, primary_key=True, index=True)
     starter_option_id = Column(String, ForeignKey("starter_option.starter_option_id"))
     series_id = Column(String, ForeignKey("series.series_id"))
+    rated_load_power_kw = Column(Numeric(6, 2))
+    size_class = Column(String)
     load_count = Column(Integer)
     ats_included = Column(Boolean)
+    magnetic_cb_part_number = Column(String)
+    magnetic_cb_qty = Column(Integer)
+    contactor_part_number = Column(String)
+    contactor_qty = Column(Integer)
+    overload_part_number = Column(String)
+    overload_qty = Column(Integer)
     selected_enclosure_option_id = Column(String, ForeignKey("enclosure_option.enclosure_option_id"))
+    selected_enclosure_ref = Column(String)
+    selected_enclosure_layout_dims_mm = Column(String)
+    selected_enclosure_catalog_size = Column(String)
+    mounting_type = Column(String)
     drawing_template_id = Column(String, ForeignKey("drawing_template.drawing_template_id"))
+    bom_scope = Column(String)
     notes = Column(String)
+    core_device_type = Column(String)
+    core_device_part_number = Column(String)
+    core_device_qty = Column(Integer)
+    core_device_source_id = Column(String)
+    line_contactor_role = Column(String)
+    bypass_strategy = Column(String)
+    bypass_contactor_part_number = Column(String)
+    bypass_contactor_qty = Column(Integer)
 
 class BomLine(Base):
     __tablename__ = "bom_line"
@@ -110,8 +144,11 @@ class BomLine(Base):
     line_no = Column(Integer)
     item_category = Column(String)
     part_number = Column(String)
-    qty = Column(Numeric(9, 2))
     description = Column(String)
+    qty = Column(Numeric(9, 2))
+    uom = Column(String)
+    source_type = Column(String)
+    source_id = Column(String)
 
 class DataQualityIssue(Base):
     __tablename__ = "data_quality_issue"

@@ -18,7 +18,9 @@ config = context.config
 
 # Override the sqlalchemy.url with the one from our app's database config
 # (which loads from environment variables)
-config.set_main_option("sqlalchemy.url", SQLALCHEMY_DATABASE_URL)
+# We must escape '%' characters (like those from URL encoding) as '%%' for configparser
+alembic_url = SQLALCHEMY_DATABASE_URL.replace("%", "%%")
+config.set_main_option("sqlalchemy.url", alembic_url)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

@@ -9,8 +9,17 @@ from typing import Annotated
 from . import models, schemas
 from .database import get_db
 import os
+from .database import load_dotenv
 
-SECRET_KEY = os.environ.get("SECRET_KEY", "b3afab8c187be69d5f0b43f05d5a7b6b1cc46e01a8db2095f9c9a52deab7f3dc")
+# Ensure environment variables are loaded
+load_dotenv()
+
+SECRET_KEY = os.environ.get("SECRET_KEY")
+if not SECRET_KEY:
+    # In production, this should always be set. 
+    # For local development, we can print a warning but we shouldn't hardcode a production-level secret here.
+    print("WARNING: SECRET_KEY not found in environment variables. JWT tokens will not be secure.")
+    SECRET_KEY = "development_secret_do_not_use_in_production"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7 # 7 days
 

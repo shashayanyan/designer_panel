@@ -1,16 +1,22 @@
+import os
+import json
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .routers import auth, master_data, engine as engine_router
 from .database import engine, Base
 
-# We will create tables via Alembic, but we can also ensure they exist here for development
-Base.metadata.create_all(bind=engine)
-
 app = FastAPI(title="Designer Panel API")
+
+# Load CORS origins from environment
+cors_origins_str = os.getenv("CORS_ORIGINS", '["*"]')
+try:
+    origins = json.loads(cors_origins_str)
+except Exception:
+    origins = ["*"]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # For development, allow all origins
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

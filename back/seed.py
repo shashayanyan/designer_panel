@@ -1,4 +1,5 @@
 import pandas as pd
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 from app.database import engine, SessionLocal
 from app import models, auth
@@ -47,8 +48,12 @@ def seed_users():
 def seed_master_data():
     print("Starting master data ingestion from CSVs...")
     try:
-        # Use pandas `if_exists="append"` directly on the engine
-        # We assume the database has been rebuilt or relies on unique constraints dropping duplicates naturally if handled.
+        # Use pandas `if_exists="append"` directly on the engine.
+        # To avoid DuplicateKey errors on re-runs, we truncate the tables first.
+        with engine.connect() as conn:
+            print("Cleaning existing master data...")
+            conn.execute(text("TRUNCATE TABLE configuration, bom_line, configuration_rule, drawing_template, starter_option, enclosure_option, accessory_rule, accessory_catalog, component_catalog, size_class, series, application_io_template, application_alarm_template, application_option_matrix, data_quality_issue CASCADE;"))
+            conn.commit()
         
         df_series = pd.read_csv(f"{csv_dir}/Series.csv")
         df_series_clean = clean_df(df_series, ["series_id", "series_name", "starter_method", "ats_scope", "notes"])
@@ -77,31 +82,72 @@ def seed_master_data():
 
         df_configs = pd.read_csv(f"{csv_dir}/Configurations.csv")
 
-        df_starter = df_configs[["starter_option_id", "series_id", "rated_load_power_kw", "size_class", "magnetic_cb_part_number", "contactor_part_number", "overload_part_number"]].drop_duplicates(subset=["starter_option_id"])
-        df_starter.to_sql("starter_option", engine, if_exists="append", index=False)
-        print("Seeded starter_option")
+        # 8. Starter Options (Consolidated DOL, SS, VSD)
+        df_dol = pd.read_csv(f"{csv_dir}/Starter_Catalog.csv")
+        df_ss_raw = pd.read_csv(f"{csv_dir}/SoftStarter_Catalog.csv")
+        df_vsd_raw = pd.read_csv(f"{csv_dir}/Drive_Catalog.csv")
 
-        df_enc_raw = df_configs[["selected_enclosure_option_id", "selected_enclosure_ref", "selected_enclosure_layout_dims_mm", "selected_enclosure_catalog_size", "mounting_type"]].drop_duplicates(subset=["selected_enclosure_option_id"])
-        df_enc = pd.DataFrame()
-        df_enc["enclosure_option_id"] = df_enc_raw["selected_enclosure_option_id"]
-        df_enc["catalog_ref"] = df_enc_raw["selected_enclosure_ref"]
-        df_enc["catalog_size_hxwxd"] = df_enc_raw["selected_enclosure_catalog_size"]
-        df_enc["mounting_type"] = df_enc_raw["mounting_type"]
-        dims = df_enc_raw["selected_enclosure_layout_dims_mm"].str.split("x", expand=True)
-        df_enc["layout_dim_h_mm"] = pd.to_numeric(dims[0], errors='coerce')
-        df_enc["layout_dim_w_mm"] = pd.to_numeric(dims[1], errors='coerce')
-        df_enc["layout_dim_d_mm"] = pd.to_numeric(dims[2], errors='coerce')
-        df_enc.to_sql("enclosure_option", engine, if_exists="append", index=False)
-        print("Seeded enclosure_option")
+        # Map SS
+        df_ss = df_ss_raw.rename(columns={
+            "soft_starter_option_id": "starter_option_id",
+            "selected_soft_starter_part_number": "contactor_part_number",
+            "default_magnetic_cb_part_number": "magnetic_cb_part_number",
+            "default_overload_part_number": "overload_part_number"
+        })
+        
+        # Map VSD
+        df_vsd = df_vsd_raw.rename(columns={
+            "drive_option_id": "starter_option_id",
+            "selected_drive_part_number": "contactor_part_number",
+            "default_magnetic_cb_part_number": "magnetic_cb_part_number",
+            "default_overload_part_number": "overload_part_number"
+        })
 
-        df_draw = df_configs[["drawing_template_id", "series_id", "load_count"]].drop_duplicates(subset=["drawing_template_id"])
-        df_draw.to_sql("drawing_template", engine, if_exists="append", index=False)
+        df_starter_all = pd.concat([df_dol, df_ss, df_vsd], ignore_index=True)
+        
+        df_starter_clean = clean_df(df_starter_all, [
+            "starter_option_id", "series_id", "rated_load_power_kw", "size_class", 
+            "magnetic_cb_part_number", "contactor_part_number", "overload_part_number",
+            "thermal_relay_range_text", "thermal_relay_min_a", "thermal_relay_max_a", 
+            "nominal_circuit_breaker_current_a", "data_quality_flag"
+        ])
+        df_starter_clean.to_sql("starter_option", engine, if_exists="append", index=False)
+        print(f"Seeded starter_option (consolidated, Total: {len(df_starter_clean)} rows)")
+
+        # 9. Enclosure Options (from Full Catalog)
+        df_enc_cat = pd.read_csv(f"{csv_dir}/Enclosure_Catalog.csv")
+        df_enc_clean = clean_df(df_enc_cat, [
+            "enclosure_option_id", "catalog_ref", "catalog_size_hxwxd", "mounting_type",
+            "layout_dim_h_mm", "layout_dim_w_mm", "layout_dim_d_mm",
+            "ip_rating", "ik_rating", "door_type"
+        ])
+        df_enc_clean.to_sql("enclosure_option", engine, if_exists="append", index=False)
+        print("Seeded enclosure_option (full catalog)")
+
+        # 10. Data Quality Issues
+        df_dq = pd.read_csv(f"{csv_dir}/Data_Quality.csv")
+        df_dq_clean = clean_df(df_dq, ["issue_id", "entity_type", "entity_id", "severity", "issue_text", "proposed_action"])
+        df_dq_clean.to_sql("data_quality_issue", engine, if_exists="append", index=False)
+        print("Seeded data_quality_issue")
+
+        # 11. Drawing Templates (from Full Catalog)
+        df_draw_cat = pd.read_csv(f"{csv_dir}/Drawing_Templates.csv")
+        df_draw_clean = clean_df(df_draw_cat, ["drawing_template_id", "series_id", "load_count", "source_status", "template_description"])
+        df_draw_clean.to_sql("drawing_template", engine, if_exists="append", index=False)
         print("Seeded drawing_template")
 
+        # 12. Configurations
         df_cfg = df_configs[["config_id", "starter_option_id", "series_id", "load_count", "ats_included", "selected_enclosure_option_id", "drawing_template_id", "notes"]].drop_duplicates(subset=["config_id"])
         df_cfg.to_sql("configuration", engine, if_exists="append", index=False)
         print("Seeded configuration")
+
+        # 13. BOM Lines
+        df_bom = pd.read_csv(f"{csv_dir}/BOM_Lines.csv")
+        df_bom_clean = clean_df(df_bom, ["bom_line_id", "config_id", "line_no", "item_category", "part_number", "qty", "description"])
+        df_bom_clean.to_sql("bom_line", engine, if_exists="append", index=False)
+        print(f"Seeded bom_line (Total: {len(df_bom_clean)} rows)")
         
+        # 14. Enclosure Rules
         df_enc_rules = pd.read_csv(f"{csv_dir}/Enclosure_Rules.csv")
         df_conf_rules_clean = clean_df(df_enc_rules, ["rule_id", "series_id", "ats_included", "size_class", "load_count", "recommended_enclosure_option_id", "alternative_enclosure_option_ids", "rationale"])
         df_conf_rules_clean.to_sql("configuration_rule", engine, if_exists="append", index=False)
@@ -132,10 +178,6 @@ def seed_master_data():
 if __name__ == "__main__":
     from app import models
     from app.database import engine
-    
-    # Optional: Clear tables to avoid conflicts for a fresh seed.
-    models.Base.metadata.drop_all(bind=engine)
-    models.Base.metadata.create_all(bind=engine)
     
     extract_sheets_to_csv()
     seed_users()

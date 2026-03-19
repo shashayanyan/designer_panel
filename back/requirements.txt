@@ -16,3 +16,4 @@ python-docx
 docxtpl
 pytest
 python-dotenv
+httpx

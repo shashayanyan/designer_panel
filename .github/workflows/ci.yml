@@ -1,0 +1,58 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  backend-test:
+    name: Backend Pytest
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+        
+    - name: Install backend dependencies
+      run: |
+        cd back
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Run Pytest suite
+      env:
+        SECRET_KEY: "dummy-secret-key-for-testing-only"
+        DB_USER: "dummy"
+        DB_PASSWORD: "dummy"
+        DB_HOST: "localhost"
+        DB_PORT: "5432"
+        DB_NAME: "dummy_db"
+      run: |
+        cd back
+        python -m pytest tests/
+
+  frontend-test:
+    name: Frontend Vitest
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: "20"
+        
+    - name: Install frontend dependencies
+      run: |
+        cd front
+        npm install
+        
+    - name: Run Vitest suite
+      run: |
+        cd front
+        npm test

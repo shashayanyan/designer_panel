@@ -1,7 +1,7 @@
-import { render, screen, act } from '@testing-library/react';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { render, screen, act, waitFor } from '@testing-library/react';
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { AuthProvider, AuthContext } from '../context/AuthContext';
-import { useEffect, useContext } from 'react';
+import { useContext } from 'react';
 
 // Test component that consumes context
 const TestComponent = () => {
@@ -11,7 +11,7 @@ const TestComponent = () => {
         <div>
             <span data-testid="user-role">{user ? user.role : 'null'}</span>
             <span data-testid="token-value">{token ? 'has-token' : 'no-token'}</span>
-            <button onClick={() => login('mock_token_123', { role: 'User' })}>Login Test</button>
+            <button onClick={() => login('dummy_token', { role: 'User' })}>Login Test</button>
             <button onClick={logout}>Logout Test</button>
         </div>
     );
@@ -22,38 +22,89 @@ global.fetch = vi.fn();
 
 describe('AuthContext', () => {
     beforeEach(() => {
-        localStorage.clear();
         vi.clearAllMocks();
+        // Provide a default mock that returns not ok to avoid undefined errors
+        fetch.mockResolvedValue({
+            ok: false,
+            json: () => Promise.resolve({ detail: 'Not authenticated' })
+        });
     });
 
-    it('initializes with no token on load', () => {
-        render(
-            <AuthProvider>
-                <TestComponent />
-            </AuthProvider>
-        );
-        expect(screen.getByTestId('token-value').textContent).toBe('no-token');
+    afterEach(() => {
+        vi.restoreAllMocks();
     });
 
-    it('login function sets token and fetches user', async () => {
-        // Mock successful /me response for initial load
+    it('initializes with no token on load', async () => {
+        await act(async () => {
+            render(
+                <AuthProvider>
+                    <TestComponent />
+                </AuthProvider>
+            );
+        });
+        
+        await waitFor(() => {
+            expect(screen.getByTestId('token-value').textContent).toBe('no-token');
+        });
+    });
+
+    it('login function sets token and user data', async () => {
+        // Mock /me call on mount
         fetch.mockResolvedValueOnce({
-            ok: false
+            ok: false,
+            json: () => Promise.resolve({ detail: 'Not authenticated' })
         });
 
-        render(
-            <AuthProvider>
-                <TestComponent />
-            </AuthProvider>
-        );
+        await act(async () => {
+            render(
+                <AuthProvider>
+                    <TestComponent />
+                </AuthProvider>
+            );
+        });
 
-        act(() => {
+        // Click login button - should call AuthContext.login
+        await act(async () => {
             screen.getByText('Login Test').click();
         });
 
-        // Wait for user details to be set
-        const userRole = await screen.findByText('User');
-        expect(userRole).toBeInTheDocument();
+        // UI should reflect logged in state
+        await waitFor(() => {
+            expect(screen.getByTestId('user-role').textContent).toBe('User');
+        });
+
         expect(screen.getByTestId('token-value').textContent).toBe('has-token');
+    });
+
+    it('logout function clears state', async () => {
+        // Mock successful /me on mount (simulate already logged in)
+        fetch.mockResolvedValueOnce({
+            ok: true,
+            json: () => Promise.resolve({ username: 'testuser', role: 'User' })
+        });
+        // Mock for logout call
+        fetch.mockResolvedValueOnce({ ok: true });
+
+        await act(async () => {
+            render(
+                <AuthProvider>
+                    <TestComponent />
+                </AuthProvider>
+            );
+        });
+
+        await waitFor(() => {
+            expect(screen.getByTestId('user-role').textContent).toBe('User');
+        });
+
+        // Click logout
+        await act(async () => {
+            screen.getByText('Logout Test').click();
+        });
+
+        await waitFor(() => {
+            expect(screen.getByTestId('user-role').textContent).toBe('null');
+        });
+        expect(screen.getByTestId('token-value').textContent).toBe('no-token');
     });
 });

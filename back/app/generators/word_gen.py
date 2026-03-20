@@ -15,11 +15,13 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
     }
     
     doc.add_heading(f"Application Specification Appendix", 0)
-    doc.add_paragraph(f"Water Booster Set - {twin.load_count} Pumps ([TBD-REDUNDANCY])")
+    doc.add_paragraph(f"Project Configuration DNA: {twin.config_id}")
+    doc.add_paragraph(f"Water Booster Set - {twin.load_count}-pump system ([TBD-REDUNDANCY])")
     
     device_type = twin.components[0].description if twin.components else "Variable Speed Drive"
     mounting = twin.enclosure.mounting_type if twin.enclosure else "Floor Standing"
-    doc.add_paragraph(f"{device_type} Control Panel - {twin.load_count} x {twin.motor_power_kw} kW | IP54 {mounting} | Cascade PID | {twin.communication} | IEC 62443 Baseline")
+    dimensions = twin.enclosure.dimensions_mm if twin.enclosure else "N/A"
+    doc.add_paragraph(f"{device_type} Control Panel - {twin.load_count} x {twin.motor_power_kw} kW | {dimensions} | IP54 {mounting} | Cascade PID | {twin.communication} | IEC 62443 Baseline")
     
     # 1. Purpose and How to Use
     doc.add_heading("1. Purpose and How to Use", level=1)

@@ -1,6 +1,6 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import LoginPage from '../pages/LoginPage';
 import { AuthProvider } from '../context/AuthContext';
 
@@ -8,14 +8,26 @@ import { AuthProvider } from '../context/AuthContext';
 global.fetch = vi.fn();
 
 describe('LoginPage', () => {
-  it('renders login form properly', () => {
-    render(
-      <BrowserRouter>
-        <AuthProvider>
-          <LoginPage />
-        </AuthProvider>
-      </BrowserRouter>
-    );
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('renders login form properly', async () => {
+    // Mock for AuthProvider mount
+    fetch.mockResolvedValue({
+      ok: false,
+      json: () => Promise.resolve({ detail: 'Not authenticated' }),
+    });
+
+    await act(async () => {
+        render(
+          <BrowserRouter>
+            <AuthProvider>
+              <LoginPage />
+            </AuthProvider>
+          </BrowserRouter>
+        );
+    });
     
     expect(screen.getByPlaceholderText(/username or email/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/password/i)).toBeInTheDocument();
@@ -23,24 +35,36 @@ describe('LoginPage', () => {
   });
 
   it('shows error on failed login', async () => {
+    // Mock for AuthProvider mount (first call to /me)
+    fetch.mockResolvedValueOnce({
+        ok: false,
+        json: () => Promise.resolve({ detail: 'Not authenticated' }),
+    });
+    
+    // Mock for the login submission (second call to /login)
     fetch.mockResolvedValueOnce({
       ok: false,
       json: () => Promise.resolve({ detail: 'Invalid credentials' }),
     });
 
-    render(
-      <BrowserRouter>
-        <AuthProvider>
-          <LoginPage />
-        </AuthProvider>
-      </BrowserRouter>
-    );
+    await act(async () => {
+        render(
+          <BrowserRouter>
+            <AuthProvider>
+              <LoginPage />
+            </AuthProvider>
+          </BrowserRouter>
+        );
+    });
 
     fireEvent.change(screen.getByPlaceholderText(/username or email/i), { target: { value: 'wrong@test.com' } });
     fireEvent.change(screen.getByPlaceholderText(/password/i), { target: { value: 'badpass' } });
     
     const loginButton = screen.getByRole('button', { name: /sign in/i });
-    fireEvent.click(loginButton);
+    
+    await act(async () => {
+        fireEvent.click(loginButton);
+    });
 
     const errorMsg = await screen.findByText(/invalid credentials/i);
     expect(errorMsg).toBeInTheDocument();

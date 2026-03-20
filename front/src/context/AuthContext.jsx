@@ -4,53 +4,50 @@ export const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
-    const [token, setToken] = useState(localStorage.getItem('token') || null);
+    const [token, setToken] = useState(false); // Used only as a boolean flag now
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const verifyToken = async () => {
-            if (!token) {
-                setLoading(false);
-                return;
-            }
             try {
                 const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
                 const response = await fetch(`${apiUrl}/me`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
+                    credentials: 'include'
                 });
                 if (response.ok) {
                     const userData = await response.json();
                     setUser(userData);
+                    setToken(true);
                 } else {
-                    // Token is invalid or expired
-                    setToken(null);
+                    setToken(false);
                     setUser(null);
-                    localStorage.removeItem('token');
                 }
             } catch (error) {
-                console.error("Failed to verify token", error);
-                setToken(null);
+                console.error("Failed to verify authentication", error);
+                setToken(false);
                 setUser(null);
-                localStorage.removeItem('token');
             } finally {
                 setLoading(false);
             }
         };
         verifyToken();
-    }, [token]);
+    }, []);
 
     const login = (newToken, userData) => {
-        setToken(newToken);
+        // newToken is strictly ignored, relying on backend cookie
+        setToken(true);
         setUser(userData);
-        localStorage.setItem('token', newToken);
     };
 
-    const logout = () => {
-        setToken(null);
+    const logout = async () => {
+        setToken(false);
         setUser(null);
-        localStorage.removeItem('token');
+        try {
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+            await fetch(`${apiUrl}/logout`, { method: 'POST', credentials: 'include' });
+        } catch (error) {
+            console.error("Logout failed", error);
+        }
     };
 
     return (

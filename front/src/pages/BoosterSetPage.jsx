@@ -209,6 +209,38 @@ function BoosterSetPage() {
 
     const handleDownload = async () => {
         try {
+            // 1. Generate base64 PNG of the diagram FIRST for the backend Word Generator
+            let b64diagram = null;
+            let rawSvgData = null;
+            if (svgRef.current) {
+                rawSvgData = new XMLSerializer().serializeToString(svgRef.current);
+                b64diagram = await new Promise((resolve) => {
+                    const canvas = document.createElement("canvas");
+                    canvas.width = 900;
+                    canvas.height = 550;
+                    const ctx = canvas.getContext("2d");
+                    const img = new Image();
+                    const svgBlob = new Blob([rawSvgData], { type: "image/svg+xml;charset=utf-8" });
+                    const url = URL.createObjectURL(svgBlob);
+
+                    img.onload = () => {
+                        ctx.fillStyle = "white";
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(img, 0, 0);
+                        const dataURL = canvas.toDataURL("image/png");
+                        URL.revokeObjectURL(url);
+                        resolve(dataURL);
+                    };
+
+                    img.onerror = () => {
+                        console.error("Failed to render SVG to PNG for backend");
+                        URL.revokeObjectURL(url);
+                        resolve(null);
+                    };
+                    img.src = url;
+                });
+            }
+
             const ats_included = config.incomers === '2';
             const requestPayload = {
                 series_id: config.motorStart,
@@ -218,7 +250,8 @@ function BoosterSetPage() {
                 communication: config.communication,
                 plc_included: config.plc,
                 scada_included: config.scada,
-                selected_assets: Object.keys(selectedAssets).filter(k => selectedAssets[k])
+                selected_assets: Object.keys(selectedAssets).filter(k => selectedAssets[k]),
+                single_line_diagram_b64: b64diagram
             };
 
             const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -239,42 +272,24 @@ function BoosterSetPage() {
             // Load backend zip into JSZip to optionally append the UI Single Line Diagram
             const zip = await JSZip.loadAsync(backendZipBlob);
 
-            if (svgRef.current) {
-                const svgData = new XMLSerializer().serializeToString(svgRef.current)
-                zip.file("Docs/SingleLineDiagram.svg", svgData)
-
-                // Generate PNG
-                await new Promise((resolve) => {
-                    const canvas = document.createElement("canvas")
-                    // Use the viewBox dimensions of the SVG
-                    canvas.width = 900
-                    canvas.height = 550
-                    const ctx = canvas.getContext("2d")
-
-                    const img = new Image()
-                    const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" })
-                    const url = URL.createObjectURL(svgBlob)
-
-                    img.onload = () => {
-                        ctx.fillStyle = "white"
-                        ctx.fillRect(0, 0, canvas.width, canvas.height)
-                        ctx.drawImage(img, 0, 0)
-                        canvas.toBlob((blob) => {
-                            if (blob) {
-                                zip.file("Docs/SingleLineDiagram.png", blob)
-                            }
-                            URL.revokeObjectURL(url)
-                            resolve()
-                        }, "image/png")
+            if (rawSvgData) {
+                zip.file("SingleLineDiagram.svg", rawSvgData);
+                if (b64diagram) {
+                    // Convert DataURL to Blob to inject back into local Zip
+                    const base64Data = b64diagram.split(',')[1];
+                    const byteCharacters = atob(base64Data);
+                    const byteArrays = [];
+                    for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+                        const slice = byteCharacters.slice(offset, offset + 512);
+                        const byteNumbers = new Array(slice.length);
+                        for (let i = 0; i < slice.length; i++) {
+                            byteNumbers[i] = slice.charCodeAt(i);
+                        }
+                        byteArrays.push(new Uint8Array(byteNumbers));
                     }
-
-                    img.onerror = () => {
-                        console.error("Failed to render SVG to PNG")
-                        URL.revokeObjectURL(url)
-                        resolve() // Resolve anyway to proceed with ZIP generation
-                    }
-                    img.src = url
-                })
+                    const blob = new Blob(byteArrays, { type: 'image/png' });
+                    zip.file("SingleLineDiagram.png", blob);
+                }
             }
 
             const finalZipBlob = await zip.generateAsync({ type: "blob" })

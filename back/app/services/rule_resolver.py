@@ -1,4 +1,5 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
+import logging
 from fastapi import HTTPException
 from decimal import Decimal
 import ast
@@ -60,7 +61,7 @@ class MathSafeParser:
                 return Decimal("0")
         except Exception as e:
             # Fallback fail safe
-            print(f"Formula eval failed: {e} for string '{formula_text}'")
+            logging.error(f"Formula evaluation failed for string '{formula_text}': {e}. Variables context: {self.variables}. Returning quantity 0.")
             return Decimal("0")
 
 class ConfigurationEngine:
@@ -158,7 +159,9 @@ class ConfigurationEngine:
 
         # 6. Evaluate Accessory Rules
         accessories = []
-        ac_rules = self.db.query(models.AccessoryRule).filter(
+        ac_rules = self.db.query(models.AccessoryRule).options(
+            joinedload(models.AccessoryRule.catalog_item)
+        ).filter(
             models.AccessoryRule.series_id == request.series_id,
             models.AccessoryRule.size_class == starter.size_class
         ).all()
@@ -181,12 +184,8 @@ class ConfigurationEngine:
 
                 # Ensure we skip zero quantities
                 if qty_val > Decimal("0"):
-                    # We can fetch descriptions directly from Accessory_Catalog via relationships if needed. 
-                    # For performance/minimalist JSON, part_number is enough or fetch it natively:
-                    cat_details = self.db.query(models.AccessoryCatalog).filter(
-                       models.AccessoryCatalog.part_number == rule.part_number
-                    ).first()
-                    acc_desc = cat_details.standard_use_case if cat_details else None
+                    # Utilizing the joinedload ORM relationship to avoid N+1 DB round-trips
+                    acc_desc = rule.catalog_item.standard_use_case if rule.catalog_item else None
 
                     accessories.append(TwinAccessory(
                         category=rule.accessory_subcategory,
@@ -212,7 +211,8 @@ class ConfigurationEngine:
             communication=request.communication,
             bypass_strategy=getattr(starter, 'bypass_strategy', 'None'),
             bypass_contactor_part_number=getattr(starter, 'bypass_contactor_part_number', None),
-            selected_assets=request.selected_assets
+            selected_assets=request.selected_assets,
+            single_line_diagram_b64=request.single_line_diagram_b64
         )
 
         # 8. Resolve Application-Specific Templates (IO, Alarms, Options)

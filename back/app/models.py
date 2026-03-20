@@ -64,6 +64,13 @@ class StarterOption(Base):
     contactor_part_number = Column(String, ForeignKey("component_catalog.part_number"))
     overload_part_number = Column(String, ForeignKey("component_catalog.part_number"))
     size_class = Column(String, ForeignKey("size_class.size_class"))
+    
+    # Relationships
+    magnetic_cb = relationship("ComponentCatalog", foreign_keys=[magnetic_cb_part_number])
+    contactor = relationship("ComponentCatalog", foreign_keys=[contactor_part_number])
+    overload = relationship("ComponentCatalog", foreign_keys=[overload_part_number])
+    size_class_ref = relationship("SizeClass", foreign_keys=[size_class])
+    
     data_quality_flag = Column(String)
 
 class EnclosureOption(Base):
@@ -89,6 +96,9 @@ class ConfigurationRule(Base):
     size_class = Column(String, ForeignKey("size_class.size_class"))
     load_count = Column(Integer)
     recommended_enclosure_option_id = Column(String, ForeignKey("enclosure_option.enclosure_option_id"))
+    
+    # Relationships
+    recommended_enclosure = relationship("EnclosureOption", foreign_keys=[recommended_enclosure_option_id])
     recommended_catalog_ref = Column(String)
     recommended_layout_dims_mm = Column(String)
     alternative_enclosure_option_ids = Column(String)
@@ -181,6 +191,7 @@ class AccessoryRule(Base):
     include_in_default_bom = Column(Boolean)
     accessory_subcategory = Column(String)
     part_number = Column(String, ForeignKey("accessory_catalog.part_number"))
+    catalog_item = relationship("AccessoryCatalog", foreign_keys=[part_number])
     qty_per_feeder = Column(Numeric(9, 2))
     qty_per_panel = Column(Numeric(9, 2))
     qty_formula_text = Column(String)

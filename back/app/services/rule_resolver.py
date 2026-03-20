@@ -211,7 +211,8 @@ class ConfigurationEngine:
             communication=request.communication,
             bypass_strategy=getattr(starter, 'bypass_strategy', 'None'),
             bypass_contactor_part_number=getattr(starter, 'bypass_contactor_part_number', None),
-            selected_assets=request.selected_assets
+            selected_assets=request.selected_assets,
+            single_line_diagram_b64=request.single_line_diagram_b64
         )
 
         # 8. Resolve Application-Specific Templates (IO, Alarms, Options)

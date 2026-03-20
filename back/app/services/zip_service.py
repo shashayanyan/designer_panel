@@ -37,7 +37,7 @@ class ZipService:
         # 2. Build the Manifest dynamically
         files_included = [f"Neutral/DigitalTwin_DNA_{twin.config_id}.json"]
         if excel_bytes: files_included.append(f"Neutral/ApplicationPack_{twin.config_id}.xlsx")
-        if word_bytes: files_included.append(f"Docs/EngineeringSpec_{twin.config_id}.docx")
+        if word_bytes: files_included.append(f"EngineeringSpec_{twin.config_id}.docx")
         if bim_logical: files_included.append(f"Neutral/BIM/Logical_{twin.config_id}.ifc")
         if bim_visual: files_included.append(f"Neutral/BIM/Visual_{twin.config_id}.ifc")
         
@@ -60,7 +60,7 @@ class ZipService:
             if excel_bytes:
                 zip_file.writestr(f"Neutral/ApplicationPack_{twin.config_id}.xlsx", excel_bytes)
             if word_bytes:
-                zip_file.writestr(f"Docs/EngineeringSpec_{twin.config_id}.docx", word_bytes)
+                zip_file.writestr(f"EngineeringSpec_{twin.config_id}.docx", word_bytes)
             if bim_logical:
                 zip_file.writestr(f"Neutral/BIM/Logical_{twin.config_id}.ifc", bim_logical)
             if bim_visual:

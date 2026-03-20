@@ -45,7 +45,7 @@ def test_generate_package_returns_valid_zip():
         # 3. Assert Sub-Directories and files exist exactly as architected
         json_path = f"Neutral/DigitalTwin_DNA_{config_id}.json"
         excel_path = f"Neutral/ApplicationPack_{config_id}.xlsx"
-        word_path = f"Docs/EngineeringSpec_{config_id}.docx"
+        word_path = f"EngineeringSpec_{config_id}.docx"
         
         assert json_path in file_list
         assert excel_path in file_list

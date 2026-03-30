@@ -28,8 +28,8 @@ Pack contents
    - Includes reference architecture and typical multi line figure
 2) Parameters.xlsx, IO-List.xlsx, Alarm_List.xlsx, BOM-Template.xlsx, Network-IP-Plan.xlsx, Option-Matrix.xlsx
    - Extracted data sheets and templates
-3) MultiLineDiagram.png / .svg
-   - Generated Multi Line Diagram
+3) MultiLineDiagram.png / .svg, ReferenceArchitecture.png / .svg
+   - Generated Multi Line and Reference Architecture diagrams
 4) BIM/Logical_{twin.config_id}.ifc, BIM/Visual_{twin.config_id}.ifc
    - BIM Object variants
 5) DigitalTwin_DNA_{twin.config_id}.json
@@ -42,7 +42,7 @@ How to use (recommended)
 - System Integrator/Panel Builder: confirm ratings, local standards, short-circuit levels and environment; complete BOM with exact part numbers and develop GA/wiring.
 
 Notes
-- Part numbers are intentionally marked "TBD" to avoid incorrect selection without site inputs (supply voltage, fault level, environment, motor cable length, EMC class).
+- Part numbers and selection notes are dynamically sourced from the core equipment catalog based on your load configurations.
 - The solution can be extended with optional harmonic mitigation, dv/dt filters, bypass, remote SCADA integration, and additional permissives.
 """
     return content.encode('utf-8')

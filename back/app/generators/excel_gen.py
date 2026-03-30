@@ -68,49 +68,18 @@ def generate_excel_from_twin(twin: DigitalTwinResponse) -> Dict[str, bytes]:
     # --- 2. BOM Template ---
     bom_data = []
 
-    # Enclosure
-    bom_data.append({
-        "Category": "Enclosure",
-        "Item": f"Enclosure {twin.enclosure.mounting_type}",
-        "Qty": 1,
-        "Schneider Family (example)": "Spacial / Universal enclosure family",
-        "Part No.": twin.enclosure.catalog_ref,
-        "Key Selection Notes / Options": f"Dimensions: {twin.enclosure.dimensions_mm}"
-    })
-    
-    # Components
-    for comp in twin.components:
-         bom_data.append({
-             "Category": comp.item_category,
-             "Item": comp.description or comp.item_category,
-             "Qty": float(comp.qty),
-             "Schneider Family (example)": "TeSys / Altivar",
-             "Part No.": comp.part_number,
-             "Key Selection Notes / Options": "Standard component per motor power rating"
-         })
+    # Exclusively database defined BOM Lines driven logically from resolved configuration
+    if twin.bom_lines:
+        for line in twin.bom_lines:
+            bom_data.append({
+                "Item Category": line.item_category,
+                "Item": line.item,
+                "Qty": float(line.qty),
+                "Part No.": line.part_number,
+                "Key Selection Notes / Options": line.key_selection_notes or "-"
+            })
 
-    if getattr(twin, 'bypass_contactor_part_number', None):
-         bom_data.append({
-             "Category": "Bypass Contactor",
-             "Item": "Bypass Contactor",
-             "Qty": float(twin.load_count),
-             "Schneider Family (example)": "TeSys",
-             "Part No.": twin.bypass_contactor_part_number,
-             "Key Selection Notes / Options": twin.bypass_strategy
-         })
-
-    # Accessories
-    for acc in twin.accessories:
-         bom_data.append({
-             "Category": acc.category or "Accessory",
-             "Item": "Optional Accessory",
-             "Qty": float(acc.qty),
-             "Schneider Family (example)": "Various",
-             "Part No.": acc.part_number,
-             "Key Selection Notes / Options": acc.description or ""
-         })
-
-    df_bom = pd.DataFrame(bom_data)
+    df_bom = pd.DataFrame(bom_data, columns=["Item_Category", "Item", "Qty", "Part No.", "Key Selection Notes / Options"])
     
     # --- 3. IO-List ---
     io_data = []
@@ -136,6 +105,7 @@ def generate_excel_from_twin(twin: DigitalTwinResponse) -> Dict[str, bytes]:
             {"Tag": item.tag, "Description": item.description, "Signal Type": item.signal_type, 
              "Interface": item.interface, "IP Address": item.ip_address or "N/A"}
             for item in twin.network_plan
+            if (item.interface or "").strip().lower() != "hardwired"
         ]
         df_network = pd.DataFrame(network_data if network_data else [{"Status": "No network IO points resolved"}])
         generated_files['Network-IP-Plan.xlsx'] = df_to_excel_bytes(df_network)

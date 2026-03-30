@@ -1,6 +1,6 @@
 # Designer Panel
 
-The Designer Panel is an internal tool to automate the process of specification projects for design engineers and firms. It allows users to configure a project setup, select parameters (e.g., number of pumps, motor power), visualize the design instantly via a dynamic Single Line Diagram, and download a comprehensive asset package including data sheets, engineering specifications, and BIM objects (IFC).
+The Designer Panel is an internal tool to automate the process of specification projects for design engineers and firms. It allows users to configure a project setup, select parameters (e.g., number of pumps, motor power), visualize the design instantly via a dynamic Multi Line Diagram, and download a comprehensive asset package including data sheets, engineering specifications, and BIM objects (IFC).
 
 ## Technology Stack
 - **Frontend**: React + Vite + Custom CSS
@@ -96,7 +96,7 @@ The frontend is built with React and Vite. It consumes the API at `http://localh
 1. Enter your credentials on the login page.
 2. Select either `Water` or `Buildings` from the Master Landing page.
 3. Select an Application (e.g. `Booster Set`).
-4. Configure the parameters within the layout panel to see the Single Line diagram render dynamically in real-time.
+4. Configure the parameters within the layout panel to see the Multi Line diagram render dynamically in real-time.
 5. Click `Select All` on the assets checklist and select `Download Package` to receive the zipped documentation and auto-generated image assets.
 
 ---

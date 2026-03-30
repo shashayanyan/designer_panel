@@ -51,19 +51,19 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
     doc.add_paragraph("The reference architecture below provides a typical power and control arrangement for a multi-pump booster set with VSD control. It is intended as an early-stage template. The detailed GA, heat dissipation, cable entry, and assembly details shall be provided by the selected panel builder.")
     
     # Inject line diagram image if base64 provided
-    if hasattr(twin, 'single_line_diagram_b64') and twin.single_line_diagram_b64:
+    if hasattr(twin, 'multi_line_diagram_b64') and twin.multi_line_diagram_b64:
         try:
-            b64_data = twin.single_line_diagram_b64
+            b64_data = twin.multi_line_diagram_b64
             if "," in b64_data:
                 b64_data = b64_data.split(",")[1]
             image_data = base64.b64decode(b64_data)
             image_stream = io.BytesIO(image_data)
             doc.add_picture(image_stream, width=Inches(6.0))
-            doc.add_paragraph("Figure - Generated single line diagram injected from digital twin configuration.")
+            doc.add_paragraph("Figure - Generated multi line diagram injected from digital twin configuration.")
         except Exception as e:
             doc.add_paragraph(f"[Image Generation Failed: {e}]")
     else:
-        doc.add_paragraph("[PLACEHOLDER: Generated single line diagram will be inserted here when requested via UI payload.]")
+        doc.add_paragraph("[PLACEHOLDER: Generated multi line diagram will be inserted here when requested via UI payload.]")
 
     # 4. Panel Scope and Deliverables
     doc.add_heading("4. Panel Scope and Deliverables", level=1)

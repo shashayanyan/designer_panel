@@ -45,7 +45,7 @@ This is the initial focus of the app for now. The goal is to have a responsive a
 ------------------------------------
 |               1  header          |
 ------------------------------------
-|config    |   single line diagram |
+|config    |   multi line diagram  |
 |          |                       |
 |    2     |           3           |
 |          |                       |
@@ -66,11 +66,11 @@ This is the initial focus of the app for now. The goal is to have a responsive a
     - Communication : No, ModbusTCP, ProfiNet
 All fields are required, and they are all dropdowns.
 
-- Section 3, Single Line Diagram, is a visual representation of the configuration selected in Section 2. It should be updated in real-time as the user changes the configuration in Section 2. 
+- Section 3, Multi Line Diagram, is a visual representation of the configuration selected in Section 2. It should be updated in real-time as the user changes the configuration in Section 2. 
 
 - Section 4, Assets, is a checklist of all assets that the user can download. The checklist include :
     - Data Sheet
-    - Single Line Diagram
+    - Multi Line Diagram
     - Bill of Materials
     - Drawings
     - Specification
@@ -115,4 +115,4 @@ Transition the application from static, hard-coded React mockups (like `BoosterS
 To make Universal configurator expansion possible in the long term, the backend needs mapping tables defining how different Apps consume rules:
 - **`Applications.csv`:** A master sheet defining available App domains (e.g., ID: `APP-001`, Name: `Water Booster Set`, Root_Config_Requirements: `[motor_power, load_count, ats_included]`). 
 - **`Application_Input_Schema.csv`:** A reference dictionary mapping which UI form options the frontend should render for each specific `Application_ID`. (e.g., Booster sets require "Pumps", while HVAC requires "Fans").
-- **SVG Coordinate Maps (Optional):** If the Single Line Diagram remains dynamic, the backend may need a `DrawingTemplate.csv` outputting the specific SVG node structures coordinates/types to draw, letting React act strictly as a dumb SVG renderer.
+- **SVG Coordinate Maps (Optional):** If the Multi Line Diagram remains dynamic, the backend may need a `DrawingTemplate.csv` outputting the specific SVG node structures coordinates/types to draw, letting React act strictly as a dumb SVG renderer.

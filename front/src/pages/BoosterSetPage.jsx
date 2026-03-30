@@ -5,7 +5,7 @@ import './BoosterSetPage.css'
 
 const ASSET_LIST = [
     'Data Sheet',
-    'Single Line Diagram',
+    'Multi Line Diagram',
     'Bill of Materials',
     'Drawings',
     'Specification',
@@ -251,7 +251,7 @@ function BoosterSetPage() {
                 plc_included: config.plc,
                 scada_included: config.scada,
                 selected_assets: Object.keys(selectedAssets).filter(k => selectedAssets[k]),
-                single_line_diagram_b64: b64diagram
+                multi_line_diagram_b64: b64diagram
             };
 
             const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -269,11 +269,11 @@ function BoosterSetPage() {
             }
 
             const backendZipBlob = await response.blob();
-            // Load backend zip into JSZip to optionally append the UI Single Line Diagram
+            // Load backend zip into JSZip to optionally append the UI Multi Line Diagram
             const zip = await JSZip.loadAsync(backendZipBlob);
 
             if (rawSvgData) {
-                zip.file("SingleLineDiagram.svg", rawSvgData);
+                zip.file("MultiLineDiagram.svg", rawSvgData);
                 if (b64diagram) {
                     // Convert DataURL to Blob to inject back into local Zip
                     const base64Data = b64diagram.split(',')[1];
@@ -288,7 +288,7 @@ function BoosterSetPage() {
                         byteArrays.push(new Uint8Array(byteNumbers));
                     }
                     const blob = new Blob(byteArrays, { type: 'image/png' });
-                    zip.file("SingleLineDiagram.png", blob);
+                    zip.file("MultiLineDiagram.png", blob);
                 }
             }
 
@@ -446,9 +446,9 @@ function BoosterSetPage() {
                     </section>
                 </aside>
 
-                {/* ─── Section 3: Single Line Diagram ─── */}
+                {/* ─── Section 3: Multi Line Diagram ─── */}
                 <section className="booster__diagram glass-card fade-in fade-in-delay-2">
-                    <h2 className="booster__section-title">Single Line Diagram</h2>
+                    <h2 className="booster__section-title">Multi Line Diagram</h2>
 
                     {/* Selection bubbles bar */}
                     <div className="booster__bubbles-bar">

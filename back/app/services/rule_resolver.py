@@ -15,7 +15,8 @@ from ..schemas.configurator import (
     TwinEnclosure,
     TwinIO,
     TwinAlarm,
-    TwinOption
+    TwinOption,
+    TwinBomLine
 )
 
 class MathSafeParser:
@@ -212,8 +213,48 @@ class ConfigurationEngine:
             bypass_strategy=getattr(starter, 'bypass_strategy', 'None'),
             bypass_contactor_part_number=getattr(starter, 'bypass_contactor_part_number', None),
             selected_assets=request.selected_assets,
-            single_line_diagram_b64=request.single_line_diagram_b64
+            multi_line_diagram_b64=request.multi_line_diagram_b64
         )
+        
+        # 7b. Fetch mapped BOM Lines from table
+        db_bom_lines = self.db.query(models.BomLine).filter(
+            models.BomLine.config_id == cid
+        ).all()
+        
+        bom_lines = []
+        for line in db_bom_lines:
+            item_text = line.description
+            notes_text = ""
+            source_type_clean = (line.source_type or "").lower().strip()
+            source_id_clean = (line.source_id or "").strip()
+            
+            if source_type_clean in ["enclosure", "enclosure_option"]:
+                enc = self.db.query(models.EnclosureOption).filter(models.EnclosureOption.enclosure_option_id == source_id_clean).first()
+                if enc:
+                    item_text = f"Enclosure {enc.mounting_type}"
+                    notes_text = enc.description
+            elif source_type_clean in ["component", "component_catalog"]:
+                comp = self.db.query(models.ComponentCatalog).filter(models.ComponentCatalog.part_number == line.part_number).first()
+                if comp:
+                    item_text = comp.generic_description
+                    notes_text = f"{comp.part_family} by {comp.manufacturer}"
+            elif source_type_clean in ["accessory", "accessory_catalog"]:
+                acc = self.db.query(models.AccessoryCatalog).filter(models.AccessoryCatalog.part_number == line.part_number).first()
+                if acc:
+                    item_text = acc.accessory_subcategory
+                    notes_text = f"{acc.product_range} by {acc.manufacturer}"
+                    
+            bom_lines.append(TwinBomLine(
+                line_no=line.line_no,
+                item_category=line.item_category,
+                part_number=line.part_number,
+                description=line.description,
+                qty=line.qty,
+                uom=line.uom,
+                item=item_text or line.description,
+                key_selection_notes=notes_text
+            ))
+        response.bom_lines = bom_lines
 
         # 8. Resolve Application-Specific Templates (IO, Alarms, Options)
         app_id = "APP-WATER-BOOSTER" # Fixed for this specific application page

@@ -33,24 +33,22 @@ mock_twin = DigitalTwinResponse(
 
 def test_excel_generation_produces_valid_bytes_and_sheets():
     """
-    Ensure the `generate_excel_from_twin` outputs a valid openpyxl byte stream
-    with the 3 explicitly developed sheets (Parameters, BOM-Template, IO-List).
+    Ensure the `generate_excel_from_twin` outputs a valid dict of openpyxl byte streams
+    with the explicitly developed files.
     """
-    excel_bytes = generate_excel_from_twin(mock_twin)
+    excel_files = generate_excel_from_twin(mock_twin)
     
     # Assert bytes isn't empty
-    assert len(excel_bytes) > 0
+    assert len(excel_files) > 0
     
-    # Assert valid Excel file logically parsed by openpyxl
-    wb = openpyxl.load_workbook(io.BytesIO(excel_bytes))
-    sheets = wb.sheetnames
-    
-    assert "Parameters" in sheets
-    assert "BOM-Template" in sheets
-    assert "IO-List" in sheets
+    # Assert expected filenames
+    assert "Parameters.xlsx" in excel_files
+    assert "BOM-Template.xlsx" in excel_files
+    assert "IO-List.xlsx" in excel_files
     
     # Assert parameter mapping worked
-    params_sheet = wb["Parameters"]
+    wb = openpyxl.load_workbook(io.BytesIO(excel_files["Parameters.xlsx"]))
+    params_sheet = wb.active # Since there is only one sheet now
     # Check that the config ID was rendered on the 6th row
     assert params_sheet["B7"].value == "CFG-MOCK-3X"
 

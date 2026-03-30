@@ -25,7 +25,7 @@ class ZipService:
         gen_word = has_asset("Specification")
         gen_bim = has_asset("BIM Object")
         
-        excel_bytes = generate_excel_from_twin(twin) if gen_excel else None
+        excel_files = generate_excel_from_twin(twin) if gen_excel else {}
         word_bytes = generate_word_from_twin(twin) if gen_word else None
         
         # BIM objects (Logical and Visual)
@@ -35,11 +35,12 @@ class ZipService:
         bim_visual = generate_ifc_from_twin(twin_dict, visualize_ports=True) if gen_bim else None
         
         # 2. Build the Manifest dynamically
-        files_included = [f"Neutral/DigitalTwin_DNA_{twin.config_id}.json"]
-        if excel_bytes: files_included.append(f"Neutral/ApplicationPack_{twin.config_id}.xlsx")
+        files_included = [f"DigitalTwin_DNA_{twin.config_id}.json"]
+        if excel_files: 
+            files_included.extend(list(excel_files.keys()))
         if word_bytes: files_included.append(f"EngineeringSpec_{twin.config_id}.docx")
-        if bim_logical: files_included.append(f"Neutral/BIM/Logical_{twin.config_id}.ifc")
-        if bim_visual: files_included.append(f"Neutral/BIM/Visual_{twin.config_id}.ifc")
+        if bim_logical: files_included.append(f"BIM/Logical_{twin.config_id}.ifc")
+        if bim_visual: files_included.append(f"BIM/Visual_{twin.config_id}.ifc")
         
         manifest = {
             "config_id": twin.config_id,
@@ -54,17 +55,18 @@ class ZipService:
             # Root manifest
             zip_file.writestr("manifest.json", json.dumps(manifest, indent=2))
             # Always output Neural JSON DNA
-            zip_file.writestr(f"Neutral/DigitalTwin_DNA_{twin.config_id}.json", twin.model_dump_json(indent=2))
+            zip_file.writestr(f"DigitalTwin_DNA_{twin.config_id}.json", twin.model_dump_json(indent=2))
             
             # Conditionally write generated files
-            if excel_bytes:
-                zip_file.writestr(f"Neutral/ApplicationPack_{twin.config_id}.xlsx", excel_bytes)
+            for filename, filebytes in excel_files.items():
+                zip_file.writestr(filename, filebytes)
+                
             if word_bytes:
                 zip_file.writestr(f"EngineeringSpec_{twin.config_id}.docx", word_bytes)
             if bim_logical:
-                zip_file.writestr(f"Neutral/BIM/Logical_{twin.config_id}.ifc", bim_logical)
+                zip_file.writestr(f"BIM/Logical_{twin.config_id}.ifc", bim_logical)
             if bim_visual:
-                zip_file.writestr(f"Neutral/BIM/Visual_{twin.config_id}.ifc", bim_visual)
+                zip_file.writestr(f"BIM/Visual_{twin.config_id}.ifc", bim_visual)
             
         zip_buffer.seek(0)
         return zip_buffer.read()

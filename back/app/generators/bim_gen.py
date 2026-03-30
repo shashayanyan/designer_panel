@@ -131,7 +131,7 @@ def generate_ifc_from_twin(twin_data: dict, visualize_ports: bool = False) -> by
     data = twin_data
 
     # Setup Model and Contexts
-    model = ifcopenshell.api.project.create_file(version="IFC4X3")
+    model = ifcopenshell.api.project.create_file(version="IFC4")
     project = ifcopenshell.api.root.create_entity(model, ifc_class="IfcProject", name="Digital Twin BIM Library")
     ifcopenshell.api.unit.assign_unit(model)
 
@@ -158,8 +158,8 @@ def generate_ifc_from_twin(twin_data: dict, visualize_ports: bool = False) -> by
 
     # Panel Creation
     config_id = data.get("config_id", "Unknown_Panel")
-    panel_type = ifcopenshell.api.root.create_entity(model, ifc_class="IfcDistributionBoardType", name=f"{config_id}_Type")
-    panel = ifcopenshell.api.root.create_entity(model, ifc_class="IfcDistributionBoard", name=config_id)
+    panel_type = ifcopenshell.api.root.create_entity(model, ifc_class="IfcElectricDistributionBoardType", name=f"{config_id}_Type")
+    panel = ifcopenshell.api.root.create_entity(model, ifc_class="IfcElectricDistributionBoard", name=config_id)
     
     notes = data.get("notes", "")
     if notes:
@@ -256,4 +256,4 @@ def main():
     print(f"Successfully wrote: {output_path}")
 
 if __name__ == "__main__":
-    main()
+    main()

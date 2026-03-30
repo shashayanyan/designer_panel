@@ -86,8 +86,8 @@ const StarterBlock = ({ x, y, type }) => {
 
 const PLCBlock = ({ x, y }) => (
     <g transform={`translate(${x}, ${y})`}>
-        <rect x="-30" y="0" width="60" height="40" fill="#f8fafc" stroke="currentColor" strokeWidth="1.5" />
-        <text x="0" y="24" textAnchor="middle" fontSize="14" fontWeight="bold" fill="currentColor">PLC</text>
+        <rect x="-40" y="0" width="80" height="40" fill="#f8fafc" stroke="currentColor" strokeWidth="1.5" />
+        <text x="0" y="24" textAnchor="middle" fontSize="14" fontWeight="bold" fill="currentColor">PLC M262</text>
         <circle cx="-20" cy="40" r="1.5" fill="currentColor" />
         <circle cx="0" cy="40" r="1.5" fill="currentColor" />
         <circle cx="20" cy="40" r="1.5" fill="currentColor" />
@@ -107,7 +107,8 @@ const SCADABlock = ({ x, y }) => (
 
 function BoosterSetPage() {
     const navigate = useNavigate()
-    const svgRef = useRef(null)
+    const multiLineRef = useRef(null)
+    const refArchRef = useRef(null)
 
     const [config, setConfig] = useState({
         incomers: '1',
@@ -210,11 +211,10 @@ function BoosterSetPage() {
     const handleDownload = async () => {
         try {
             // 1. Generate base64 PNG of the diagram FIRST for the backend Word Generator
-            let b64diagram = null;
-            let rawSvgData = null;
-            if (svgRef.current) {
-                rawSvgData = new XMLSerializer().serializeToString(svgRef.current);
-                b64diagram = await new Promise((resolve) => {
+            const renderSvgToPng = async (svgElement) => {
+                if (!svgElement) return { dataURL: null, rawSvgData: null };
+                const rawSvgData = new XMLSerializer().serializeToString(svgElement);
+                return new Promise((resolve) => {
                     const canvas = document.createElement("canvas");
                     canvas.width = 900;
                     canvas.height = 550;
@@ -229,17 +229,21 @@ function BoosterSetPage() {
                         ctx.drawImage(img, 0, 0);
                         const dataURL = canvas.toDataURL("image/png");
                         URL.revokeObjectURL(url);
-                        resolve(dataURL);
+                        resolve({ dataURL, rawSvgData });
                     };
-
                     img.onerror = () => {
-                        console.error("Failed to render SVG to PNG for backend");
+                        console.error("Failed to render SVG to PNG");
                         URL.revokeObjectURL(url);
-                        resolve(null);
+                        resolve({ dataURL: null, rawSvgData });
                     };
                     img.src = url;
                 });
-            }
+            };
+
+            const multiLineResult = await renderSvgToPng(multiLineRef.current);
+            const refArchResult = await renderSvgToPng(refArchRef.current);
+            let b64diagram = multiLineResult.dataURL;
+            let rawSvgData = multiLineResult.rawSvgData;
 
             const ats_included = config.incomers === '2';
             const requestPayload = {
@@ -272,25 +276,28 @@ function BoosterSetPage() {
             // Load backend zip into JSZip to optionally append the UI Multi Line Diagram
             const zip = await JSZip.loadAsync(backendZipBlob);
 
-            if (rawSvgData) {
-                zip.file("MultiLineDiagram.svg", rawSvgData);
-                if (b64diagram) {
-                    // Convert DataURL to Blob to inject back into local Zip
-                    const base64Data = b64diagram.split(',')[1];
-                    const byteCharacters = atob(base64Data);
-                    const byteArrays = [];
-                    for (let offset = 0; offset < byteCharacters.length; offset += 512) {
-                        const slice = byteCharacters.slice(offset, offset + 512);
-                        const byteNumbers = new Array(slice.length);
-                        for (let i = 0; i < slice.length; i++) {
-                            byteNumbers[i] = slice.charCodeAt(i);
-                        }
-                        byteArrays.push(new Uint8Array(byteNumbers));
+            const addDataUrlToZip = (zipObj, filename, dataUrl) => {
+                if (!dataUrl) return;
+                const base64Data = dataUrl.split(',')[1];
+                const byteCharacters = atob(base64Data);
+                const byteArrays = [];
+                for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+                    const slice = byteCharacters.slice(offset, offset + 512);
+                    const byteNumbers = new Array(slice.length);
+                    for (let i = 0; i < slice.length; i++) {
+                        byteNumbers[i] = slice.charCodeAt(i);
                     }
-                    const blob = new Blob(byteArrays, { type: 'image/png' });
-                    zip.file("MultiLineDiagram.png", blob);
+                    byteArrays.push(new Uint8Array(byteNumbers));
                 }
-            }
+                const blob = new Blob(byteArrays, { type: 'image/png' });
+                zipObj.file(filename, blob);
+            };
+
+            if (rawSvgData) zip.file("MultiLineDiagram.svg", rawSvgData);
+            addDataUrlToZip(zip, "MultiLineDiagram.png", b64diagram);
+            
+            if (refArchResult.rawSvgData) zip.file("ReferenceArchitecture.svg", refArchResult.rawSvgData);
+            addDataUrlToZip(zip, "ReferenceArchitecture.png", refArchResult.dataURL);
 
             const finalZipBlob = await zip.generateAsync({ type: "blob" })
             const url = URL.createObjectURL(finalZipBlob)
@@ -448,7 +455,7 @@ function BoosterSetPage() {
 
                 {/* ─── Section 3: Multi Line Diagram ─── */}
                 <section className="booster__diagram glass-card fade-in fade-in-delay-2">
-                    <h2 className="booster__section-title">Multi Line Diagram</h2>
+                    <h2 className="booster__section-title">Reference Architecture</h2>
 
                     {/* Selection bubbles bar */}
                     <div className="booster__bubbles-bar">
@@ -481,7 +488,69 @@ function BoosterSetPage() {
 
                     {/* Diagram area */}
                     <div className="booster__diagram-canvas">
-                        <svg ref={svgRef} viewBox="0 0 900 550" className="booster__svg" xmlns="http://www.w3.org/2000/svg" style={{ minWidth: '800px', backgroundColor: 'white' }}>
+                        {/* Hidden Multi-Line Diagram (Only Pumps & Incomers) */}
+                        <div style={{ position: 'absolute', top: '-9999px', left: '-9999px' }}>
+                            <svg ref={multiLineRef} viewBox="0 0 900 550" xmlns="http://www.w3.org/2000/svg" style={{ minWidth: '800px', backgroundColor: 'white' }}>
+                                <g stroke="#0f172a" fill="#0f172a">
+                                    <line x1="50" y1={busLines[0]} x2="850" y2={busLines[0]} strokeWidth="2" />
+                                    <line x1="50" y1={busLines[1]} x2="850" y2={busLines[1]} strokeWidth="2" />
+                                    <line x1="50" y1={busLines[2]} x2="850" y2={busLines[2]} strokeWidth="2" />
+                                    <line x1="50" y1={busLines[3]} x2="850" y2={busLines[3]} strokeWidth="2" strokeDasharray="8 4" stroke="#16a34a" />
+
+                                    <text x="30" y={busLines[0] + 4} fontSize="10" fontFamily="monospace">L1</text>
+                                    <text x="30" y={busLines[1] + 4} fontSize="10" fontFamily="monospace">L2</text>
+                                    <text x="30" y={busLines[2] + 4} fontSize="10" fontFamily="monospace">L3</text>
+                                    <text x="30" y={busLines[3] + 4} fontSize="10" fontFamily="monospace" fill="#16a34a">PE</text>
+
+                                    {Array.from({ length: 1 }).map((_, i) => {
+                                        const xPos = 120 + (i * 120);
+                                        return (
+                                            <g key={`incomer-${i}`}>
+                                                <line x1={xPos - 10} y1="40" x2={xPos - 10} y2="60" strokeWidth="1.5" />
+                                                <line x1={xPos} y1="40" x2={xPos} y2="60" strokeWidth="1.5" />
+                                                <line x1={xPos + 10} y1="40" x2={xPos + 10} y2="60" strokeWidth="1.5" />
+                                                <CircuitBreaker x={xPos} y={60} label={`QF${i + 1}`} />
+                                                <line x1={xPos - 10} y1="90" x2={xPos - 10} y2={busLines[0]} strokeWidth="1.5" />
+                                                <line x1={xPos} y1="90" x2={xPos} y2={busLines[1]} strokeWidth="1.5" />
+                                                <line x1={xPos + 10} y1="90" x2={xPos + 10} y2={busLines[2]} strokeWidth="1.5" />
+                                                <circle cx={xPos - 10} cy={busLines[0]} r="3" />
+                                                <circle cx={xPos} cy={busLines[1]} r="3" />
+                                                <circle cx={xPos + 10} cy={busLines[2]} r="3" />
+                                            </g>
+                                        )
+                                    })}
+
+                                    {Array.from({ length: pumpCount || 2 }).map((_, i) => {
+                                        const xPos = 400 + (i * 130);
+                                        return (
+                                            <g key={`pump-${i}`}>
+                                                <circle cx={xPos - 10} cy={busLines[0]} r="3" />
+                                                <circle cx={xPos} cy={busLines[1]} r="3" />
+                                                <circle cx={xPos + 10} cy={busLines[2]} r="3" />
+                                                <line x1={xPos - 10} y1={busLines[0]} x2={xPos - 10} y2="200" strokeWidth="1.5" />
+                                                <line x1={xPos} y1={busLines[1]} x2={xPos} y2="200" strokeWidth="1.5" />
+                                                <line x1={xPos + 10} y1={busLines[2]} x2={xPos + 10} y2="200" strokeWidth="1.5" />
+                                                <CircuitBreaker x={xPos} y={200} label={`QM${i + 1}`} />
+                                                <line x1={xPos - 10} y1="230" x2={xPos - 10} y2="260" strokeWidth="1.5" />
+                                                <line x1={xPos} y1="230" x2={xPos} y2="260" strokeWidth="1.5" />
+                                                <line x1={xPos + 10} y1="230" x2={xPos + 10} y2="260" strokeWidth="1.5" />
+                                                <StarterBlock x={xPos} y={260} type={config.motorStart} />
+                                                <line x1={xPos - 10} y1="300" x2={xPos - 10} y2="340" strokeWidth="1.5" />
+                                                <line x1={xPos} y1="300" x2={xPos} y2="340" strokeWidth="1.5" />
+                                                <line x1={xPos + 10} y1="300" x2={xPos + 10} y2="340" strokeWidth="1.5" />
+                                                <MotorSymbol x={xPos} y={340} label={`Pump ${i + 1}`} power={config.motorPower} />
+                                                <line x1={xPos - 16} y1={360} x2={xPos - 30} y2={360} stroke="#16a34a" strokeWidth="1.5" />
+                                                <line x1={xPos - 30} y1={360} x2={xPos - 30} y2={busLines[3]} stroke="#16a34a" strokeWidth="1.5" strokeDasharray="4 2" />
+                                                <circle cx={xPos - 30} cy={busLines[3]} r="3" fill="#16a34a" />
+                                            </g>
+                                        )
+                                    })}
+                                </g>
+                            </svg>
+                        </div>
+                        
+                        {/* Visible Reference Architecture Diagram */}
+                        <svg ref={refArchRef} viewBox="0 0 900 550" className="booster__svg" xmlns="http://www.w3.org/2000/svg" style={{ minWidth: '800px', backgroundColor: 'white' }}>
                             <g stroke="#0f172a" fill="#0f172a">
 
                                 {/* --- 1. Main Busbars (4 Wires: L1, L2, L3, PE) --- */}

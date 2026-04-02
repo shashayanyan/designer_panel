@@ -24,7 +24,7 @@ import ifcopenshell.api.style
 def mm_to_m(v_mm):
     return v_mm / 1000.0
 
-def load_data(path="DigitalTwin_DNA_CFG-ST019-3X.json"):
+def load_data(path="002_DigitalTwin_DNA_CFG-ST019-3X.json"):
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
@@ -236,7 +236,7 @@ def main():
     args = parser.parse_args()
 
     # Load Data
-    json_path = "DigitalTwin_DNA_CFG-ST019-3X.json"
+    json_path = "002_DigitalTwin_DNA_CFG-ST019-3X.json"
     try:
         data = load_data(json_path)
     except FileNotFoundError:

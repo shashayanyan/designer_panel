@@ -35,18 +35,18 @@ def test_generate_package_returns_valid_zip():
         file_list = zf.namelist()
         
         # 1. Assert Manifest exists at root
-        assert "manifest.json" in file_list
+        assert "001_manifest.json" in file_list
         
         # 2. Assert manifest is legitimate JSON with expected keys
-        manifest_data = json.loads(zf.read("manifest.json").decode("utf-8"))
+        manifest_data = json.loads(zf.read("001_manifest.json").decode("utf-8"))
         assert manifest_data["series"] == "TEST_SR"
         config_id = manifest_data["config_id"]
         
         # 3. Assert files exist exactly as architected
-        json_path = f"DigitalTwin_DNA_{config_id}.json"
-        excel_param_path = "Parameters.xlsx"
-        excel_bom_path = "BOM-Template.xlsx"
-        word_path = f"EngineeringSpec_{config_id}.docx"
+        json_path = f"002_DigitalTwin_DNA_{config_id}.json"
+        excel_param_path = "005_Parameters.xlsx"
+        excel_bom_path = "006_BOM-Template.xlsx"
+        word_path = f"004_EngineeringSpec_{config_id}.docx"
         
         assert json_path in file_list
         assert excel_param_path in file_list

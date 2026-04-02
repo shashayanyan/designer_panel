@@ -42,12 +42,12 @@ def test_excel_generation_produces_valid_bytes_and_sheets():
     assert len(excel_files) > 0
     
     # Assert expected filenames
-    assert "Parameters.xlsx" in excel_files
-    assert "BOM-Template.xlsx" in excel_files
-    assert "IO-List.xlsx" in excel_files
+    assert "005_Parameters.xlsx" in excel_files
+    assert "006_BOM-Template.xlsx" in excel_files
+    assert "007_IO-List.xlsx" in excel_files
     
     # Assert parameter mapping worked
-    wb = openpyxl.load_workbook(io.BytesIO(excel_files["Parameters.xlsx"]))
+    wb = openpyxl.load_workbook(io.BytesIO(excel_files["005_Parameters.xlsx"]))
     params_sheet = wb.active # Since there is only one sheet now
     # Check that the config ID was rendered on the 6th row
     assert params_sheet["B7"].value == "CFG-MOCK-3X"

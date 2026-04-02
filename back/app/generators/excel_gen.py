@@ -63,7 +63,7 @@ def generate_excel_from_twin(twin: DigitalTwinResponse) -> Dict[str, bytes]:
         {"Field": "Bypass Strategy", "Value": twin.bypass_strategy or "N/A"}
     ]
     df_params = pd.DataFrame(parameters_data)
-    generated_files["Parameters.xlsx"] = df_to_excel_bytes(df_params)
+    generated_files["005_Parameters.xlsx"] = df_to_excel_bytes(df_params)
     
     # --- 2. BOM Template ---
     bom_data = []
@@ -96,10 +96,10 @@ def generate_excel_from_twin(twin: DigitalTwinResponse) -> Dict[str, bytes]:
     assets = [a.lower().strip() for a in (twin.selected_assets or [])]
 
     if not assets or "bill of materials" in assets:
-        generated_files['BOM-Template.xlsx'] = df_to_excel_bytes(df_bom)
+        generated_files['006_BOM-Template.xlsx'] = df_to_excel_bytes(df_bom)
         
     if not assets or "data sheet" in assets:
-        generated_files['IO-List.xlsx'] = df_to_excel_bytes(df_io)
+        generated_files['007_IO-List.xlsx'] = df_to_excel_bytes(df_io)
         
         network_data = [
             {"Tag": item.tag, "Description": item.description, "Signal Type": item.signal_type, 
@@ -108,7 +108,7 @@ def generate_excel_from_twin(twin: DigitalTwinResponse) -> Dict[str, bytes]:
             if (item.interface or "").strip().lower() != "hardwired"
         ]
         df_network = pd.DataFrame(network_data if network_data else [{"Status": "No network IO points resolved"}])
-        generated_files['Network-IP-Plan.xlsx'] = df_to_excel_bytes(df_network)
+        generated_files['008_Network-IP-Plan.xlsx'] = df_to_excel_bytes(df_network)
 
         alarm_data = [
             {"Code": item.code, "Source Tag": item.source_tag, "Condition": item.condition, 
@@ -116,7 +116,7 @@ def generate_excel_from_twin(twin: DigitalTwinResponse) -> Dict[str, bytes]:
             for item in twin.alarm_list
         ]
         df_alarm = pd.DataFrame(alarm_data if alarm_data else [{"Status": "No alarms resolved"}])
-        generated_files['Alarm_List.xlsx'] = df_to_excel_bytes(df_alarm)
+        generated_files['009_Alarm_List.xlsx'] = df_to_excel_bytes(df_alarm)
 
         option_data = [
             {"Category": item.category, "Option Name": item.name, "Type": "Base" if item.is_base else "Optional", 
@@ -124,6 +124,6 @@ def generate_excel_from_twin(twin: DigitalTwinResponse) -> Dict[str, bytes]:
             for item in twin.option_matrix
         ]
         df_option = pd.DataFrame(option_data if option_data else [{"Status": "No options resolved"}])
-        generated_files['Option-Matrix.xlsx'] = df_to_excel_bytes(df_option)
+        generated_files['010_Option-Matrix.xlsx'] = df_to_excel_bytes(df_option)
         
     return generated_files

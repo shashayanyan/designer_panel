@@ -7,16 +7,9 @@ from ..schemas.configurator import DigitalTwinResponse
 def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
     doc = Document()
     
-    placeholders = {
-        "[TBD-REDUNDANCY]": "Redundancy strategy (e.g., N+1 standby).",
-        "[TBD-VOLTAGE]": "Mains supply voltage and frequency (e.g., 400V/50Hz).",
-        "[TBD-SCCR]": "Short-circuit current rating (e.g., 50kA).",
-        "[TBD-ESTOP]": "Emergency stop inclusion."
-    }
-    
     doc.add_heading(f"Application Specification Appendix", 0)
     doc.add_paragraph(f"Project Configuration DNA: {twin.config_id}")
-    doc.add_paragraph(f"Water Booster Set - {twin.load_count}-pump system ([TBD-REDUNDANCY])")
+    doc.add_paragraph(f"Water Booster Set - {twin.load_count}-pump system")
     
     device_type = twin.components[0].description if twin.components else "Variable Speed Drive"
     mounting = twin.enclosure.mounting_type if twin.enclosure else "Floor Standing"
@@ -39,7 +32,7 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
 
     add_row(0, "Application", f"Water Booster Set - {twin.load_count} Pumps")
     add_row(1, "Process objective", "Maintain discharge pressure at setpoint across variable demand")
-    add_row(2, "Motor configuration", f"{twin.load_count} pumps x {twin.motor_power_kw} kW each; redundancy [TBD-REDUNDANCY]")
+    add_row(2, "Motor configuration", f"{twin.load_count} pumps x {twin.motor_power_kw} kW each")
     add_row(3, "Starter type", f"{device_type} for each pump")
     add_row(4, "Control mode", "Cascade PID with staging/de-staging and automatic alternation")
     add_row(5, "Enclosure", f"IP54 {mounting.lower()} control panel (universal enclosure)")
@@ -86,13 +79,13 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
     doc.add_paragraph("The assembly shall be designed, manufactured, and tested in accordance with applicable IEC requirements for low-voltage switchgear and controlgear assemblies (e.g., IEC 61439 where applicable).")
 
     doc.add_heading("5.2 Feeders", level=2)
-    doc.add_paragraph(f"Each pump motor shall be controlled by an individual {device_type} suitable for {twin.motor_power_kw} kW motor duty and the supply network characteristics ([TBD-VOLTAGE], [TBD-SCCR]).")
+    doc.add_paragraph(f"Each pump motor shall be controlled by an individual {device_type} suitable for {twin.motor_power_kw} kW motor duty and the supply network characteristics.")
     doc.add_paragraph(f"The drive shall support network control and monitoring via {twin.communication} and shall expose key operating data.")
     doc.add_paragraph("The design shall include appropriate upstream protection and isolation for each feeder.")
 
     doc.add_heading("5.3 Control Power and Auxiliaries", level=2)
     doc.add_paragraph("The panel shall include a 24 VDC control power supply sized for PLC, HMI, network devices, and field instrumentation loops as required.")
-    doc.add_paragraph("An emergency stop function (if specified by the end user: [TBD-ESTOP]) shall remove run permission from all drives and place the system into a safe state.")
+    doc.add_paragraph("An emergency stop function shall remove run permission from all drives and place the system into a safe state.")
     doc.add_paragraph("Door interlock and maintenance mode provisions shall be implemented as required by local regulations and end user standards.")
 
     # 6. Control Philosophy
@@ -101,7 +94,7 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
     doc.add_paragraph("Minimum functional requirements:\n"
                       "- PID pressure control using a primary discharge pressure transmitter.\n"
                       "- Pump staging/de-staging based on demand thresholds.\n"
-                      "- Automatic alternation of duty to equalize runtime, supporting [TBD-REDUNDANCY].\n"
+                      "- Automatic alternation of duty to equalize runtime.\n"
                       "- Failover: if any pump/drive becomes unavailable, remaining pumps shall continue to control pressure.")
 
     # 7. Communications
@@ -115,13 +108,6 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
     # 9. FAT/SAT
     doc.add_heading("9. FAT/SAT - Minimum Acceptance Tests", level=1)
     doc.add_paragraph("Factory Acceptance Test (FAT) & Site Acceptance Test (SAT) shall include visual, electrical, network, functional, and HMI validations per standard clauses.")
-
-    # Appendix A
-    doc.add_heading("Appendix A: Outstanding Information Requirements", level=1)
-    doc.add_paragraph("The following placeholders were injected into the specification because the required master data was not collected by the configurator. These must be defined to finalize this document:")
-    
-    for marker, description in placeholders.items():
-        doc.add_paragraph(f"{marker}: {description}", style='List Bullet')
 
     output = io.BytesIO()
     doc.save(output)

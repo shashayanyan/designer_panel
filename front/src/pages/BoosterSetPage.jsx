@@ -293,11 +293,11 @@ function BoosterSetPage() {
                 zipObj.file(filename, blob);
             };
 
-            if (rawSvgData) zip.file("MultiLineDiagram.svg", rawSvgData);
-            addDataUrlToZip(zip, "MultiLineDiagram.png", b64diagram);
-            
-            if (refArchResult.rawSvgData) zip.file("ReferenceArchitecture.svg", refArchResult.rawSvgData);
-            addDataUrlToZip(zip, "ReferenceArchitecture.png", refArchResult.dataURL);
+            if (rawSvgData) zip.file("011_MultiLineDiagram.svg", rawSvgData);
+            addDataUrlToZip(zip, "012_MultiLineDiagram.png", b64diagram);
+
+            if (refArchResult.rawSvgData) zip.file("013_ReferenceArchitecture.svg", refArchResult.rawSvgData);
+            addDataUrlToZip(zip, "014_ReferenceArchitecture.png", refArchResult.dataURL);
 
             const finalZipBlob = await zip.generateAsync({ type: "blob" })
             const url = URL.createObjectURL(finalZipBlob)
@@ -548,7 +548,7 @@ function BoosterSetPage() {
                                 </g>
                             </svg>
                         </div>
-                        
+
                         {/* Visible Reference Architecture Diagram */}
                         <svg ref={refArchRef} viewBox="0 0 900 550" className="booster__svg" xmlns="http://www.w3.org/2000/svg" style={{ minWidth: '800px', backgroundColor: 'white' }}>
                             <g stroke="#0f172a" fill="#0f172a">

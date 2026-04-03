@@ -11,6 +11,7 @@ from app.schemas.configurator import (
 )
 from app.generators.excel_gen import generate_excel_from_twin
 from app.generators.word_gen import generate_word_from_twin
+from app.generators.spec_text_gen import generate_spec_text_from_twin
 
 # Create a mock digital twin response for testing
 mock_twin = DigitalTwinResponse(
@@ -28,7 +29,9 @@ mock_twin = DigitalTwinResponse(
     ],
     accessories=[
         TwinAccessory(part_number="HMIZ", qty=Decimal("1"), category="HMI")
-    ]
+    ],
+    plc_included="YES",
+    scada_included="No"
 )
 
 def test_excel_generation_produces_valid_bytes_and_sheets():
@@ -77,3 +80,18 @@ def test_word_generation_produces_valid_bytes_and_replaces_tags():
     
     # Ensure raw jinja tags are gone
     assert "{{ config_id }}" not in rendered_str
+
+def test_spec_text_generation_produces_valid_bytes():
+    """
+    Ensure the `generate_spec_text_from_twin` outputs a valid text byte stream.
+    """
+    spec_bytes = generate_spec_text_from_twin(mock_twin)
+    
+    assert len(spec_bytes) > 0
+    
+    # Simple content verification
+    content = spec_bytes.decode('utf-8')
+    assert "WATER BOOSTER SET" in content
+    assert "MOCK-3X" in content
+    assert "A. GENERAL" in content
+    assert "I. DOCUMENTATION AND TESTING" in content

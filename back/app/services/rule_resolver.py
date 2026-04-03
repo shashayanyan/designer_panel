@@ -212,6 +212,8 @@ class ConfigurationEngine:
             communication=request.communication,
             bypass_strategy=getattr(starter, 'bypass_strategy', 'None'),
             bypass_contactor_part_number=getattr(starter, 'bypass_contactor_part_number', None),
+            plc_included=request.plc_included,
+            scada_included=request.scada_included,
             selected_assets=request.selected_assets,
             multi_line_diagram_b64=request.multi_line_diagram_b64
         )

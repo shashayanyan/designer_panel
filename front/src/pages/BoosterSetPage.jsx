@@ -574,7 +574,7 @@ function BoosterSetPage() {
                                     {/* Main Control Bus (Horizontal) */}
                                     {(hasSCADA || hasPLC || hasComms) && (
                                         <>
-                                            <line x1="200" y1="280" x2="700" y2="280" stroke={hasComms ? "#8b5cf6" : "#64748b"} strokeWidth="3" strokeDasharray={hasComms ? "" : "6 4"} />
+                                            <line x1="140" y1="280" x2="760" y2="280" stroke={hasComms ? "#8b5cf6" : "#64748b"} strokeWidth="3" strokeDasharray={hasComms ? "" : "6 4"} />
                                             <text x="210" y="270" fill={hasComms ? "#8b5cf6" : "#64748b"} fontSize="14">
                                                 {hasComms ? `${config.communication} Bus` : "Hardwired I/O Bus"}
                                             </text>

@@ -32,7 +32,9 @@ def test_engine_resolves_correctly_against_csv(case):
         "series_id": case["series_id"],
         "motor_power_kw": case["motor_power_kw"],
         "load_count": case["load_count"],
-        "ats_included": case["ats_included"]
+        "ats_included": case["ats_included"],
+        "plc_included": "YES",
+        "scada_included": "No"
     }
     
     response = client.post("/api/v1/engine/configure", json=request_payload)
@@ -44,6 +46,8 @@ def test_engine_resolves_correctly_against_csv(case):
     
     # 1. Check ID Mapping
     assert data["config_id"] == case["config_id"]
+    assert data["plc_included"] == "YES"
+    assert data["scada_included"] == "No"
     
     # 2. Check Enclosure Resolution
     assert data["enclosure"]["catalog_ref"] == case["ex_enclosure_ref"]

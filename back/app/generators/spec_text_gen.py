@@ -23,7 +23,7 @@ def generate_spec_text_from_twin(twin: DigitalTwinResponse) -> bytes:
     
     redundancy_str = "N+1" if twin.bypass_strategy else "No redundancy"
     
-    lines.append(f"WATER BOOSTER SET - {twin.load_count} PUMPS ({redundancy_str}) - CONTROL PANEL")
+    lines.append(f"WATER BOOSTER SET - {twin.load_count} PUMPS ({redundancy_str}) - {twin.config_id}")
     lines.append("Copy/Paste Specification Clauses (v1.0)")
     lines.append("")
     

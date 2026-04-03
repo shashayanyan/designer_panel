@@ -19,6 +19,8 @@ def test_generate_package_returns_valid_zip():
         "motor_power_kw": 10.0,
         "load_count": 2,
         "ats_included": False,
+        "plc_included": "YES",
+        "scada_included": "No",
         "selected_assets": ["Data Sheet", "Bill of Materials", "Specification"]
     }
     
@@ -47,11 +49,13 @@ def test_generate_package_returns_valid_zip():
         excel_param_path = "005_Parameters.xlsx"
         excel_bom_path = "006_BOM-Template.xlsx"
         word_path = f"004_EngineeringSpec_{config_id}.docx"
+        spec_text_path = "014_SpecTextBlock.txt"
         
         assert json_path in file_list
         assert excel_param_path in file_list
         assert excel_bom_path in file_list
         assert word_path in file_list
+        assert spec_text_path in file_list
         
         # 4. Light verification of JSON twin extraction
         extracted_twin = json.loads(zf.read(json_path).decode("utf-8"))

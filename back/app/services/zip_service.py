@@ -7,6 +7,7 @@ from ..generators.excel_gen import generate_excel_from_twin
 from ..generators.word_gen import generate_word_from_twin
 from ..generators.bim_gen import generate_ifc_from_twin
 from ..generators.templates.readme_template import generate_readme_from_twin
+from ..generators.spec_text_gen import generate_spec_text_from_twin
 
 class ZipService:
     @staticmethod
@@ -36,9 +37,10 @@ class ZipService:
         bim_visual = generate_ifc_from_twin(twin_dict, visualize_ports=True) if gen_bim else None
         
         readme_bytes = generate_readme_from_twin(twin)
+        spec_text_bytes = generate_spec_text_from_twin(twin)
         
         # 2. Build the Manifest dynamically
-        files_included = [f"002_DigitalTwin_DNA_{twin.config_id}.json", "003_README.txt"]
+        files_included = [f"002_DigitalTwin_DNA_{twin.config_id}.json", "003_README.txt", "014_SpecTextBlock.txt"]
         if excel_files: 
             files_included.extend(list(excel_files.keys()))
         if word_bytes: files_included.append(f"004_EngineeringSpec_{twin.config_id}.docx")
@@ -58,6 +60,7 @@ class ZipService:
             # Root manifest
             zip_file.writestr("001_manifest.json", json.dumps(manifest, indent=2))
             zip_file.writestr("003_README.txt", readme_bytes)
+            zip_file.writestr("014_SpecTextBlock.txt", spec_text_bytes)
             # Always output Neural JSON DNA
             zip_file.writestr(f"002_DigitalTwin_DNA_{twin.config_id}.json", twin.model_dump_json(indent=2))
             

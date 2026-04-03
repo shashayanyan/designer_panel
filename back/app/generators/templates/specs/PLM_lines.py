@@ -1,0 +1,18 @@
+plm_lines = [
+    "The enclosure shall be suitable for outdoor water pumping stations exposed to rain, high humidity, UV radiation, and aggressive atmospheres such as coastal or wastewater environments.",
+    "The enclosure shall be suitable for pumping installations exposed to humidity, splashing water, and chemically aggressive atmospheres, without degradation of sealing or mechanical properties.",
+    "The enclosure shall provide a minimum ingress protection of IP66 as a complete system, including body, door, sealing, and cable entry areas.",
+    "The enclosure shall provide a minimum mechanical impact resistance of IK10 for solid doors, suitable for pumping environments.",
+    "The enclosure shall ensure total insulation (Class II) to minimize electrical risks for operators during operation and maintenance of pumping equipment.",
+    "The enclosure shall be capable of continuous operation in ambient temperatures from –40 °C to +80 °C without loss of mechanical or insulation performance.",
+    "The enclosure shall be manufactured from corrosion‑resistant GRP material, eliminating the need for additional surface treatment in humid or saline environments.",
+    "The enclosure shall allow safe integration of motor starters, soft starters, and variable speed drives without additional structural reinforcement.",
+    "The enclosure range shall offer multiple depth options for identical height and width to accommodate different thermal and cabling requirements of DOL, soft starter, and VSD applications.",
+    "The enclosure design shall support passive ventilation and the integration of thermal management accessories without compromising the declared IP rating.",
+    "The enclosure shall support multiple fixing methods including wall‑mounting, plinths, pedestals, and post‑fixing devices to adapt to pumping station constraints.",
+    "The enclosure door shall open to 180° and be reversible to facilitate maintenance in confined pumping rooms.",
+    "The enclosure shall be low‑maintenance and designed for long service life in continuous‑operation pumping systems.",
+    "The enclosure shall be manufactured using a minimum of 37% recycled material content and be delivered with recycled packaging.",
+    "The enclosure manufacturer shall provide complete 2D/3D CAD and eCAD data compatible with ETAP, EPLAN, and WSCAD for pump panel design.",
+    "The enclosure dimensions shall strictly comply with catalogue data to ensure compatibility with pre‑engineered pumping panel layouts.",
+]

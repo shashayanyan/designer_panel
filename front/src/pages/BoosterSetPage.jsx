@@ -84,7 +84,7 @@ const StarterBlock = ({ x, y, type }) => {
 const PLCBlock = ({ x, y }) => (
     <g transform={`translate(${x}, ${y})`}>
         <rect x="-40" y="0" width="80" height="40" fill="#f8fafc" stroke="currentColor" strokeWidth="1.5" />
-        <text x="0" y="24" textAnchor="middle" fontSize="14" fontWeight="bold" fill="currentColor">PLC M262</text>
+        <text x="0" y="24" textAnchor="middle" fontSize="14" fontWeight="bold" fill="currentColor">PLC</text>
         <circle cx="-20" cy="40" r="1.5" fill="currentColor" />
         <circle cx="0" cy="40" r="1.5" fill="currentColor" />
         <circle cx="20" cy="40" r="1.5" fill="currentColor" />

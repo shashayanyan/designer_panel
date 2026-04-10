@@ -3,6 +3,7 @@ import json
 import io
 import pytest
 from fastapi.testclient import TestClient
+from app.generators.asset_number_gen import generate_asset_numbers
 
 from app.main import app
 
@@ -30,6 +31,8 @@ def test_generate_package_returns_valid_zip():
     assert response.status_code == 200, f"Endpoint failed: {response.text}"
     assert response.headers["content-type"] == "application/x-zip-compressed"
     
+    asset_numbers = generate_asset_numbers(request_payload["selected_assets"])
+    
     # Load byte stream into python's native ZipFile library
     zip_bytes = io.BytesIO(response.content)
     with zipfile.ZipFile(zip_bytes, "r") as zf:
@@ -46,10 +49,10 @@ def test_generate_package_returns_valid_zip():
         
         # 3. Assert files exist exactly as architected
         json_path = f"002_DigitalTwin_DNA_{config_id}.json"
-        excel_param_path = "005_Parameters.xlsx"
-        excel_bom_path = "006_BOM-Template.xlsx"
-        word_path = f"004_EngineeringSpec_{config_id}.docx"
-        spec_text_path = "014_SpecTextBlock.txt"
+        excel_param_path = f"{asset_numbers['Parameters']}_Parameters.xlsx"
+        excel_bom_path = f"{asset_numbers['BOM']}_BOM-Template.xlsx"
+        word_path = f"{asset_numbers['spec-docx']}_EngineeringSpec_{config_id}.docx"
+        spec_text_path = f"{asset_numbers['spec-txt']}_SpecTextBlock.txt"
         
         assert json_path in file_list
         assert excel_param_path in file_list

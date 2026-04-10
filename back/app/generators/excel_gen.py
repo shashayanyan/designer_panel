@@ -3,6 +3,7 @@ from io import BytesIO
 from typing import Dict
 from openpyxl.styles import PatternFill, Font, Alignment
 from ..schemas.configurator import DigitalTwinResponse
+from ..generators.asset_number_gen import generate_asset_numbers
 
 def generate_excel_from_twin(twin: DigitalTwinResponse) -> Dict[str, bytes]:
     """
@@ -11,6 +12,7 @@ def generate_excel_from_twin(twin: DigitalTwinResponse) -> Dict[str, bytes]:
     Returns a dictionary mapping filenames to raw byte streams.
     """
     generated_files = {}
+    asset_numbers = generate_asset_numbers(twin.selected_assets)
     
     def df_to_excel_bytes(df: pd.DataFrame) -> bytes:
         output = BytesIO()
@@ -63,7 +65,7 @@ def generate_excel_from_twin(twin: DigitalTwinResponse) -> Dict[str, bytes]:
         {"Field": "Bypass Strategy", "Value": twin.bypass_strategy or "N/A"}
     ]
     df_params = pd.DataFrame(parameters_data)
-    generated_files["005_Parameters.xlsx"] = df_to_excel_bytes(df_params)
+    generated_files[f"{asset_numbers['Parameters']}_Parameters.xlsx"] = df_to_excel_bytes(df_params)
     
     # --- 2. BOM Template ---
     bom_data = []
@@ -79,7 +81,7 @@ def generate_excel_from_twin(twin: DigitalTwinResponse) -> Dict[str, bytes]:
                 "Key Selection Notes / Options": line.key_selection_notes or "-"
             })
 
-    df_bom = pd.DataFrame(bom_data, columns=["Item Category", "Item", "Qty", "Part No.", "Key Selection Notes / Options"])
+    df_bom = pd.DataFrame(bom_data, columns=["Item Category", "Qty", "Part No.", "Key Selection Notes / Options"])
     
     # --- 3. IO-List ---
     io_data = []
@@ -94,12 +96,11 @@ def generate_excel_from_twin(twin: DigitalTwinResponse) -> Dict[str, bytes]:
     df_io = pd.DataFrame(io_data)
     
     assets = [a.lower().strip() for a in (twin.selected_assets or [])]
-
-    if not assets or "bill of materials" in assets:
-        generated_files['006_BOM-Template.xlsx'] = df_to_excel_bytes(df_bom)
         
     if not assets or "data sheet" in assets:
-        generated_files['007_IO-List.xlsx'] = df_to_excel_bytes(df_io)
+        generated_files[f"{asset_numbers['BOM']}_BOM-Template.xlsx"] = df_to_excel_bytes(df_bom)
+
+        generated_files[f'{asset_numbers['IO']}_IO-List.xlsx'] = df_to_excel_bytes(df_io)
         
         network_data = [
             {"Tag": item.tag, "Description": item.description, "Signal Type": item.signal_type, 
@@ -108,7 +109,7 @@ def generate_excel_from_twin(twin: DigitalTwinResponse) -> Dict[str, bytes]:
             if (item.interface or "").strip().lower() != "hardwired"
         ]
         df_network = pd.DataFrame(network_data if network_data else [{"Status": "No network IO points resolved"}])
-        generated_files['008_Network-IP-Plan.xlsx'] = df_to_excel_bytes(df_network)
+        generated_files[f'{asset_numbers['Network']}_Network-IP-Plan.xlsx'] = df_to_excel_bytes(df_network)
 
         alarm_data = [
             {"Code": item.code, "Source Tag": item.source_tag, "Condition": item.condition, 
@@ -116,7 +117,7 @@ def generate_excel_from_twin(twin: DigitalTwinResponse) -> Dict[str, bytes]:
             for item in twin.alarm_list
         ]
         df_alarm = pd.DataFrame(alarm_data if alarm_data else [{"Status": "No alarms resolved"}])
-        generated_files['009_Alarm_List.xlsx'] = df_to_excel_bytes(df_alarm)
+        generated_files[f'{asset_numbers['Alarms']}_Alarm_List.xlsx'] = df_to_excel_bytes(df_alarm)
 
         option_data = [
             {"Category": item.category, "Option Name": item.name, "Type": "Base" if item.is_base else "Optional", 
@@ -124,6 +125,6 @@ def generate_excel_from_twin(twin: DigitalTwinResponse) -> Dict[str, bytes]:
             for item in twin.option_matrix
         ]
         df_option = pd.DataFrame(option_data if option_data else [{"Status": "No options resolved"}])
-        generated_files['010_Option-Matrix.xlsx'] = df_to_excel_bytes(df_option)
+        generated_files[f'{asset_numbers['Options']}_Option-Matrix.xlsx'] = df_to_excel_bytes(df_option)
         
     return generated_files

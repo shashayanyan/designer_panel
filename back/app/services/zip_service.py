@@ -8,6 +8,7 @@ from ..generators.word_gen import generate_word_from_twin
 from ..generators.bim_gen import generate_ifc_from_twin
 from ..generators.templates.readme_template import generate_readme_from_twin
 from ..generators.spec_text_gen import generate_spec_text_from_twin
+from ..generators.asset_number_gen import generate_asset_numbers
 
 class ZipService:
     @staticmethod
@@ -17,13 +18,13 @@ class ZipService:
         them all into a single structured ZIP file in memory.
         """
         assets = [a.strip() for a in (twin.selected_assets or [])]
-        
+        asset_numbers = generate_asset_numbers(assets) # dict of dynamic asset numbers
         # 1. Determine which engine generators to fire
         # Match case-insensitively just to be robust
         def has_asset(name):
             return any(a.lower() == name.lower() for a in assets)
 
-        gen_excel = has_asset("Data Sheet") or has_asset("Bill of Materials")
+        gen_excel = has_asset("Data Sheet")
         gen_word = has_asset("Specification")
         gen_bim = has_asset("BIM Object")
         
@@ -43,9 +44,11 @@ class ZipService:
         files_included = [f"002_DigitalTwin_DNA_{twin.config_id}.json", "003_README.txt", "014_SpecTextBlock.txt"]
         if excel_files: 
             files_included.extend(list(excel_files.keys()))
-        if word_bytes: files_included.append(f"004_EngineeringSpec_{twin.config_id}.docx")
-        if bim_logical: files_included.append(f"BIM/015_Logical_{twin.config_id}.ifc")
-        if bim_visual: files_included.append(f"BIM/016_Visual_{twin.config_id}.ifc")
+        if word_bytes:
+            files_included.append(f"{asset_numbers['spec-txt']}_SpecTextBlock.txt")
+            files_included.append(f"{asset_numbers['spec-docx']}_EngineeringSpec_{twin.config_id}.docx")
+        if bim_logical: files_included.append(f"BIM/{asset_numbers['BIM-logical']}_Logical_{twin.config_id}.ifc")
+        if bim_visual: files_included.append(f"BIM/{asset_numbers['BIM-visual']}_Visual_{twin.config_id}.ifc")
         
         manifest = {
             "config_id": twin.config_id,
@@ -59,21 +62,19 @@ class ZipService:
         with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zip_file:
             # Root manifest
             zip_file.writestr("001_manifest.json", json.dumps(manifest, indent=2))
-            zip_file.writestr("003_README.txt", readme_bytes)
-            zip_file.writestr("014_SpecTextBlock.txt", spec_text_bytes)
-            # Always output Neural JSON DNA
             zip_file.writestr(f"002_DigitalTwin_DNA_{twin.config_id}.json", twin.model_dump_json(indent=2))
-            
+            zip_file.writestr("003_README.txt", readme_bytes)
+                        
             # Conditionally write generated files
             for filename, filebytes in excel_files.items():
                 zip_file.writestr(filename, filebytes)
-                
+            zip_file.writestr(f"{asset_numbers['spec-txt']}_SpecTextBlock.txt", spec_text_bytes)
             if word_bytes:
-                zip_file.writestr(f"004_EngineeringSpec_{twin.config_id}.docx", word_bytes)
+                zip_file.writestr(f"{asset_numbers['spec-docx']}_EngineeringSpec_{twin.config_id}.docx", word_bytes)
             if bim_logical:
-                zip_file.writestr(f"BIM/015_Logical_{twin.config_id}.ifc", bim_logical)
+                zip_file.writestr(f"BIM/{asset_numbers['BIM-logical']}_Logical_{twin.config_id}.ifc", bim_logical)
             if bim_visual:
-                zip_file.writestr(f"BIM/016_Visual_{twin.config_id}.ifc", bim_visual)
+                zip_file.writestr(f"BIM/{asset_numbers['BIM-visual']}_Visual_{twin.config_id}.ifc", bim_visual)
             
         zip_buffer.seek(0)
         return zip_buffer.read()

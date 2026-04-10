@@ -187,7 +187,9 @@ function BoosterSetPage() {
     const toggleAsset = (asset) => setSelectedAssets((prev) => ({ ...prev, [asset]: !prev[asset] }));
     const selectAllAssets = () => setSelectedAssets(ASSET_LIST.reduce((acc, a) => ({ ...acc, [a]: true }), {}));
     const clearAllAssets = () => setSelectedAssets(ASSET_LIST.reduce((acc, a) => ({ ...acc, [a]: false }), {}));
-
+    const numberIn3Digits = (num) => {
+        return num.toString().padStart(3, '0');
+    }
     const handleDownload = async () => {
         try {
             const renderSvgToPng = async (svgElement) => {
@@ -297,12 +299,20 @@ function BoosterSetPage() {
                 }
                 zipObj.file(filename, new Blob(byteArrays, { type: 'image/png' }));
             };
+            // put images only if they are selected, with calculated index
+            if (selectedAssets['Multi Line Diagram']) {
+                let mldIndex = 4;
+                if (selectedAssets['Data Sheet']) {
+                    mldIndex += 6;
+                }
 
-            if (rawSvgData) zip.file("011_MultiLineDiagram.svg", rawSvgData);
-            addDataUrlToZip(zip, "012_MultiLineDiagram.png", b64diagram);
+                if (rawSvgData) zip.file(`${numberIn3Digits(mldIndex)}_MultiLineDiagram.svg`, rawSvgData);
+                addDataUrlToZip(zip, `${numberIn3Digits(mldIndex + 1)}_MultiLineDiagram.png`, b64diagram);
 
-            //if (refArchResult.rawSvgData) zip.file("013_ReferenceArchitecture.svg", refArchResult.rawSvgData);
-            addDataUrlToZip(zip, "013_ReferenceArchitecture.png", refArchResult.dataURL);
+                //if (refArchResult.rawSvgData) zip.file("013_ReferenceArchitecture.svg", refArchResult.rawSvgData);
+                addDataUrlToZip(zip, `${numberIn3Digits(mldIndex + 2)}_ReferenceArchitecture.png`, refArchResult.dataURL);
+
+            }
 
             const finalZipBlob = await zip.generateAsync({ type: "blob" })
             const url = URL.createObjectURL(finalZipBlob)

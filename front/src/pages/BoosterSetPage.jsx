@@ -301,16 +301,17 @@ function BoosterSetPage() {
             };
             // put images only if they are selected, with calculated index
             if (selectedAssets['Multi Line Diagram']) {
-                let mldIndex = 4;
+                let assetIndex = 4;
                 if (selectedAssets['Data Sheet']) {
-                    mldIndex += 6;
+                    assetIndex = 10;
                 }
 
-                if (rawSvgData) zip.file(`${numberIn3Digits(mldIndex)}_MultiLineDiagram.svg`, rawSvgData);
-                addDataUrlToZip(zip, `${numberIn3Digits(mldIndex + 1)}_MultiLineDiagram.png`, b64diagram);
-
+                if (rawSvgData) zip.file(`${numberIn3Digits(assetIndex)}_MultiLineDiagram.svg`, rawSvgData);
+                assetIndex++;
+                addDataUrlToZip(zip, `${numberIn3Digits(assetIndex)}_MultiLineDiagram.png`, b64diagram);
+                assetIndex++;
                 //if (refArchResult.rawSvgData) zip.file("013_ReferenceArchitecture.svg", refArchResult.rawSvgData);
-                addDataUrlToZip(zip, `${numberIn3Digits(mldIndex + 2)}_ReferenceArchitecture.png`, refArchResult.dataURL);
+                addDataUrlToZip(zip, `${numberIn3Digits(assetIndex)}_ReferenceArchitecture.png`, refArchResult.dataURL);
 
             }
 

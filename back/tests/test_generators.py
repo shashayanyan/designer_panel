@@ -12,6 +12,7 @@ from app.schemas.configurator import (
 from app.generators.excel_gen import generate_excel_from_twin
 from app.generators.word_gen import generate_word_from_twin
 from app.generators.spec_text_gen import generate_spec_text_from_twin
+from app.generators.asset_number_gen import generate_asset_numbers
 
 # Create a mock digital twin response for testing
 mock_twin = DigitalTwinResponse(
@@ -31,7 +32,8 @@ mock_twin = DigitalTwinResponse(
         TwinAccessory(part_number="HMIZ", qty=Decimal("1"), category="HMI")
     ],
     plc_included="YES",
-    scada_included="No"
+    scada_included="No",
+    selected_assets=["Data Sheet", "Bill of Materials", "Specification"]
 )
 
 def test_excel_generation_produces_valid_bytes_and_sheets():
@@ -40,17 +42,18 @@ def test_excel_generation_produces_valid_bytes_and_sheets():
     with the explicitly developed files.
     """
     excel_files = generate_excel_from_twin(mock_twin)
+    asset_numbers = generate_asset_numbers(mock_twin.selected_assets)
     
     # Assert bytes isn't empty
     assert len(excel_files) > 0
     
     # Assert expected filenames
-    assert "005_Parameters.xlsx" in excel_files
-    assert "006_BOM-Template.xlsx" in excel_files
-    assert "007_IO-List.xlsx" in excel_files
+    assert f"{asset_numbers['Parameters']}_Parameters.xlsx" in excel_files
+    assert f"{asset_numbers['BOM']}_BOM-Template.xlsx" in excel_files
+    assert f"{asset_numbers['IO']}_IO-List.xlsx" in excel_files
     
     # Assert parameter mapping worked
-    wb = openpyxl.load_workbook(io.BytesIO(excel_files["005_Parameters.xlsx"]))
+    wb = openpyxl.load_workbook(io.BytesIO(excel_files[f"{asset_numbers['Parameters']}_Parameters.xlsx"]))
     params_sheet = wb.active # Since there is only one sheet now
     # Check that the config ID was rendered on the 6th row
     assert params_sheet["B7"].value == "CFG-MOCK-3X"

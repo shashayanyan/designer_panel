@@ -81,7 +81,7 @@ def generate_excel_from_twin(twin: DigitalTwinResponse) -> Dict[str, bytes]:
                 "Key Selection Notes / Options": line.key_selection_notes or "-"
             })
 
-    df_bom = pd.DataFrame(bom_data, columns=["Item Category", "Item", "Qty", "Part No.", "Key Selection Notes / Options"])
+    df_bom = pd.DataFrame(bom_data, columns=["Item Category", "Qty", "Part No.", "Key Selection Notes / Options"])
     
     # --- 3. IO-List ---
     io_data = []

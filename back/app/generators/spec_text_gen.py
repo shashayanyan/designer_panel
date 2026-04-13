@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Dict
 from ..schemas.configurator import DigitalTwinResponse
 
 def get_enclosure_clauses(twin: DigitalTwinResponse) -> List[str]:
@@ -17,6 +17,25 @@ def get_enclosure_clauses(twin: DigitalTwinResponse) -> List[str]:
             "The panel shall include an earthing bar, internal wiring ducting, and clear labeling of devices, terminals, and cables.",
             "Thermal management shall be provided to keep internal component temperatures within manufacturer limits at maximum load and site ambient conditions."
         ]
+
+
+def get_starter_templates(series_id: str) -> Dict[str, List[str]]:
+    """Fetches the appropriate clause templates based on the motor starter type."""
+    series = series_id.upper() if series_id else "DOL"
+
+    # Map the incoming series_id to the appropriate dictionaries
+    if "ATS01" in series:
+        from .templates.specs.ats01_clauses import ats01_motor_feeders, ats01_control_philosophy
+        return {"feeders": ats01_motor_feeders, "philosophy": ats01_control_philosophy}
+    elif "ATS130" in series:
+        from .templates.specs.ats130_clauses import ats130_motor_feeders, ats130_control_philosophy
+        return {"feeders": ats130_motor_feeders, "philosophy": ats130_control_philosophy}
+    elif "VSD" in series or "ATV" in series:
+        from .templates.specs.vsd_clauses import vsd_motor_feeders, vsd_control_philosophy
+        return {"feeders": vsd_motor_feeders, "philosophy": vsd_control_philosophy}
+    else:
+        from .templates.specs.dol_clauses import dol_motor_feeders, dol_control_philosophy
+        return {"feeders": dol_motor_feeders, "philosophy": dol_control_philosophy}
 
 def generate_spec_text_from_twin(twin: DigitalTwinResponse) -> bytes:
     lines = []
@@ -53,13 +72,19 @@ def generate_spec_text_from_twin(twin: DigitalTwinResponse) -> bytes:
     device_type = twin.components[0].description if twin.components else "Motor Starter"
     comm_protocol = twin.communication if twin.communication else "Modbus TCP"
     
-    lines.append(f"1. Each pump motor shall be controlled by an individual {device_type} suitable for {twin.motor_power_kw} kW motor duty.")
+    templates = get_starter_templates(twin.series_id)
+    feeder_clauses = [clause.format(motor_power_kw=twin.motor_power_kw) for clause in templates["feeders"]]
+    for i, clause in enumerate(feeder_clauses, 1):
+        lines.append(f"{i}. {clause}")
+    
+    # Append communication capabilities of the feeders
+    next_idx = len(feeder_clauses) + 1
     if comm_protocol.lower() == "no":
-        lines.append(f"2. Each {device_type} shall support hardwired I/O for start/stop, speed reference, and monitoring.")
-        lines.append(f"3. Each {device_type} shall provide access to at least the following data via analog/digital signals: run status, fault status, and speed/frequency feedback.")
+        lines.append(f"{next_idx}. Each {device_type} shall support hardwired I/O for start/stop, speed reference, and monitoring.")
+        lines.append(f"{next_idx + 1}. Each {device_type} shall provide access to at least the following data via analog/digital signals: run status, fault status, and feedback.")
     else:
-        lines.append(f"2. Each {device_type} shall support Ethernet communications using {comm_protocol} for start/stop, speed reference, and monitoring.")
-        lines.append(f"3. Each {device_type} shall provide access to at least the following data: run status, speed/frequency feedback, current, power, energy, fault status, and fault code.")
+        lines.append(f"{next_idx}. Each {device_type} shall support Ethernet communications using {comm_protocol} for start/stop, speed reference, and monitoring.")
+        lines.append(f"{next_idx + 1}. Each {device_type} shall provide access to at least the following data: run status, feedback, current, power, energy, fault status, and fault code.")
     lines.append("")
     
     # E. CONTROL SYSTEM
@@ -68,28 +93,19 @@ def generate_spec_text_from_twin(twin: DigitalTwinResponse) -> bytes:
     controller_text = "a PLC" if has_plc else "a dedicated pump controller (or remote PLC)"
     
     lines.append("E. CONTROL SYSTEM")
-    lines.append(f"1. The panel shall include {controller_text} with sufficient capacity and I/O to implement:")
-    lines.append("   - Cascade PID pressure control")
-    lines.append("   - Pump staging/de-staging")
-    lines.append("   - Duty/standby alternation and runtime equalization")
-    lines.append("   - Redundancy and fault handling")
+    lines.append(f"1. The panel shall include {controller_text} with sufficient capacity and I/O to implement required controls.")
     
     if has_scada:
         lines.append("2. The panel shall include a local HMI and a network uplink to a supervisory SCADA system for remote monitoring and control.")
     else:
         lines.append("2. The panel shall include a local HMI for operator control and monitoring (start/stop, setpoints, status, alarms, runtime).")
         
-    lines.append("3. The control system shall support a redundant discharge pressure transmitter. Upon primary signal fault/out-of-range, control shall automatically switch to the redundant transmitter and alarm.")
-    lines.append("")
+    lines.append("3. The control system shall support a redundant discharge pressure transmitter. Upon primary signal fault/out-of-range, control shall automatically switch to the redundant transmitter and alarm.\n")
     
     # F. CONTROL PHILOSOPHY
     lines.append("F. CONTROL PHILOSOPHY - MINIMUM FUNCTIONAL REQUIREMENTS")
-    lines.append("1. Demand detection: start lead pump when pressure falls below setpoint by a configurable margin or when demand is otherwise detected.")
-    lines.append("2. Staging logic: add pumps when the system cannot maintain setpoint (e.g., lead speed above a configurable threshold for a configurable time).")
-    lines.append("3. De-staging logic: remove pumps when demand decreases (e.g., average speed below a configurable threshold for a configurable time) while maintaining stable pressure.")
-    lines.append("4. Anti-short-cycle: minimum run time and minimum stop time shall be implemented for each pump.")
-    lines.append("5. Alternation: lead/lag assignment shall rotate automatically based on runtime to equalize wear.")
-    lines.append("6. Failure handling: if any pump/drive becomes unavailable, remaining pumps shall continue to control pressure within available capacity and generate an alarm.")
+    for i, clause in enumerate(templates["philosophy"], 1):
+         lines.append(f"{i}. {clause}")
     lines.append("")
     
     # G. COMMUNICATIONS

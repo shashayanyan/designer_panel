@@ -21,6 +21,7 @@ def generate_asset_numbers(selected_assets: list) -> dict[str, str]:
         """
         asset_numbers["MLD-svg"] = get_asset_number(base_index)
         asset_numbers["MLD-png"] = get_asset_number(base_index+1)
+        asset_numbers["RefArch"] = get_asset_number(base_index+2)
         base_index += 3
 
     if "Specification" in selected_assets:

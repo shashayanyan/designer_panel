@@ -27,6 +27,7 @@ class ZipService:
         gen_excel = has_asset("Data Sheet")
         gen_word = has_asset("Specification")
         gen_bim = has_asset("BIM Object")
+        gen_diagram = has_asset("Multi Line Diagram")
         
         excel_files = generate_excel_from_twin(twin) if gen_excel else {}
         word_bytes = generate_word_from_twin(twin) if gen_word else None
@@ -41,12 +42,16 @@ class ZipService:
         spec_text_bytes = generate_spec_text_from_twin(twin)
         
         # 2. Build the Manifest dynamically
-        files_included = [f"002_DigitalTwin_DNA_{twin.config_id}.json", "003_README.txt", "014_SpecTextBlock.txt"]
+        files_included = [f"002_DigitalTwin_DNA_{twin.config_id}.json", "003_README.txt"]
         if excel_files: 
             files_included.extend(list(excel_files.keys()))
+        if gen_diagram:
+            files_included.append(f"{asset_numbers['MLD-svg']}_MultiLineDiagram.svg")
+            files_included.append(f"{asset_numbers['MLD-png']}_MultiLineDiagram.png")
+            files_included.append(f"{asset_numbers['RefArch']}_ReferenceArchitecture.pdf")
         if word_bytes:
-            files_included.append(f"{asset_numbers['spec-txt']}_SpecTextBlock.txt")
             files_included.append(f"{asset_numbers['spec-docx']}_EngineeringSpec_{twin.config_id}.docx")
+            files_included.append(f"{asset_numbers['spec-txt']}_SpecTextBlock.txt")
         if bim_logical: files_included.append(f"BIM/{asset_numbers['BIM-logical']}_Logical_{twin.config_id}.ifc")
         if bim_visual: files_included.append(f"BIM/{asset_numbers['BIM-visual']}_Visual_{twin.config_id}.ifc")
         

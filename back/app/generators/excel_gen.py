@@ -100,7 +100,7 @@ def generate_excel_from_twin(twin: DigitalTwinResponse) -> Dict[str, bytes]:
     if not assets or "data sheet" in assets:
         generated_files[f"{asset_numbers['BOM']}_BOM-Template.xlsx"] = df_to_excel_bytes(df_bom)
 
-        generated_files[f'{asset_numbers['IO']}_IO-List.xlsx'] = df_to_excel_bytes(df_io)
+        generated_files[f"{asset_numbers['IO']}_IO-List.xlsx"] = df_to_excel_bytes(df_io)
         
         network_data = [
             {"Tag": item.tag, "Description": item.description, "Signal Type": item.signal_type, 
@@ -109,7 +109,7 @@ def generate_excel_from_twin(twin: DigitalTwinResponse) -> Dict[str, bytes]:
             if (item.interface or "").strip().lower() != "hardwired"
         ]
         df_network = pd.DataFrame(network_data if network_data else [{"Status": "No network IO points resolved"}])
-        generated_files[f'{asset_numbers['Network']}_Network-IP-Plan.xlsx'] = df_to_excel_bytes(df_network)
+        generated_files[f"{asset_numbers['Network']}_Network-IP-Plan.xlsx"] = df_to_excel_bytes(df_network)
 
         alarm_data = [
             {"Code": item.code, "Source Tag": item.source_tag, "Condition": item.condition, 
@@ -117,7 +117,7 @@ def generate_excel_from_twin(twin: DigitalTwinResponse) -> Dict[str, bytes]:
             for item in twin.alarm_list
         ]
         df_alarm = pd.DataFrame(alarm_data if alarm_data else [{"Status": "No alarms resolved"}])
-        generated_files[f'{asset_numbers['Alarms']}_Alarm_List.xlsx'] = df_to_excel_bytes(df_alarm)
+        generated_files[f"{asset_numbers['Alarms']}_Alarm_List.xlsx"] = df_to_excel_bytes(df_alarm)
 
         option_data = [
             {"Category": item.category, "Option Name": item.name, "Type": "Base" if item.is_base else "Optional", 
@@ -125,6 +125,6 @@ def generate_excel_from_twin(twin: DigitalTwinResponse) -> Dict[str, bytes]:
             for item in twin.option_matrix
         ]
         df_option = pd.DataFrame(option_data if option_data else [{"Status": "No options resolved"}])
-        generated_files[f'{asset_numbers['Options']}_Option-Matrix.xlsx'] = df_to_excel_bytes(df_option)
+        generated_files[f"{asset_numbers['Options']}_Option-Matrix.xlsx"] = df_to_excel_bytes(df_option)
         
     return generated_files

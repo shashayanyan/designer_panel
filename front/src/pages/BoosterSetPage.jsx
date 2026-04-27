@@ -38,6 +38,15 @@ const MotorSymbol = ({ x, y, label, power }) => (
     </g>
 )
 
+const MotorImage = ({ x, y, label, power }) => (
+    <g transform={`translate(${x}, ${y})`}>
+        <circle cx="0" cy="20" r="26" fill="white" stroke="#3f9242ff" strokeWidth="2" />
+        <text x="0" y="24" textAnchor="middle" fontSize="12" fontFamily="sans-serif" fill="#3f9242ff">M</text>
+        <text x="0" y="50" textAnchor="middle" fontSize="10" fill="#3f9242ff" fontFamily="monospace">{label}</text>
+        {power && <text x="0" y="65" textAnchor="middle" fontSize="10" fill="#3f9242ff" fontFamily="monospace">{power} kW</text>}
+    </g>
+)
+
 const StarterBlock = ({ x, y, type }) => {
     let symbol = null;
     if (type === 'VSD' || type === 'Variable Speed Drive') {
@@ -122,6 +131,39 @@ const getStarterImage = (motorStart, power) => {
     if (kw <= 22.5) return '/images/booster-set/ATV600_15-22kW.png';
     if (kw <= 45) return '/images/booster-set/ATV600_30-45kW.png';
     return '/images/booster-set/ATV600_55-75kW.png';
+}
+
+const getStarterImage2 = (motorStart, power) => {
+    if (!motorStart) return '';
+    const kw = parseFloat(power);
+    let powerRange = '0.11';
+    if (motorStart === 'DOL') {
+        if (kw >= 45.0) powerRange = '45.0';
+        else if (kw >= 37.0) powerRange = '37.0';
+        else if (kw >= 30) powerRange = '30.0';
+        else if (kw >= 18.5) powerRange = '18.5';
+        else if (kw >= 15) powerRange = '15.0';
+        else if (kw >= 5.5) powerRange = '5.5';
+        return '/images/motor-starts/LC1D/LC1D-' + powerRange + 'kW.png';
+    }
+    else if (motorStart === 'SS') {
+        powerRange = '0.37';
+        if (kw >= 55) powerRange = '55.0';
+        else if (kw >= 45) powerRange = '45.0';
+        else if (kw >= 37) powerRange = '37.0';
+        else if (kw >= 30) powerRange = '30.0';
+        else if (kw >= 22) powerRange = '22.0';
+        else if (kw >= 18.5) powerRange = '18.5';
+        else if (kw >= 15) powerRange = '15.0';
+        else if (kw >= 7.5) powerRange = '7.5';
+        else if (kw >= 5.5) powerRange = '5.5';
+        else if (kw >= 4) powerRange = '4.0';
+        else if (kw >= 1.5) powerRange = '1.5';
+        return '/images/motor-starts/ATS/ATS-' + powerRange + 'kW.jpg';
+    } else if (motorStart === 'VSD') {
+        return '/images/motor-starts/ATV/ATV-' + kw + 'kW.jpg';
+    }
+    return '/images/motor-starts/LC1D/LC1D-0.11kW.png';
 }
 
 function BoosterSetPage() {
@@ -627,7 +669,10 @@ function BoosterSetPage() {
 
                                 {/* PLC Image */}
                                 {hasPLC && (
-                                    <image href="/images/booster-set/plc-m262.png" x="400" y="170" width="100" height="80" preserveAspectRatio="xMidYMid meet" />
+                                    <image href="/images/booster-set/M262.jpg" x="400" y="170" width="100" height="80" preserveAspectRatio="xMidYMid meet" />
+                                )}
+                                {hasPLC && (
+                                    <text x="380" y="210" textAnchor='middle' fontSize="12" fontWeight="bold">PLC</text>
                                 )}
 
                                 {/* Starters & Pumps Loop */}
@@ -637,7 +682,7 @@ function BoosterSetPage() {
                                     const step = totalWidth / ((pumpCount || 2) - 1 || 1);
                                     const xPos = pumpCount === 1 ? 450 : startX + (i * step);
 
-                                    const starterImg = getStarterImage(config.motorStart, config.motorPower);
+                                    const starterImg = getStarterImage2(config.motorStart, config.motorPower);
 
                                     return (
                                         <g key={`physical-devices-${i}`}>
@@ -647,11 +692,12 @@ function BoosterSetPage() {
                                             )}
 
                                             {/* Pump Image */}
-                                            <image href="/images/booster-set/pump.png" x={xPos - 50} y="480" width="100" height="100" preserveAspectRatio="xMidYMid meet" />
+                                            {/* <image href="/images/booster-set/pump.png" x={xPos - 50} y="480" width="100" height="100" preserveAspectRatio="xMidYMid meet" /> */}
+                                            <MotorImage x={xPos} y="480" width="200" height="200" />
 
                                             {/* Labels */}
                                             <text x={xPos} y="330" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#334155">Starter {i + 1}</text>
-                                            <text x={xPos} y="590" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#334155">Pump {i + 1}</text>
+                                            {/* <text x={xPos} y="590" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#334155">Pump {i + 1}</text> */}
                                         </g>
                                     )
                                 })}

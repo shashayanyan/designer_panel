@@ -513,67 +513,7 @@ function BoosterSetPage() {
                                         )
                                     })}
 
-                                    {/* --- Logic: SCADA & PLC --- */}
-                                    {hasSCADA && (
-                                        <g>
-                                            <SCADABlock x={260} y={260} />
-                                            {hasPLC ? (
-                                                <line x1="260" y1="295" x2="260" y2="360" stroke="#0ea5e9" strokeWidth="1.5" strokeDasharray="4 2" />
-                                            ) : (
-                                                <g>
-                                                    <line x1="260" y1="295" x2="260" y2="460" stroke="#0ea5e9" strokeWidth="1.5" strokeDasharray="4 2" />
-                                                    {hasComms && <circle cx="260" cy="460" r="3" fill="#8b5cf6" />}
-                                                </g>
-                                            )}
-                                            <text x="265" y="325" fontSize="8" fill="#0ea5e9" fontFamily="monospace">Ethernet</text>
-                                        </g>
-                                    )}
 
-                                    {hasPLC && (
-                                        <g>
-                                            <PLCBlock x={260} y={360} />
-                                            {hasComms ? (
-                                                <g>
-                                                    <line x1="260" y1="400" x2="260" y2="460" stroke="#8b5cf6" strokeWidth="1.5" strokeDasharray="4 2" />
-                                                    <circle cx="260" cy="460" r="3" fill="#8b5cf6" />
-                                                </g>
-                                            ) : (
-                                                <g>
-                                                    <line x1="260" y1="400" x2="260" y2="460" stroke="#64748b" strokeWidth="1.5" strokeDasharray="4 2" />
-                                                    <line x1="260" y1="460" x2="850" y2="460" stroke="#64748b" strokeWidth="1.5" strokeDasharray="4 2" />
-                                                    <text x="270" y="455" fontSize="10" fill="#64748b" fontFamily="monospace" fontWeight="bold">Hardwired I/O Bus</text>
-                                                    {Array.from({ length: pumpCount || 2 }).map((_, i) => {
-                                                        const xPos = 400 + (i * 130);
-                                                        return (
-                                                            <g key={`hw-link-${i}`}>
-                                                                <line x1={xPos + 18} y1="280" x2={xPos + 18} y2="460" stroke="#64748b" strokeWidth="1" strokeDasharray="4 2" />
-                                                                <circle cx={xPos + 18} cy="460" r="2.5" fill="#64748b" />
-                                                                <circle cx={xPos + 18} cy="280" r="2" fill="#64748b" />
-                                                            </g>
-                                                        )
-                                                    })}
-                                                </g>
-                                            )}
-                                        </g>
-                                    )}
-
-                                    {/* --- Communication Bus --- */}
-                                    {hasComms && (
-                                        <g>
-                                            <line x1="50" y1="460" x2="850" y2="460" stroke="#8b5cf6" strokeWidth="1.5" strokeDasharray="6 4" />
-                                            <text x="60" y="455" fontSize="10" fill="#8b5cf6" fontFamily="monospace" fontWeight="bold">{config.communication} Network</text>
-                                            {Array.from({ length: pumpCount || 2 }).map((_, i) => {
-                                                const xPos = 400 + (i * 130);
-                                                return (
-                                                    <g key={`comm-link-${i}`}>
-                                                        <line x1={xPos + 18} y1="280" x2={xPos + 18} y2="460" stroke="#8b5cf6" strokeWidth="1" strokeDasharray="3 3" />
-                                                        <circle cx={xPos + 18} cy="460" r="3" fill="#8b5cf6" />
-                                                        <circle cx={xPos + 18} cy="280" r="2" fill="#8b5cf6" />
-                                                    </g>
-                                                )
-                                            })}
-                                        </g>
-                                    )}
 
                                     {/* --- Standard Title Block (Bottom Right) --- */}
                                     <g transform="translate(670, 480)">
@@ -692,8 +632,8 @@ function BoosterSetPage() {
                                             )}
 
                                             {/* Pump Image */}
-                                            {/* <image href="/images/booster-set/pump.png" x={xPos - 50} y="480" width="100" height="100" preserveAspectRatio="xMidYMid meet" /> */}
-                                            <MotorImage x={xPos} y="480" width="200" height="200" />
+                                            <image href="/images/booster-set/pump.png" x={xPos - 50} y="480" width="100" height="100" preserveAspectRatio="xMidYMid meet" /> 
+                                            {/* <MotorImage x={xPos} y="480" width="200" height="200" /> */}
 
                                             {/* Labels */}
                                             <text x={xPos} y="330" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#334155">Starter {i + 1}</text>

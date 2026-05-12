@@ -172,7 +172,7 @@ function BoosterSetPage() {
     const refArchRef = useRef(null)
 
     const [config, setConfig] = useState({
-        incomers: '1', pumps: '', motorStart: '', motorPower: '', ipRating: 'IP54', communication: '', plc: '', scada: '',
+        incomers: '1', pumps: '', motorStart: '', motorPower: '', ipRating: 'IP54', environment: 'Unsure', communication: '', plc: '', scada: '',
     })
 
     const [seriesList, setSeriesList] = useState([]);
@@ -310,7 +310,8 @@ function BoosterSetPage() {
                 plc_included: config.plc,
                 scada_included: config.scada,
                 selected_assets: Object.keys(selectedAssets).filter(k => selectedAssets[k]),
-                multi_line_diagram_b64: b64diagram
+                multi_line_diagram_b64: b64diagram,
+                environment: config.environment
             };
 
             const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';

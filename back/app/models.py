@@ -87,6 +87,9 @@ class EnclosureOption(Base):
     door_type = Column(String)
     description = Column(String)
     data_quality_note = Column(String)
+    # Added after enclosure alternative updates
+    alternative_catalog_ref = Column(String)
+    outdoor_alternative_catalog_ref = Column(String)
 
 class ConfigurationRule(Base):
     __tablename__ = "configuration_rule"
@@ -105,6 +108,9 @@ class ConfigurationRule(Base):
     rationale = Column(String)
     lookup_key = Column(String)
     recommended_summary = Column(String)
+    # Added after enclosure alternative updates
+    alternative_catalog_ref= Column(String)
+    outdoor_alternative_catalog_ref = Column(String)
 
 class DrawingTemplate(Base):
     __tablename__ = "drawing_template"
@@ -146,6 +152,10 @@ class Configuration(Base):
     bypass_strategy = Column(String)
     bypass_contactor_part_number = Column(String)
     bypass_contactor_qty = Column(Integer)
+    # Added after enclosure alternative updates
+    alternative_enclosure_option_id = Column(String)
+    alternative_enclosure_ref = Column(String)
+    outdoor_alternative_enclosure_ref = Column(String)
 
 class BomLine(Base):
     __tablename__ = "bom_line"

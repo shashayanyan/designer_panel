@@ -139,7 +139,9 @@ class ConfigurationEngine:
         enclosure_data = TwinEnclosure(
             catalog_ref=enclosure_option.catalog_ref,
             dimensions_mm=f"{enclosure_option.layout_dim_h_mm}x{enclosure_option.layout_dim_w_mm}x{enclosure_option.layout_dim_d_mm}",
-            mounting_type=enclosure_option.mounting_type
+            mounting_type=enclosure_option.mounting_type,
+            alternative_ref=enclosure_option.alternative_catalog_ref, # Added after enclosure alternative updates
+            outdoor_alternative_ref=enclosure_option.outdoor_alternative_catalog_ref # Added after enclosure alternative updates
         )
 
         # 4. Drawing Template Logic
@@ -215,7 +217,8 @@ class ConfigurationEngine:
             plc_included=request.plc_included,
             scada_included=request.scada_included,
             selected_assets=request.selected_assets,
-            multi_line_diagram_b64=request.multi_line_diagram_b64
+            multi_line_diagram_b64=request.multi_line_diagram_b64,
+            environment=request.environment
         )
         
         # 7b. Fetch mapped BOM Lines from table

@@ -64,6 +64,8 @@ class EnclosureOptionBase(BaseModel):
     ip_rating: Optional[str] = None
     ik_rating: Optional[str] = None
     door_type: Optional[str] = None
+    alternative_catalog_ref: Optional[str] = None
+    outdoor_alternative_catalog_ref: Optional[str] = None
 
 class EnclosureOption(EnclosureOptionBase):
     enclosure_option_id: str

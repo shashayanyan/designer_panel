@@ -73,15 +73,37 @@ def generate_excel_from_twin(twin: DigitalTwinResponse) -> Dict[str, bytes]:
     # Exclusively database defined BOM Lines driven logically from resolved configuration
     if twin.bom_lines:
         for line in twin.bom_lines:
-            bom_data.append({
-                "Item Category": line.item_category,
-                "Item": line.item,
-                "Qty": float(line.qty),
-                "Part No.": line.part_number,
-                "Key Selection Notes / Options": line.key_selection_notes or "-"
-            })
+            if not line.part_number: # Skip lines without part numbers to avoid confusion in the BOM template
+                continue
+            if "enclosure" in line.item_category.lower(): # Handling Enclosures considering alternatives
+                if not "alt" in line.item_category.lower() and not "out" in line.item_category.lower(): # This is the default enclosure line, we add others only as alternatives
+                    # for now, the alternatives do not have their own lines in the BoM.
+                    alternative_text = ""
+                    if twin.enclosure.alternative_ref:
+                        alternative_text += f"Alternative: {twin.enclosure.alternative_ref}. "
+                    if twin.enclosure.outdoor_alternative_ref:
+                        alternative_text += f"Outdoor Alternative: {twin.enclosure.outdoor_alternative_ref}. "
 
-    df_bom = pd.DataFrame(bom_data, columns=["Item Category", "Qty", "Part No.", "Key Selection Notes / Options"])
+                    
+                    bom_data.append({
+                        "Item Category": "Enclosure",
+                        "Item": line.item,
+                        "Qty": float(line.qty),
+                        "Part No.": line.part_number,
+                        "Key Selection Notes / Options": (line.key_selection_notes or "-") + " [Select based on installation environment / local standards]",
+                        "Alternative": alternative_text.strip() if alternative_text else "-"
+                    })
+                    
+            else: # For non-enclosure items, include as is without environment-based filtering
+                bom_data.append({
+                    "Item Category": line.item_category,
+                    "Item": line.item,
+                    "Qty": float(line.qty),
+                    "Part No.": line.part_number,
+                    "Key Selection Notes / Options": (line.key_selection_notes or "-") 
+                })
+
+    df_bom = pd.DataFrame(bom_data, columns=["Item Category", "Qty", "Part No.", "Key Selection Notes / Options", "Alternative"])
     
     # --- 3. IO-List ---
     io_data = []

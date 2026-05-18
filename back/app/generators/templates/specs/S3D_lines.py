@@ -1,0 +1,16 @@
+s3d_lines = [
+    "The enclosure shall be suitable for industrial water pumping installations with high vibration, heavy equipment, and continuous duty operation.",
+    "The enclosure shall be manufactured as a one‑piece monobloc steel structure to ensure maximum rigidity and resistance to mechanical stress.",
+    "The enclosure shall provide a minimum ingress protection of IP66 for single‑door versions and IP55 for double‑door versions according to IEC 60529 for demanding water pumping environments.",
+    "The enclosure shall provide IK10 impact resistance for plain doors and IK08 for glazed doors according to IEC 62262, suitable for industrial pumping areas with high mechanical risk.",
+    "The enclosure shall support high mounting plate and door loads, enabling installation of large soft starters and VSDs used in pumping systems.",
+    "The enclosure shall be available with enhanced corrosion protection coatings suitable for humid industrial water environments.",
+    "The enclosure shall use a durable foamed‑in gasket ensuring long‑term sealing under vibration and continuous operation.",
+    "The enclosure range shall offer multiple depth options for identical height and width to accommodate the different thermal dissipation and cabling requirements of DOL, soft starter, and VSD applications.",
+    "The enclosure shall provide welded earthing points on body and door to ensure electrical safety in heavy‑duty pumping installations.",
+    "The enclosure door shall allow reversible opening with 120° as standard and up to 180° opening angle to facilitate maintenance in confined pump rooms.",
+    "The enclosure shall support the integration of fan‑filter units, heaters, and thermostats to manage heat dissipation and condensation in pumping installations.",
+    "The enclosure shall be compatible with a wide range of accessories including mounting plates, DIN rails, depth‑adjustable supports, and plinths.",
+    "The enclosure shall comply with IEC 62208 and be suitable for low‑voltage assemblies used in pumping and motor control applications.",
+    "The enclosure shall be available with or without mounting plate, with or without wall‑fixing brackets, and with optional thermal management accessories (fan + thermostat, heater + thermostat) to adapt to pumping application needs.",
+]

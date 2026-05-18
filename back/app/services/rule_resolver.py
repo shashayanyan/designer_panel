@@ -129,9 +129,18 @@ class ConfigurationEngine:
         if not config_rule:
              raise HTTPException(status_code=404, detail="No matching enclosure configuration rule found.")
 
-        enclosure_option = self.db.query(models.EnclosureOption).filter(
-            models.EnclosureOption.enclosure_option_id == config_rule.recommended_enclosure_option_id
-        ).first()
+        if request.enclosure_ref:
+            # If frontend has sent a specific enclosure reference (e.g., from user selection), we should use that instead of the recommended one
+            enclosure_option = self.db.query(models.EnclosureOption).filter(
+                models.EnclosureOption.catalog_ref == request.enclosure_ref
+            ).first()
+            if not enclosure_option:
+                raise HTTPException(status_code=404, detail="Selected enclosure reference not found in database.")
+        else:
+
+            enclosure_option = self.db.query(models.EnclosureOption).filter(
+                models.EnclosureOption.enclosure_option_id == config_rule.recommended_enclosure_option_id
+            ).first()
 
         if not enclosure_option:
             raise HTTPException(status_code=404, detail="Mapped Enclosure ID not found in database.")
@@ -235,9 +244,11 @@ class ConfigurationEngine:
             
             if source_type_clean in ["enclosure", "enclosure_option"]:
                 enc = self.db.query(models.EnclosureOption).filter(models.EnclosureOption.enclosure_option_id == source_id_clean).first()
-                if enc:
+                if enc and enc.catalog_ref == enclosure_option.catalog_ref:
                     item_text = f"Enclosure {enc.mounting_type}"
                     notes_text = enc.description
+                else: 
+                    continue
             elif source_type_clean in ["component", "component_catalog"]:
                 comp = self.db.query(models.ComponentCatalog).filter(models.ComponentCatalog.part_number == line.part_number).first()
                 if comp:

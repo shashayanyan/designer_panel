@@ -389,7 +389,8 @@ function BoosterSetPage() {
                 scada_included: config.scada,
                 selected_assets: Object.keys(selectedAssets).filter(k => selectedAssets[k]),
                 multi_line_diagram_b64: b64diagram,
-                environment: config.environment
+                environment: config.environment,
+                enclosure_ref: config.enclosure || null
             };
 
             const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';

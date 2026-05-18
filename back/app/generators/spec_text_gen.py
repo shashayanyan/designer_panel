@@ -9,6 +9,18 @@ def get_enclosure_clauses(twin: DigitalTwinResponse) -> List[str]:
     elif "PLM" in cat_ref:
         from .templates.specs.PLM_lines import plm_lines
         return plm_lines
+    elif "CRN" in cat_ref:
+        from .templates.specs.CRN_lines import crn_lines
+        return crn_lines
+    elif "S3D" in cat_ref:
+        from .templates.specs.S3D_lines import s3d_lines
+        return s3d_lines
+    elif "SFN" in cat_ref:
+        from .templates.specs.SFN_lines import sfn_lines
+        return sfn_lines
+    elif "SM" in cat_ref:
+        from .templates.specs.SM_lines import sm_lines
+        return sm_lines
     else:
         mounting = twin.enclosure.mounting_type if twin.enclosure else "Floor Standing"
         ip_rating = "IP54"

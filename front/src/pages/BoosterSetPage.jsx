@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
+import { CircleAlert } from 'lucide-react';
 import { useNavigate } from 'react-router-dom'
 import JSZip from 'jszip'
 import './BoosterSetPage.css'
@@ -172,11 +173,12 @@ function BoosterSetPage() {
     const refArchRef = useRef(null)
 
     const [config, setConfig] = useState({
-        incomers: '1', pumps: '', motorStart: '', motorPower: '', ipRating: 'IP54', environment: 'Unsure', communication: '', plc: '', scada: '',
+        incomers: '1', pumps: '', motorStart: '', motorPower: '', ipRating: 'IP54', environment: 'Indoor', enclosure: '', communication: '', plc: '', scada: '',
     })
 
     const [seriesList, setSeriesList] = useState([]);
     const [starterOptionsList, setStarterOptionsList] = useState([]);
+    const [enclosureList, setEnclosureList] = useState(null);
 
     useEffect(() => {
         const fetchMasterData = async () => {
@@ -195,6 +197,30 @@ function BoosterSetPage() {
         fetchMasterData();
     }, []);
 
+    useEffect(() => {
+        const fetchEnclosureOptions = async () => {
+            if (!config.pumps || !config.motorStart || !config.motorPower) {
+                setEnclosureList(null);
+                return;
+            }
+            try {
+                const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+                // fetches a list of maximum 3 strings of enclosure refs
+                const enclosuresRes = await fetch(`${apiUrl}/api/v1/enclosure-options/${config.pumps}/${config.motorStart}/${config.motorPower}`);
+                if (enclosuresRes.ok) {
+                    setEnclosureList(await enclosuresRes.json());
+                }
+                else {
+                    setEnclosureList(null);
+                }
+            } catch (error) {
+                console.error("Failed to fetch enclosure options", error);
+                setEnclosureList(null);
+            }
+        };
+        fetchEnclosureOptions();
+    }, [config.pumps, config.motorStart, config.motorPower]);
+
     const dynamicMotorStartOptions = useMemo(() => seriesList.map(s => s.series_id), [seriesList]);
     const dynamicMotorPowerOptions = useMemo(() => {
         if (!config.motorStart) return [];
@@ -203,14 +229,34 @@ function BoosterSetPage() {
         return uniquePowers.sort((a, b) => a - b).map(p => String(p));
     }, [config.motorStart, starterOptionsList]);
 
+    const dynamicEnclosureOptions = useMemo(() => {
+        if (!config.pumps || !config.motorStart || !config.motorPower || !enclosureList) {
+        return [];
+        }
+        const orderedEnclosures = [];
+
+        if (enclosureList.recommended) {
+            orderedEnclosures.push({ label: 'Recommended', value: enclosureList.recommended });
+        }
+        if (enclosureList.alternative) {
+            orderedEnclosures.push({ label: 'Alternative', value: enclosureList.alternative });
+        }
+        if (enclosureList.outdoor_alternative) {
+            orderedEnclosures.push({ label: 'Outdoor Alternative', value: enclosureList.outdoor_alternative });
+        }
+
+        return orderedEnclosures;
+    }, [config.pumps, config.motorStart, config.motorPower, enclosureList]);
+
     const CURRENT_CONFIG_OPTIONS = useMemo(() => ({
         pumps: { label: 'Number of Pumps', options: ['2', '3', '4'] },
         motorStart: { label: 'Type of Motor Start', options: dynamicMotorStartOptions },
         motorPower: { label: 'Motor Power Rate (kW)', options: dynamicMotorPowerOptions },
+        enclosure: { label: 'Enclosure Type', options: dynamicEnclosureOptions },
         communication: { label: 'Communication', options: ['No', 'ModbusTCP', 'ProfiNet'] },
         scada: { label: 'SCADA', options: ['No', 'YES'] },
         plc: { label: 'PLC', options: ['No', 'YES'] },
-    }), [dynamicMotorStartOptions, dynamicMotorPowerOptions]);
+    }), [dynamicMotorStartOptions, dynamicMotorPowerOptions, dynamicEnclosureOptions]);
 
     const [selectedAssets, setSelectedAssets] = useState(
         ASSET_LIST.reduce((acc, a) => ({ ...acc, [a]: false }), {})
@@ -221,10 +267,42 @@ function BoosterSetPage() {
     const handleConfigChange = (key, value) => {
         setConfig((prev) => {
             const nextConfig = { ...prev, [key]: value };
-            if (key === 'motorStart') nextConfig.motorPower = '';
+            if (key === 'motorStart') {
+                nextConfig.motorPower = '';
+                nextConfig.enclosure = '';
+            }
+            if (key === 'motorPower' || key === 'pumps') {
+                nextConfig.enclosure = '';
+            }
             return nextConfig;
         });
     }
+
+    const dynamicEnclosureTootlip = useMemo(() => {
+        if (!config.pumps || !config.motorStart || !config.motorPower) {
+            return 'Select pump count, motor start type, and motor power to see enclosure options';
+        }
+        
+        if (!enclosureList) {
+            return 'Loading enclosure options...';
+        }
+
+        const entries = [
+            enclosureList.recommended && ['Recommended', enclosureList.recommended],
+            enclosureList.alternative && ['Alternative', enclosureList.alternative],
+            enclosureList.outdoor_alternative && ['Outdoor Alternative', enclosureList.outdoor_alternative],
+        ].filter(Boolean);
+
+        if (entries.length === 0) {
+            return 'No compatible enclosures found for this configuration';
+        }
+
+        return (
+            `${entries.length} enclosure option${entries.length > 1 ? 's' : ''} available:\n` +
+            entries.map(([label, value]) => `- ${value} (${label})`).join('\n')
+        );
+
+    }, [config.pumps, config.motorStart, config.motorPower, enclosureList]);
 
     const toggleAsset = (asset) => setSelectedAssets((prev) => ({ ...prev, [asset]: !prev[asset] }));
     const selectAllAssets = () => setSelectedAssets(ASSET_LIST.reduce((acc, a) => ({ ...acc, [a]: true }), {}));
@@ -410,7 +488,23 @@ function BoosterSetPage() {
                         <div className="booster__fields">
                             {Object.entries(CURRENT_CONFIG_OPTIONS).map(([key, { label, options }]) => (
                                 <div className="booster__field" key={key}>
-                                    <label className="booster__label" htmlFor={`config-${key}`}>{label}</label>
+                                    <label className="booster__label" htmlFor={`config-${key}`}>
+                                        {label}
+                                        {key === 'enclosure' && (
+                                            <span 
+                                            title={[
+    'Please choose the enclosure type that best fits your installation environment and requirements.',
+    '- Recommended: The optimal enclosure based on your configuration, balancing protection and cost.',
+    '- Alternative: A compatible enclosure that may differ in features or price, but is a viable choice in case of unavailability of the recommended option.',
+    '- Outdoor Alternative: An enclosure suitable for outdoor installations with enhanced weather protection.',
+    'Note on materials: PLM and PLA series are polyester enclosures; the other options are stainless steel.',
+  ].join('\n')}
+                                            >
+                                                <CircleAlert 
+                                                style={{ width: '1em', height: '1em', verticalAlign: 'text-bottom', marginLeft: '0.5rem', cursor: 'help' }} />
+                                            </span>
+                                        )}
+                                    </label>
                                     <select
                                         id={`config-${key}`}
                                         className="booster__select"
@@ -419,9 +513,21 @@ function BoosterSetPage() {
                                         disabled={options.length === 0}
                                     >
                                         <option value="" disabled>{options.length === 0 ? "Pending..." : "Select…"}</option>
-                                        {options.map((opt) => (
-                                            <option key={opt} value={opt}>{opt}{key === 'motorPower' ? ' kW' : ''}</option>
-                                        ))}
+                                        {options.map((opt) => {
+                                            if (typeof opt === 'string') {
+                                                return (
+                                                    <option key={opt} value={opt}>
+                                                        {opt}{key ==='motorPower' ? 'kW' : ""}
+                                                    </option>
+                                                );
+                                            }
+                                                return (
+                                                    <option key={opt.value} value={opt.value}>
+                                                        - {opt.value} ({opt.label})
+                                                    </option>
+                                                );
+                                            })}
+                                        
                                     </select>
                                 </div>
                             ))}

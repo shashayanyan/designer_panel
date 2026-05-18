@@ -49,6 +49,16 @@ describe('BoosterSetPage', () => {
             if (url.includes('/api/v1/starter-options')) {
                 return Promise.resolve({ ok: true, json: () => Promise.resolve(mockStarters) })
             }
+            if (url.includes('/api/v1/enclosure-options/')) {
+                return Promise.resolve({
+                    ok: true,
+                    json: () => Promise.resolve({
+                        recommended: 'NSYS3D6630P',
+                        alternative: 'NSYCRN66300P',
+                        outdoor_alternative: 'NSYPLM75G',
+                    }),
+                })
+            }
             return Promise.resolve({ ok: true, blob: () => Promise.resolve(new Blob(['mock-blob'])) })
         })
     })
@@ -89,6 +99,12 @@ describe('BoosterSetPage', () => {
         await waitFor(() => expect(screen.getByLabelText(/Motor Power Rate/i)).not.toBeDisabled())
         fireEvent.change(screen.getByLabelText(/Motor Power Rate/i), { target: { value: '30' } })
         
+        // wait for enclosure options and select one
+        await waitFor(() => expect(screen.getByLabelText(/Enclosure Type/i)).not.toBeDisabled())
+        fireEvent.change(screen.getByLabelText(/Enclosure Type/i), {
+            target: { value: 'NSYS3D6630P' },
+        })
+
         // Select Communication: ModbusTCP
         fireEvent.change(screen.getByLabelText(/Communication/i), { target: { value: 'ModbusTCP' } })
         
@@ -125,6 +141,7 @@ describe('BoosterSetPage', () => {
             communication: 'ModbusTCP',
             plc_included: 'YES',
             scada_included: 'YES',
+            enclosure_ref: 'NSYS3D6630P',
             selected_assets: expect.arrayContaining(['Bill of Materials'])
         })
     })
@@ -145,6 +162,10 @@ describe('BoosterSetPage', () => {
         fireEvent.change(screen.getByLabelText(/Type of Motor Start/i), { target: { value: 'VFD' } })
         await waitFor(() => expect(screen.getByLabelText(/Motor Power Rate/i)).not.toBeDisabled())
         fireEvent.change(screen.getByLabelText(/Motor Power Rate/i), { target: { value: '15' } })
+        await waitFor(() => expect(screen.getByLabelText(/Enclosure Type/i)).not.toBeDisabled())
+        fireEvent.change(screen.getByLabelText(/Enclosure Type/i), {
+            target: { value: 'NSYS3D6630P' },
+        })
         fireEvent.change(screen.getByLabelText(/PLC/i), { target: { value: 'No' } })
         fireEvent.change(screen.getByLabelText(/SCADA/i), { target: { value: 'No' } })
         

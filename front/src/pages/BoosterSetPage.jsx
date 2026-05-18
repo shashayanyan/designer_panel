@@ -179,6 +179,7 @@ function BoosterSetPage() {
     const [seriesList, setSeriesList] = useState([]);
     const [starterOptionsList, setStarterOptionsList] = useState([]);
     const [enclosureList, setEnclosureList] = useState(null);
+    const enclosureRequestId = useRef(0);
 
     useEffect(() => {
         const fetchMasterData = async () => {
@@ -198,28 +199,46 @@ function BoosterSetPage() {
     }, []);
 
     useEffect(() => {
+        const requestId = ++enclosureRequestId.current
+
         const fetchEnclosureOptions = async () => {
             if (!config.pumps || !config.motorStart || !config.motorPower) {
-                setEnclosureList(null);
-                return;
+                setEnclosureList(null)
+                return
             }
+
+            // Clear stale options immediately while fetching the new config
+            setEnclosureList(null)
+
             try {
-                const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-                // fetches a list of maximum 3 strings of enclosure refs
-                const enclosuresRes = await fetch(`${apiUrl}/api/v1/enclosure-options/${config.pumps}/${config.motorStart}/${config.motorPower}`);
-                if (enclosuresRes.ok) {
-                    setEnclosureList(await enclosuresRes.json());
+                const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+                const enclosuresRes = await fetch(
+                    `${apiUrl}/api/v1/enclosure-options/${config.pumps}/${config.motorStart}/${config.motorPower}`
+                )
+
+                if (!enclosuresRes.ok) {
+                    if (requestId === enclosureRequestId.current) {
+                        setEnclosureList(null)
+                    }
+                    return
                 }
-                else {
-                    setEnclosureList(null);
+
+                const data = await enclosuresRes.json()
+
+                // Only apply the latest response
+                if (requestId === enclosureRequestId.current) {
+                    setEnclosureList(data)
                 }
             } catch (error) {
-                console.error("Failed to fetch enclosure options", error);
-                setEnclosureList(null);
+                if (requestId === enclosureRequestId.current) {
+                    console.error("Failed to fetch enclosure options", error)
+                    setEnclosureList(null)
+                }
             }
-        };
-        fetchEnclosureOptions();
-    }, [config.pumps, config.motorStart, config.motorPower]);
+        }
+
+        fetchEnclosureOptions()
+    }, [config.pumps, config.motorStart, config.motorPower])
 
     const dynamicMotorStartOptions = useMemo(() => seriesList.map(s => s.series_id), [seriesList]);
     const dynamicMotorPowerOptions = useMemo(() => {
@@ -233,19 +252,36 @@ function BoosterSetPage() {
         if (!config.pumps || !config.motorStart || !config.motorPower || !enclosureList) {
         return [];
         }
-        const orderedEnclosures = [];
+        const byValue = new Map()
 
-        if (enclosureList.recommended) {
-            orderedEnclosures.push({ label: 'Recommended', value: enclosureList.recommended });
-        }
-        if (enclosureList.alternative) {
-            orderedEnclosures.push({ label: 'Alternative', value: enclosureList.alternative });
-        }
-        if (enclosureList.outdoor_alternative) {
-            orderedEnclosures.push({ label: 'Outdoor Alternative', value: enclosureList.outdoor_alternative });
+        const addOption = (value, label) => {
+            if (!value) return
+
+            const existing = byValue.get(value)
+            if (!existing) {
+                byValue.set(value, { value, label })
+                return
+            }
+
+            const labelPriority = {
+                'Recommended': 3,
+                'Alternative': 2,
+                'Outdoor Alternative': 1,
+            }
+
+            const existingPriority = labelPriority[existing.label] || 0
+            const newPriority = labelPriority[label] || 0
+
+            if (newPriority > existingPriority) {
+                byValue.set(value, { value, label })
+            }
         }
 
-        return orderedEnclosures;
+        addOption(enclosureList.recommended, 'Recommended')
+        addOption(enclosureList.alternative, 'Alternative')
+        addOption(enclosureList.outdoor_alternative, 'Outdoor Alternative')
+
+        return Array.from(byValue.values())
     }, [config.pumps, config.motorStart, config.motorPower, enclosureList]);
 
     const CURRENT_CONFIG_OPTIONS = useMemo(() => ({

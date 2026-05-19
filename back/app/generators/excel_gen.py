@@ -1,9 +1,11 @@
-import pandas as pd
 from io import BytesIO
 from typing import Dict
-from openpyxl.styles import PatternFill, Font, Alignment
-from ..schemas.configurator import DigitalTwinResponse
+
+import pandas as pd
+from openpyxl.styles import Alignment, Font, PatternFill
+
 from ..generators.asset_number_gen import generate_asset_numbers
+from ..schemas.configurator import DigitalTwinResponse
 
 
 def generate_excel_from_twin(twin: DigitalTwinResponse) -> Dict[str, bytes]:

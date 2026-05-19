@@ -1,21 +1,22 @@
-from sqlalchemy.orm import Session, joinedload
-import logging
-from fastapi import HTTPException
-from decimal import Decimal
 import ast
+import logging
 import operator
+from decimal import Decimal
+
+from fastapi import HTTPException
+from sqlalchemy.orm import Session, joinedload
 
 from .. import models
 from ..schemas.configurator import (
     DigitalTwinRequest,
     DigitalTwinResponse,
-    TwinComponent,
     TwinAccessory,
+    TwinAlarm,
+    TwinBomLine,
+    TwinComponent,
     TwinEnclosure,
     TwinIO,
-    TwinAlarm,
     TwinOption,
-    TwinBomLine,
 )
 
 
@@ -414,10 +415,12 @@ class ConfigurationEngine:
                         description=iot.description,
                         signal_type=iot.signal_type,
                         interface=iot.interface,
-                        ip_address="192.168.1.10"
-                        if request.communication == "ModbusTCP"
-                        and iot.interface == "Modbus TCP"
-                        else None,
+                        ip_address=(
+                            "192.168.1.10"
+                            if request.communication == "ModbusTCP"
+                            and iot.interface == "Modbus TCP"
+                            else None
+                        ),
                     )
                 )
         response.network_plan = network_plan

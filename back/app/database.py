@@ -1,8 +1,9 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
-import urllib.parse
 import os
+import urllib.parse
+
 from dotenv import load_dotenv
+from sqlalchemy import create_engine
+from sqlalchemy.orm import declarative_base, sessionmaker
 
 # Load environment variables from .env file
 # In production (Google Cloud Run), these will be set in the environment directly.

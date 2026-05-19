@@ -28,12 +28,12 @@ The project aims to provide a panel for design engineers and design firms to aut
 This is the initial focus of the app for now. The goal is to have a responsive and user-friendly interface that allows users to easily configure their project setup and download the assets they need. Below is a description of pages needed.
 
 ## Landing Page
-- The landing page should have a brief description of the app and its purpose. 
+- The landing page should have a brief description of the app and its purpose.
 - It should then provide user with two choices between "Water" and "Buildings". Each choice is a square button with the an image background and the text "Water" or "Buildings" in the center. Upon clicking on either of the choices, the user should be redirected to the respective project setup page.
 
 
 ## Water Page
-- The water page provide the user with buttons for 4 applications to choose from. These are: 
+- The water page provide the user with buttons for 4 applications to choose from. These are:
     1. Single Pump
     2. MCC Stand. Feeders
     3. Booster Set
@@ -66,7 +66,7 @@ This is the initial focus of the app for now. The goal is to have a responsive a
     - Communication : No, ModbusTCP, ProfiNet
 All fields are required, and they are all dropdowns.
 
-- Section 3, Multi Line Diagram, is a visual representation of the configuration selected in Section 2. It should be updated in real-time as the user changes the configuration in Section 2. 
+- Section 3, Multi Line Diagram, is a visual representation of the configuration selected in Section 2. It should be updated in real-time as the user changes the configuration in Section 2.
 
 - Section 4, Assets, is a checklist of all assets that the user can download. The checklist include :
     - Data Sheet
@@ -80,11 +80,11 @@ At the bottom of this section, there is a button "Download Package". Upon clicki
 
 # Extension plan :
 ## Step 1 : Setup Backend + User Login
-### Tasks : 
+### Tasks :
 	1. create a postgres database and create a python (FastAPI) backend to integrate with the front
 	2. create user table with username, password, email, role
 		- role can be either Admin or User
-	3. create 2 default users : (admin, admin@designer-panel.com, passwd=des!gnPanel321) (user, user@designer-panel.com) 
+	3. create 2 default users : (admin, admin@designer-panel.com, passwd=des!gnPanel321) (user, user@designer-panel.com)
 	4. create login page, and make the app accessible only for logged in users.
 
 ## Step 2: Dynamic Frontend-Backend Configuration Engine
@@ -98,14 +98,14 @@ Transition the application from static, hard-coded React mockups (like `BoosterS
 4. **Dynamic Asset Generation:** The backend natively assembles Excel Documents (BOM, IO Params) and Word Documents (Specs) using `pandas` and `python-docx` strictly from the Twin DNA, grouping them via an in-memory `zipfile` stream. The frontend receives this binary stream and triggers the browser download, bypassing the static `public` folder entirely.
 
 ### Tasks to Execute:
-1. **Purge Static Mock Data**: 
+1. **Purge Static Mock Data**:
    - Delete the hardcoded `CONFIG_OPTIONS` dictionary inside `BoosterSetPage.jsx` and similarly structured pages.
    - Delete all static `.xlsx`, `.txt`, and `.docx` template files from the `public/documents/booster-set` folder.
 2. **Hook up React `useEffect` Queries**:
    - Implement frontend data fetching using `axios` or `fetch` against the `master_data.py` FastAPI endpoints to populate the React Selection state.
    - Establish dependency checks (e.g., `useEffect` listening to `config.motorStart` to re-fetch/filter the `motorPower` dropdown).
 3. **Refactor the Download API Call**:
-   - Scrap the client-side `JSZip` logic in `BoosterSetPage`'s `handleDownload()`. 
+   - Scrap the client-side `JSZip` logic in `BoosterSetPage`'s `handleDownload()`.
    - Replace it with a `fetch` call pointing to `POST /api/v1/engine/generate-package`, passing the form inputs as the JSON body. Await the `application/x-zip-compressed` blob and trigger a standard anchor tag download.
 4. **Abstract to a Universal Configurator Layout (Future phase)**:
    - Once Booster Sets are tested end-to-end, refactor the page into a generic `DynamicConfiguratorPage.jsx`.
@@ -113,6 +113,6 @@ Transition the application from static, hard-coded React mockups (like `BoosterS
 
 ### Required Master/Reference Files (To Be Added to Repo):
 To make Universal configurator expansion possible in the long term, the backend needs mapping tables defining how different Apps consume rules:
-- **`Applications.csv`:** A master sheet defining available App domains (e.g., ID: `APP-001`, Name: `Water Booster Set`, Root_Config_Requirements: `[motor_power, load_count, ats_included]`). 
+- **`Applications.csv`:** A master sheet defining available App domains (e.g., ID: `APP-001`, Name: `Water Booster Set`, Root_Config_Requirements: `[motor_power, load_count, ats_included]`).
 - **`Application_Input_Schema.csv`:** A reference dictionary mapping which UI form options the frontend should render for each specific `Application_ID`. (e.g., Booster sets require "Pumps", while HVAC requires "Fans").
 - **SVG Coordinate Maps (Optional):** If the Multi Line Diagram remains dynamic, the backend may need a `DrawingTemplate.csv` outputting the specific SVG node structures coordinates/types to draw, letting React act strictly as a dumb SVG renderer.

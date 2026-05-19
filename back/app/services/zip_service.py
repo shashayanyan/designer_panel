@@ -2,13 +2,14 @@ import io
 import json
 import zipfile
 from datetime import datetime, timezone
-from ..schemas.configurator import DigitalTwinResponse
-from ..generators.excel_gen import generate_excel_from_twin
-from ..generators.word_gen import generate_word_from_twin
-from ..generators.bim_gen import generate_ifc_from_twin
-from ..generators.templates.readme_template import generate_readme_from_twin
-from ..generators.spec_text_gen import generate_spec_text_from_twin
+
 from ..generators.asset_number_gen import generate_asset_numbers
+from ..generators.bim_gen import generate_ifc_from_twin
+from ..generators.excel_gen import generate_excel_from_twin
+from ..generators.spec_text_gen import generate_spec_text_from_twin
+from ..generators.templates.readme_template import generate_readme_from_twin
+from ..generators.word_gen import generate_word_from_twin
+from ..schemas.configurator import DigitalTwinResponse
 
 
 class ZipService:

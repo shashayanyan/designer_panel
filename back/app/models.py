@@ -1,15 +1,11 @@
-from sqlalchemy import (
-    Column,
-    Integer,
-    String,
-    Boolean,
-    Numeric,
-    ForeignKey,
-    Enum as SAEnum,
-)
-from sqlalchemy.orm import relationship
-from .database import Base
 import enum
+
+from sqlalchemy import Boolean, Column
+from sqlalchemy import Enum as SAEnum
+from sqlalchemy import ForeignKey, Integer, Numeric, String
+from sqlalchemy.orm import relationship
+
+from .database import Base
 
 # --- Existing Auth Models ---
 

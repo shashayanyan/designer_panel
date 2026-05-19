@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Response
-from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.orm import Session
 from datetime import timedelta
 from typing import Annotated
 
-from .. import schemas, models, auth
+from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy.orm import Session
+
+from .. import auth, models, schemas
 from ..database import get_db
 
 router = APIRouter(tags=["Authentication"])
@@ -45,7 +46,7 @@ def login_for_access_token(
         samesite="none",
         max_age=auth.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
-    return {"access_token": access_token, "token_type": "bearer"} # nosec B105
+    return {"access_token": access_token, "token_type": "bearer"}  # nosec B105
 
 
 @router.post("/logout")

@@ -1,7 +1,9 @@
-import io
 import base64
+import io
+
 from docx import Document
 from docx.shared import Inches
+
 from ..schemas.configurator import DigitalTwinResponse
 
 

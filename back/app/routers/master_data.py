@@ -1,9 +1,11 @@
+from typing import Dict, List
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import Dict, List
+
 from .. import models
-from ..schemas import master_data as schemas_master
 from ..database import get_db
+from ..schemas import master_data as schemas_master
 
 router = APIRouter(
     prefix="/api/v1",

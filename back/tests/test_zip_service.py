@@ -1,10 +1,10 @@
-import zipfile
-import json
 import io
-from fastapi.testclient import TestClient
-from app.generators.asset_number_gen import generate_asset_numbers
+import json
+import zipfile
 
+from app.generators.asset_number_gen import generate_asset_numbers
 from app.main import app
+from fastapi.testclient import TestClient
 
 client = TestClient(app)
 

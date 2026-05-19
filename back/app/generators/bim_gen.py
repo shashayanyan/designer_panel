@@ -1,21 +1,22 @@
-import json
 import argparse
-import numpy as np
+import json
+
 import ifcopenshell
 import ifcopenshell.api
+import ifcopenshell.api.aggregate
+import ifcopenshell.api.context
+import ifcopenshell.api.geometry
 
 # Explicit API imports (required in 0.8+)
 import ifcopenshell.api.project
-import ifcopenshell.api.root
-import ifcopenshell.api.unit
-import ifcopenshell.api.context
-import ifcopenshell.api.aggregate
-import ifcopenshell.api.spatial
-import ifcopenshell.api.type
 import ifcopenshell.api.pset
-import ifcopenshell.api.geometry
-import ifcopenshell.api.system
+import ifcopenshell.api.root
+import ifcopenshell.api.spatial
 import ifcopenshell.api.style
+import ifcopenshell.api.system
+import ifcopenshell.api.type
+import ifcopenshell.api.unit
+import numpy as np
 
 # ------------------------------------------------------------
 # Helpers

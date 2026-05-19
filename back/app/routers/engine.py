@@ -1,7 +1,8 @@
+import io
+
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
-import io
 
 from ..database import get_db
 from ..schemas.configurator import DigitalTwinRequest, DigitalTwinResponse

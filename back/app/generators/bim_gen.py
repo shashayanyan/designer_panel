@@ -240,7 +240,7 @@ def generate_ifc_from_twin(twin_data: dict, visualize_ports: bool = False) -> by
         enclosure.get("dimensions_mm", "1000x800x300") if enclosure else "1000x800x300"
     )
     dims = dim_string.lower().split("x")
-    h_mm, w_mm, d_mm = 1000, 800, 300
+    h_mm, w_mm, d_mm = 1000.0, 800.0, 300.0
     if len(dims) == 3:
         try:
             h_mm, w_mm, d_mm = float(dims[0]), float(dims[1]), float(dims[2])

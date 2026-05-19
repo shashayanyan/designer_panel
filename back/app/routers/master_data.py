@@ -33,9 +33,9 @@ def get_enclosures(db: Session = Depends(get_db)):
 )
 def get_enclosure_options_for_config(
     db: Session = Depends(get_db),
-    pump_count: int = None,
-    motor_start: str = None,
-    motor_power: float = None,
+    pump_count: int = 0,
+    motor_start: str = "",
+    motor_power: float = 0.0,
 ):
     # Implementation for fetching enclosure options based on configuration
     # print(f"Fetching enclosure options for pumps={pump_count}, motor_start={motor_start}, motor_power={motor_power}")

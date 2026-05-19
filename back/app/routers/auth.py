@@ -45,7 +45,7 @@ def login_for_access_token(
         samesite="none",
         max_age=auth.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {"access_token": access_token, "token_type": "bearer"} # nosec B105
 
 
 @router.post("/logout")

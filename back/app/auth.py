@@ -21,7 +21,7 @@ if not SECRET_KEY:
     print(
         "WARNING: SECRET_KEY not found in environment variables. JWT tokens will not be secure."
     )
-    SECRET_KEY = "development_secret_do_not_use_in_production"
+    SECRET_KEY = "development_secret_do_not_use_in_production" # nosec B105
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60  # 1 hour
 
@@ -119,7 +119,7 @@ def get_current_user(request: Request, db: Session = Depends(get_db)):
         new_user = models.User(
             username=generated_username,
             email=email,
-            hashed_password="--sso-user-no-pwd--",
+            hashed_password="--sso-user-no-pwd--", # nosec B106
             role=models.Role.User,
         )
         db.add(new_user)

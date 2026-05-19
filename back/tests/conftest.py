@@ -1,11 +1,10 @@
 import pytest
+from app import auth, models
+from app.database import Base, get_db
+from app.main import app
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
-
-from app.database import Base, get_db
-from app.main import app
-from app import models, auth
 
 # Use an in-memory SQLite database for testing to ensure isolation and speed
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"

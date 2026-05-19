@@ -4,7 +4,7 @@ def get_asset_number(asset_index: int) -> str:
     return f"0{asset_index}"
 
 
-def generate_asset_numbers(selected_assets: list) -> dict[str, str]:
+def generate_asset_numbers(selected_assets: list[str]) -> dict[str, str]:
     base_index = 4
     asset_numbers = {}
     if "Data Sheet" in selected_assets:

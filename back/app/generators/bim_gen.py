@@ -1,21 +1,22 @@
-import json
 import argparse
-import numpy as np
+import json
+
 import ifcopenshell
 import ifcopenshell.api
+import ifcopenshell.api.aggregate
+import ifcopenshell.api.context
+import ifcopenshell.api.geometry
 
 # Explicit API imports (required in 0.8+)
 import ifcopenshell.api.project
-import ifcopenshell.api.root
-import ifcopenshell.api.unit
-import ifcopenshell.api.context
-import ifcopenshell.api.aggregate
-import ifcopenshell.api.spatial
-import ifcopenshell.api.type
 import ifcopenshell.api.pset
-import ifcopenshell.api.geometry
-import ifcopenshell.api.system
+import ifcopenshell.api.root
+import ifcopenshell.api.spatial
 import ifcopenshell.api.style
+import ifcopenshell.api.system
+import ifcopenshell.api.type
+import ifcopenshell.api.unit
+import numpy as np
 
 # ------------------------------------------------------------
 # Helpers
@@ -240,7 +241,7 @@ def generate_ifc_from_twin(twin_data: dict, visualize_ports: bool = False) -> by
         enclosure.get("dimensions_mm", "1000x800x300") if enclosure else "1000x800x300"
     )
     dims = dim_string.lower().split("x")
-    h_mm, w_mm, d_mm = 1000, 800, 300
+    h_mm, w_mm, d_mm = 1000.0, 800.0, 300.0
     if len(dims) == 3:
         try:
             h_mm, w_mm, d_mm = float(dims[0]), float(dims[1]), float(dims[2])

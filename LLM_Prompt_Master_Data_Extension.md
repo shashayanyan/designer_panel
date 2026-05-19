@@ -4,13 +4,13 @@
 You have been generating and maintaining the advanced engineering `application_library_dol_ss_vsd_ats01_ats130_critical_products.xlsx` configuration document for a Motor Control Application Library. We have deployed the database and configuration rules you previously generated into a dynamic FastAPI backend.
 
 **The Current State:**
-The backend successfully resolves Physical Hardware rules (Enclosures, Components, Accessories) to generate a "Digital Twin". However, the system is now being expanded to generate standard engineering deliverables: **IO Lists, Alarm Lists, Network IP Plans, and Option Matrices**. 
+The backend successfully resolves Physical Hardware rules (Enclosures, Components, Accessories) to generate a "Digital Twin". However, the system is now being expanded to generate standard engineering deliverables: **IO Lists, Alarm Lists, Network IP Plans, and Option Matrices**.
 
 **Your Objective:**
 You must generate three (3) new comprehensive, comma-separated sheets (CSVs) to be added to the `application_library_dol_ss_vsd_ats01_ats130_critical_products.xlsx` workbook. These tabs will serve as the "Single Source of Truth" master data tables to instruct the backend Python scripts on how to generate the aforementioned documents generically for *any* Application Type.
 
 **Crucial Engineering Rule (The "Is_Per_Load" Pattern):**
-The database must not hardcode duplicate arrays for identical pumps. Instead, use an `is_per_load` boolean column. 
+The database must not hardcode duplicate arrays for identical pumps. Instead, use an `is_per_load` boolean column.
 - If `is_per_load = FALSE`: The Python engine will generate ONE row for the system (e.g., Main Panel Emergency Stop, Main Panel Low Pressure Alarm).
 - If `is_per_load = TRUE`: The Python engine will loop through the user's selected `load_count` (e.g., 3 Pumps) and dynamically inject the pump index into the string (e.g., if you write `RUNCMD-P{i}`, the backend will generate `RUNCMD-P1`, `RUNCMD-P2`, `RUNCMD-P3`).
 
@@ -25,7 +25,7 @@ This sheet defines what PLC Inputs/Outputs must be generated based on the config
 3. `description`: Human-readable description.
 4. `signal_type`: (DI, DO, AI, AO, CMD, FB).
 5. `interface`: Hardwired vs Network (e.g., 'Hardwired', 'Modbus TCP').
-6. `is_per_load`: (TRUE/FALSE) 
+6. `is_per_load`: (TRUE/FALSE)
 7. `required_communication_mode`: (Optional). If this IO only exists when the user selects a specific network, list it here (e.g., "ModbusTCP"). If blank, it's always included.
 8. `alarm_linked`: (Y/N) Does this IO trigger an alarm?
 

@@ -1,18 +1,18 @@
 import io
 from decimal import Decimal
-import openpyxl
-from docx import Document
 
+import openpyxl
+from app.generators.asset_number_gen import generate_asset_numbers
+from app.generators.excel_gen import generate_excel_from_twin
+from app.generators.spec_text_gen import generate_spec_text_from_twin
+from app.generators.word_gen import generate_word_from_twin
 from app.schemas.configurator import (
     DigitalTwinResponse,
-    TwinEnclosure,
-    TwinComponent,
     TwinAccessory,
+    TwinComponent,
+    TwinEnclosure,
 )
-from app.generators.excel_gen import generate_excel_from_twin
-from app.generators.word_gen import generate_word_from_twin
-from app.generators.spec_text_gen import generate_spec_text_from_twin
-from app.generators.asset_number_gen import generate_asset_numbers
+from docx import Document
 
 # Create a mock digital twin response for testing
 mock_twin = DigitalTwinResponse(

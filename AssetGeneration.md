@@ -8,7 +8,7 @@ This document tracks the generation logic for various engineering applications w
 
 ### 1.1 Booster Set
 
-The Booster Set configurator takes a set of parameters (number of pumps, motor power, motor start type, enclosure specs) and orchestrates the generation of an Asset Pack (a downloadable `.zip` file) containing specifications, parts lists, and diagrams. 
+The Booster Set configurator takes a set of parameters (number of pumps, motor power, motor start type, enclosure specs) and orchestrates the generation of an Asset Pack (a downloadable `.zip` file) containing specifications, parts lists, and diagrams.
 
 Currently, the React UI (`BoosterSetPage.jsx`) sends the complete configuration to the FastAPI backend without filtering by the checked assets in the UI. The backend generates all eligible documents and streams them back to the frontend, which merges them with client-side SVGs before downloading.
 
@@ -16,9 +16,9 @@ Currently, the React UI (`BoosterSetPage.jsx`) sends the complete configuration 
 Before any files are generated, the backend must mathematically resolve the physical requirements of the panel.
 *   **Method**: `ConfigurationEngine.generate_twin()` inside `back/app/services/rule_resolver.py`.
 *   **Input**: The user's form data (`series_id`, `motor_power_kw`, `load_count`/pumps, `ats_included`).
-*   **Logic & Sheets Used**: 
-    1.  Queries the mapped `StarterOption` database (from `Configurations.csv`) to find the exact base Starter (contactors, breakers) for the power rating. 
-    2.  Checks `ConfigurationRule` (from `Enclosure_Rules.csv`) to determine the cabinet size that can fit those starters. 
+*   **Logic & Sheets Used**:
+    1.  Queries the mapped `StarterOption` database (from `Configurations.csv`) to find the exact base Starter (contactors, breakers) for the power rating.
+    2.  Checks `ConfigurationRule` (from `Enclosure_Rules.csv`) to determine the cabinet size that can fit those starters.
     3.  Evaluates text-based math formulas in `AccessoryRule` (from `Accessory_Rules.csv`) to calculate quantities for items like pushbuttons or terminal blocks based on `load_count`.
 *   **Output**: A massive, nested JSON object (`DigitalTwinResponse`) containing the complete architectural blueprint.
 

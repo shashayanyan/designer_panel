@@ -1,7 +1,6 @@
 import pytest
-from fastapi.testclient import TestClient
-
 from app.main import app
+from fastapi.testclient import TestClient
 
 # Use standard TestClient for calling FastAPI endpoints synchronously during tests.
 client = TestClient(app)
@@ -41,9 +40,9 @@ def test_engine_resolves_correctly_against_csv(case):
     response = client.post("/api/v1/engine/configure", json=request_payload)
 
     # Assert successful resolution
-    assert response.status_code == 200, (
-        f"Failed for {case['config_id']}: {response.text}"
-    )
+    assert (
+        response.status_code == 200
+    ), f"Failed for {case['config_id']}: {response.text}"
 
     data = response.json()
 

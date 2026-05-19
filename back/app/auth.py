@@ -1,15 +1,15 @@
+import os
 from datetime import datetime, timedelta, timezone
+from typing import Annotated
+
+from fastapi import Depends, HTTPException, Request, status
+from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
-from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
-from typing import Annotated
+
 from . import models
-from .database import get_db
-import os
-from .database import load_dotenv
-from fastapi import Request
+from .database import get_db, load_dotenv
 
 # Ensure environment variables are loaded
 load_dotenv()
@@ -21,7 +21,7 @@ if not SECRET_KEY:
     print(
         "WARNING: SECRET_KEY not found in environment variables. JWT tokens will not be secure."
     )
-    SECRET_KEY = "development_secret_do_not_use_in_production"
+    SECRET_KEY = "development_secret_do_not_use_in_production"  # nosec B105
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60  # 1 hour
 
@@ -119,7 +119,7 @@ def get_current_user(request: Request, db: Session = Depends(get_db)):
         new_user = models.User(
             username=generated_username,
             email=email,
-            hashed_password="--sso-user-no-pwd--",
+            hashed_password="--sso-user-no-pwd--",  # nosec B106
             role=models.Role.User,
         )
         db.add(new_user)

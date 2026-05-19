@@ -1,8 +1,12 @@
-import os
 import json
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .routers import auth, master_data, engine as engine_router
+
+from .routers import auth
+from .routers import engine as engine_router
+from .routers import master_data
 
 app = FastAPI(title="Designer Panel API")
 

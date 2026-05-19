@@ -12,3 +12,6 @@ seed.py
 .agent/
 .agents
 .agents/
+.mypy_cache/
+.ruff_cache/
+.venv/

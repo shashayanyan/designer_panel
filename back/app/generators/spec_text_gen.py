@@ -1,4 +1,5 @@
-from typing import List, Dict
+from typing import Dict, List
+
 from ..schemas.configurator import DigitalTwinResponse
 
 
@@ -45,15 +46,15 @@ def get_starter_templates(series_id: str) -> Dict[str, List[str]]:
     # Map the incoming series_id to the appropriate dictionaries
     if "ATS01" in series:
         from .templates.specs.ats01_clauses import (
-            ats01_motor_feeders,
             ats01_control_philosophy,
+            ats01_motor_feeders,
         )
 
         return {"feeders": ats01_motor_feeders, "philosophy": ats01_control_philosophy}
     elif "ATS130" in series:
         from .templates.specs.ats130_clauses import (
-            ats130_motor_feeders,
             ats130_control_philosophy,
+            ats130_motor_feeders,
         )
 
         return {
@@ -62,15 +63,15 @@ def get_starter_templates(series_id: str) -> Dict[str, List[str]]:
         }
     elif "VSD" in series or "ATV" in series:
         from .templates.specs.vsd_clauses import (
-            vsd_motor_feeders,
             vsd_control_philosophy,
+            vsd_motor_feeders,
         )
 
         return {"feeders": vsd_motor_feeders, "philosophy": vsd_control_philosophy}
     else:
         from .templates.specs.dol_clauses import (
-            dol_motor_feeders,
             dol_control_philosophy,
+            dol_motor_feeders,
         )
 
         return {"feeders": dol_motor_feeders, "philosophy": dol_control_philosophy}

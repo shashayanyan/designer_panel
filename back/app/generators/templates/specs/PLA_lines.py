@@ -13,5 +13,5 @@ pla_lines = [
     "The enclosure shall support passive or active thermal solutions to prevent condensation and overheating in continuously operating pumping systems.",
     "The enclosure shall be designed for low maintenance and long service life to minimize downtime and O&M costs in water pumping installations.",
     "The enclosure manufacturer shall provide complete 2D/3D CAD and eCAD data compatible with ETAP, EPLAN, and WSCAD for pump panel design.",
-    "The enclosure shall be halogen‑free, eco‑designed, and compliant with RoHS and REACH directives, with environmentally friendly and reusable packaging."
+    "The enclosure shall be halogen‑free, eco‑designed, and compliant with RoHS and REACH directives, with environmentally friendly and reusable packaging.",
 ]

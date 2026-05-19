@@ -3,6 +3,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import LoginPage from '../pages/LoginPage';
 import { AuthProvider } from '../context/AuthContext';
+import React from 'react';
 
 // Mock fetch globally
 global.fetch = vi.fn();

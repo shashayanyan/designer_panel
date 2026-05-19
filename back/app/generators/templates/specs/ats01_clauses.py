@@ -4,7 +4,7 @@ ats01_motor_feeders = [
     "Each pump motor shall be controlled by an individual soft starter providing controlled voltage ramp-up suitable for {motor_power_kw} kW motor duty. [cite: 186]",
     "The soft starter shall limit motor starting torque and current peaks during motor acceleration. [cite: 190]",
     "The soft starter shall incorporate an internal bypass relay to shunt the power semiconductors after the motor has reached nominal speed. [cite: 195]",
-    "The starter shall accept a discrete input signal to initiate a run command and a discrete input signal to initiate a stop command. [cite: 226, 227]"
+    "The starter shall accept a discrete input signal to initiate a run command and a discrete input signal to initiate a stop command. [cite: 226, 227]",
 ]
 
 ats01_control_philosophy = [
@@ -13,5 +13,5 @@ ats01_control_philosophy = [
     "Staging logic: add pumps when the system cannot maintain setpoint for a configurable time.",
     "De-staging logic: remove pumps when demand decreases while maintaining stable pressure.",
     "Alternation: lead/lag assignment shall rotate automatically based on runtime to equalize wear.",
-    "Failure handling: if any pump/starter becomes unavailable, remaining pumps shall continue to control pressure within available capacity and generate an alarm."
+    "Failure handling: if any pump/starter becomes unavailable, remaining pumps shall continue to control pressure within available capacity and generate an alarm.",
 ]

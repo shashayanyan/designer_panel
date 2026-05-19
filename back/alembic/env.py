@@ -8,9 +8,9 @@ from alembic import context
 
 # add absolute path to sys.path
 import os
-sys.path.insert(0, os.path.realpath(os.path.join(os.path.dirname(__file__), '..')))
+
+sys.path.insert(0, os.path.realpath(os.path.join(os.path.dirname(__file__), "..")))
 from app.database import Base, SQLALCHEMY_DATABASE_URL
-from app import models
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -77,9 +77,7 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
             context.run_migrations()

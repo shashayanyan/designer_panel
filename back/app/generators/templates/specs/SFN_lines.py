@@ -13,5 +13,5 @@ sfn_lines = [
     "Doors shall be reversible with 120° opening (and 180° with accessory), and handle options shall accommodate most locks on the market, with a standard 5 mm double‑bar insert."
     "For double‑door enclosures, the second door shall be operated by a dedicated handle, ensuring safe access and operation without reaching inside the cabinet."
     "The cabinet shall include a quick‑fixation system for the mounting plate, providing temporary hold to allow the operator sufficient time to complete final fixation safely and efficiently."
-    "The manufacturer shall provide PEP/RoHS and complete 2D/3D/CAD data compatible with SEE Electrical / IGE XAO, EPLAN and WSCAD to support engineering and lifecycle management of water pumping bundles."
+    "The manufacturer shall provide PEP/RoHS and complete 2D/3D/CAD data compatible with SEE Electrical / IGE XAO, EPLAN and WSCAD to support engineering and lifecycle management of water pumping bundles.",
 ]

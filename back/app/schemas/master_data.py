@@ -2,11 +2,13 @@ from pydantic import BaseModel, ConfigDict
 from typing import Optional
 from decimal import Decimal
 
+
 class SeriesBase(BaseModel):
     series_name: Optional[str] = None
     starter_method: Optional[str] = None
     ats_scope: Optional[str] = None
     notes: Optional[str] = None
+
 
 class Series(SeriesBase):
     series_id: str
@@ -20,6 +22,7 @@ class SizeClassBase(BaseModel):
     branch_current_band_a: Optional[str] = None
     engineering_note: Optional[str] = None
 
+
 class SizeClass(SizeClassBase):
     size_class: str
     model_config = ConfigDict(from_attributes=True)
@@ -30,6 +33,7 @@ class ComponentCatalogBase(BaseModel):
     generic_description: Optional[str] = None
     manufacturer: Optional[str] = None
     part_family: Optional[str] = None
+
 
 class ComponentCatalog(ComponentCatalogBase):
     part_number: str
@@ -49,6 +53,7 @@ class StarterOptionBase(BaseModel):
     size_class: Optional[str] = None
     data_quality_flag: Optional[str] = None
 
+
 class StarterOption(StarterOptionBase):
     starter_option_id: str
     model_config = ConfigDict(from_attributes=True)
@@ -67,6 +72,7 @@ class EnclosureOptionBase(BaseModel):
     alternative_catalog_ref: Optional[str] = None
     outdoor_alternative_catalog_ref: Optional[str] = None
 
+
 class EnclosureOption(EnclosureOptionBase):
     enclosure_option_id: str
     model_config = ConfigDict(from_attributes=True)
@@ -81,6 +87,7 @@ class ConfigurationRuleBase(BaseModel):
     alternative_enclosure_option_ids: Optional[str] = None
     rationale: Optional[str] = None
 
+
 class ConfigurationRule(ConfigurationRuleBase):
     rule_id: str
     model_config = ConfigDict(from_attributes=True)
@@ -91,6 +98,7 @@ class DrawingTemplateBase(BaseModel):
     load_count: Optional[int] = None
     source_status: Optional[str] = None
     template_description: Optional[str] = None
+
 
 class DrawingTemplate(DrawingTemplateBase):
     drawing_template_id: str
@@ -106,6 +114,7 @@ class ConfigurationBase(BaseModel):
     drawing_template_id: Optional[str] = None
     notes: Optional[str] = None
 
+
 class ConfigurationRes(ConfigurationBase):
     config_id: str
     model_config = ConfigDict(from_attributes=True)
@@ -119,6 +128,7 @@ class BomLineBase(BaseModel):
     qty: Optional[Decimal] = None
     description: Optional[str] = None
 
+
 class BomLine(BomLineBase):
     bom_line_id: str
     model_config = ConfigDict(from_attributes=True)
@@ -130,6 +140,7 @@ class DataQualityIssueBase(BaseModel):
     severity: Optional[str] = None
     issue_text: Optional[str] = None
     proposed_action: Optional[str] = None
+
 
 class DataQualityIssue(DataQualityIssueBase):
     issue_id: str
@@ -146,6 +157,7 @@ class AccessoryCatalogBase(BaseModel):
     standard_use_case: Optional[str] = None
     source_url: Optional[str] = None
     notes: Optional[str] = None
+
 
 class AccessoryCatalog(AccessoryCatalogBase):
     accessory_id: str
@@ -165,6 +177,7 @@ class AccessoryRuleBase(BaseModel):
     design_basis: Optional[str] = None
     lookup_key: Optional[str] = None
     engineering_note: Optional[str] = None
+
 
 class AccessoryRule(AccessoryRuleBase):
     accessory_rule_id: str

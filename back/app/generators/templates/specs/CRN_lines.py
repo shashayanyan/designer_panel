@@ -1,4 +1,4 @@
-crn_lines= [
+crn_lines = [
     "The enclosure shall be suitable for indoor water pumping stations, treatment plants, and utility rooms with high humidity and continuous operation.",
     "The enclosure shall provide ingress protection up to IP66 to protect electrical equipment according to IEC 60529 for demanding water pumping environments.",
     "The enclosure shall provide high mechanical strength (IK10) suitable for pump rooms where heavy motor control equipment is installed.",
@@ -11,6 +11,6 @@ crn_lines= [
     "The enclosure shall allow the integration of fan‑filter units, heaters, and thermostats to manage heat dissipation and condensation in pumping applications.",
     "The enclosure shall be compatible with a wide range of accessories including mounting plates, DIN rails, depth‑adjustable supports, and plinths.",
     "The enclosure shall comply with IEC 62208 and be suitable for low‑voltage assemblies used in motor control and pumping applications.",
-    "The enclosure shall be designed for long service life with minimal maintenance requirements in continuous‑duty pumping systems.", 
-    "The enclosure shall be available with or without mounting plate, with or without wall‑fixing brackets, and with optional thermal management accessories (fan + thermostat, heater + thermostat) to adapt to pumping application needs."
+    "The enclosure shall be designed for long service life with minimal maintenance requirements in continuous‑duty pumping systems.",
+    "The enclosure shall be available with or without mounting plate, with or without wall‑fixing brackets, and with optional thermal management accessories (fan + thermostat, heater + thermostat) to adapt to pumping application needs.",
 ]

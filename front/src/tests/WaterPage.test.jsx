@@ -2,6 +2,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { BrowserRouter } from 'react-router-dom'
 import { describe, it, expect, vi } from 'vitest'
 import WaterPage from '../pages/WaterPage'
+import React from 'react';
 
 const mockedNavigate = vi.fn()
 vi.mock('react-router-dom', async () => {

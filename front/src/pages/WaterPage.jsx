@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import './WaterPage.css'
+import React from 'react';
 
 const applications = [
     {

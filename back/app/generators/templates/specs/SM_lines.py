@@ -13,5 +13,5 @@ sm_lines = [
     "The enclosure shall allow side‑by‑side coupling using EPDM sealing gaskets and internal fixing elements, maintaining an IP55 rating after coupling.",
     "The enclosure shall include a quick‑fixation system for the mounting plate, providing temporary support to simplify and speed up panel assembly for pumping applications.",
     "The enclosure range shall cover a wide dimensional spectrum to accommodate thermal dissipation, cabling volume, and equipment size differences between DOL, soft starter, and VSD pumping solutions.",
-    "The manufacturer shall provide complete PEP, RoHS, and 2D/3D/CAD data compatible with electrical engineering software (IGE XAO, EPLAN) to support design, installation, and lifecycle management of pumping systems."
+    "The manufacturer shall provide complete PEP, RoHS, and 2D/3D/CAD data compatible with electrical engineering software (IGE XAO, EPLAN) to support design, installation, and lifecycle management of pumping systems.",
 ]

@@ -1,13 +1,23 @@
-from sqlalchemy import Column, Integer, String, Boolean, Numeric, ForeignKey, Enum as SAEnum
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Boolean,
+    Numeric,
+    ForeignKey,
+    Enum as SAEnum,
+)
 from sqlalchemy.orm import relationship
 from .database import Base
 import enum
 
 # --- Existing Auth Models ---
 
+
 class Role(str, enum.Enum):
     Admin = "Admin"
     User = "User"
+
 
 class User(Base):
     __tablename__ = "users"
@@ -18,7 +28,9 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     role = Column(SAEnum(Role), default=Role.User, nullable=False)
 
+
 # --- Engineering Configurator Models ---
+
 
 class Series(Base):
     __tablename__ = "series"
@@ -27,6 +39,7 @@ class Series(Base):
     starter_method = Column(String)
     ats_scope = Column(String)
     notes = Column(String)
+
 
 class SizeClass(Base):
     __tablename__ = "size_class"
@@ -37,6 +50,7 @@ class SizeClass(Base):
     branch_current_band_a = Column(String)
     engineering_note = Column(String)
 
+
 class ComponentCatalog(Base):
     __tablename__ = "component_catalog"
     part_number = Column(String, primary_key=True, index=True)
@@ -46,6 +60,7 @@ class ComponentCatalog(Base):
     part_family = Column(String)
     used_in_starter_option_ids = Column(String)
     notes = Column(String)
+
 
 class StarterOption(Base):
     __tablename__ = "starter_option"
@@ -60,18 +75,23 @@ class StarterOption(Base):
     thermal_relay_min_a = Column(Numeric(6, 2))
     thermal_relay_max_a = Column(Numeric(6, 2))
     nominal_circuit_breaker_current_a = Column(Integer)
-    magnetic_cb_part_number = Column(String, ForeignKey("component_catalog.part_number"))
+    magnetic_cb_part_number = Column(
+        String, ForeignKey("component_catalog.part_number")
+    )
     contactor_part_number = Column(String, ForeignKey("component_catalog.part_number"))
     overload_part_number = Column(String, ForeignKey("component_catalog.part_number"))
     size_class = Column(String, ForeignKey("size_class.size_class"))
-    
+
     # Relationships
-    magnetic_cb = relationship("ComponentCatalog", foreign_keys=[magnetic_cb_part_number])
+    magnetic_cb = relationship(
+        "ComponentCatalog", foreign_keys=[magnetic_cb_part_number]
+    )
     contactor = relationship("ComponentCatalog", foreign_keys=[contactor_part_number])
     overload = relationship("ComponentCatalog", foreign_keys=[overload_part_number])
     size_class_ref = relationship("SizeClass", foreign_keys=[size_class])
-    
+
     data_quality_flag = Column(String)
+
 
 class EnclosureOption(Base):
     __tablename__ = "enclosure_option"
@@ -91,6 +111,7 @@ class EnclosureOption(Base):
     alternative_catalog_ref = Column(String)
     outdoor_alternative_catalog_ref = Column(String)
 
+
 class ConfigurationRule(Base):
     __tablename__ = "configuration_rule"
     rule_id = Column(String, primary_key=True, index=True)
@@ -98,10 +119,14 @@ class ConfigurationRule(Base):
     ats_included = Column(Boolean)
     size_class = Column(String, ForeignKey("size_class.size_class"))
     load_count = Column(Integer)
-    recommended_enclosure_option_id = Column(String, ForeignKey("enclosure_option.enclosure_option_id"))
-    
+    recommended_enclosure_option_id = Column(
+        String, ForeignKey("enclosure_option.enclosure_option_id")
+    )
+
     # Relationships
-    recommended_enclosure = relationship("EnclosureOption", foreign_keys=[recommended_enclosure_option_id])
+    recommended_enclosure = relationship(
+        "EnclosureOption", foreign_keys=[recommended_enclosure_option_id]
+    )
     recommended_catalog_ref = Column(String)
     recommended_layout_dims_mm = Column(String)
     alternative_enclosure_option_ids = Column(String)
@@ -109,8 +134,9 @@ class ConfigurationRule(Base):
     lookup_key = Column(String)
     recommended_summary = Column(String)
     # Added after enclosure alternative updates
-    alternative_catalog_ref= Column(String)
+    alternative_catalog_ref = Column(String)
     outdoor_alternative_catalog_ref = Column(String)
+
 
 class DrawingTemplate(Base):
     __tablename__ = "drawing_template"
@@ -120,6 +146,7 @@ class DrawingTemplate(Base):
     source_status = Column(String)
     template_description = Column(String)
     engineering_note = Column(String)
+
 
 class Configuration(Base):
     __tablename__ = "configuration"
@@ -136,12 +163,16 @@ class Configuration(Base):
     contactor_qty = Column(Integer)
     overload_part_number = Column(String)
     overload_qty = Column(Integer)
-    selected_enclosure_option_id = Column(String, ForeignKey("enclosure_option.enclosure_option_id"))
+    selected_enclosure_option_id = Column(
+        String, ForeignKey("enclosure_option.enclosure_option_id")
+    )
     selected_enclosure_ref = Column(String)
     selected_enclosure_layout_dims_mm = Column(String)
     selected_enclosure_catalog_size = Column(String)
     mounting_type = Column(String)
-    drawing_template_id = Column(String, ForeignKey("drawing_template.drawing_template_id"))
+    drawing_template_id = Column(
+        String, ForeignKey("drawing_template.drawing_template_id")
+    )
     bom_scope = Column(String)
     notes = Column(String)
     core_device_type = Column(String)
@@ -157,6 +188,7 @@ class Configuration(Base):
     alternative_enclosure_ref = Column(String)
     outdoor_alternative_enclosure_ref = Column(String)
 
+
 class BomLine(Base):
     __tablename__ = "bom_line"
     bom_line_id = Column(String, primary_key=True, index=True)
@@ -170,6 +202,7 @@ class BomLine(Base):
     source_type = Column(String)
     source_id = Column(String)
 
+
 class DataQualityIssue(Base):
     __tablename__ = "data_quality_issue"
     issue_id = Column(String, primary_key=True, index=True)
@@ -179,10 +212,11 @@ class DataQualityIssue(Base):
     issue_text = Column(String)
     proposed_action = Column(String)
 
+
 class AccessoryCatalog(Base):
     __tablename__ = "accessory_catalog"
     accessory_id = Column(String, primary_key=True, index=True)
-    part_number = Column(String, unique=True, index=True) # Must be referenced by rule.
+    part_number = Column(String, unique=True, index=True)  # Must be referenced by rule.
     accessory_category = Column(String)
     accessory_subcategory = Column(String)
     manufacturer = Column(String)
@@ -192,11 +226,12 @@ class AccessoryCatalog(Base):
     source_url = Column(String)
     notes = Column(String)
 
+
 class AccessoryRule(Base):
     __tablename__ = "accessory_rule"
     accessory_rule_id = Column(String, primary_key=True, index=True)
     series_id = Column(String, ForeignKey("series.series_id"))
-    size_class = Column(String) # Can be "ALL", so not strict FK
+    size_class = Column(String)  # Can be "ALL", so not strict FK
     rule_scope = Column(String)
     include_in_default_bom = Column(Boolean)
     accessory_subcategory = Column(String)
@@ -208,6 +243,7 @@ class AccessoryRule(Base):
     design_basis = Column(String)
     lookup_key = Column(String)
     engineering_note = Column(String)
+
 
 class ApplicationIOTemplate(Base):
     __tablename__ = "application_io_template"
@@ -221,6 +257,7 @@ class ApplicationIOTemplate(Base):
     required_communication_mode = Column(String)
     alarm_linked = Column(String)
 
+
 class ApplicationAlarmTemplate(Base):
     __tablename__ = "application_alarm_template"
     id = Column(Integer, primary_key=True, index=True)
@@ -231,6 +268,7 @@ class ApplicationAlarmTemplate(Base):
     priority = Column(String)
     is_per_load = Column(Boolean)
     operator_message = Column(String)
+
 
 class ApplicationOptionMatrix(Base):
     __tablename__ = "application_option_matrix"

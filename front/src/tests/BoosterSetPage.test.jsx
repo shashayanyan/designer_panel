@@ -3,6 +3,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import BoosterSetPage from '../pages/BoosterSetPage'
 import { AuthContext } from '../context/AuthContext'
+import React from 'react';
 
 // Mock navigate
 const mockedNavigate = vi.fn()

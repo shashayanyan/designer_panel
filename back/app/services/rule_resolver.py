@@ -4,7 +4,6 @@ from fastapi import HTTPException
 from decimal import Decimal
 import ast
 import operator
-import re
 
 from .. import models
 from ..schemas.configurator import (
@@ -16,31 +15,38 @@ from ..schemas.configurator import (
     TwinIO,
     TwinAlarm,
     TwinOption,
-    TwinBomLine
+    TwinBomLine,
 )
+
 
 class MathSafeParser:
     """Safely evaluates basic math string formulas (e.g. 'load_count * 2')"""
-    
+
     ALLOWED_OPERATORS = {
-        ast.Add: operator.add, ast.Sub: operator.sub, 
-        ast.Mult: operator.mul, ast.Div: operator.truediv, 
-        ast.USub: operator.neg
+        ast.Add: operator.add,
+        ast.Sub: operator.sub,
+        ast.Mult: operator.mul,
+        ast.Div: operator.truediv,
+        ast.USub: operator.neg,
     }
 
     def __init__(self, variables: dict):
         self.variables = variables
 
     def _eval(self, node):
-        if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)): # <number>
+        if isinstance(node, ast.Constant) and isinstance(
+            node.value, (int, float)
+        ):  # <number>
             return node.value
-        elif isinstance(node, ast.Name): # <variable>
+        elif isinstance(node, ast.Name):  # <variable>
             if node.id in self.variables:
                 return self.variables[node.id]
             raise ValueError(f"Unknown variable in formula: {node.id}")
-        elif isinstance(node, ast.BinOp): # <left> <operator> <right>
-            return self.ALLOWED_OPERATORS[type(node.op)](self._eval(node.left), self._eval(node.right))
-        elif isinstance(node, ast.UnaryOp): # <operator> <operand> e.g., -1
+        elif isinstance(node, ast.BinOp):  # <left> <operator> <right>
+            return self.ALLOWED_OPERATORS[type(node.op)](
+                self._eval(node.left), self._eval(node.right)
+            )
+        elif isinstance(node, ast.UnaryOp):  # <operator> <operand> e.g., -1
             return self.ALLOWED_OPERATORS[type(node.op)](self._eval(node.operand))
         else:
             raise TypeError(f"Unsupported formula element: {node}")
@@ -52,18 +58,21 @@ class MathSafeParser:
             # First map string replacements for specific brackets logic if they exist (e.g., "[X] * 2")
             clean_formula = formula_text.lower()
             # In our CSVs formulas are something like "load_count * 2"
-            tree = ast.parse(clean_formula, mode='eval').body
+            tree = ast.parse(clean_formula, mode="eval").body
             return Decimal(str(self._eval(tree)))
         except SyntaxError:
             try:
                 # If there's an alphanumeric text (like "See rules"), return 0
-                return Decimal("0") 
+                return Decimal("0")
             except Exception:
                 return Decimal("0")
         except Exception as e:
             # Fallback fail safe
-            logging.error(f"Formula evaluation failed for string '{formula_text}': {e}. Variables context: {self.variables}. Returning quantity 0.")
+            logging.error(
+                f"Formula evaluation failed for string '{formula_text}': {e}. Variables context: {self.variables}. Returning quantity 0."
+            )
             return Decimal("0")
+
 
 class ConfigurationEngine:
     def __init__(self, db: Session):
@@ -75,108 +84,170 @@ class ConfigurationEngine:
         Resolves starter -> enclosure -> accessories -> full configuration.
         """
         # 1. Base Query: Find matching Starter Option
-        starter = self.db.query(models.StarterOption).filter(
-            models.StarterOption.series_id == request.series_id,
-            models.StarterOption.rated_load_power_kw == request.motor_power_kw
-        ).first()
+        starter = (
+            self.db.query(models.StarterOption)
+            .filter(
+                models.StarterOption.series_id == request.series_id,
+                models.StarterOption.rated_load_power_kw == request.motor_power_kw,
+            )
+            .first()
+        )
 
         if not starter:
-            raise HTTPException(status_code=404, detail="No matching starter option found for this configuration requirements.")
+            raise HTTPException(
+                status_code=404,
+                detail="No matching starter option found for this configuration requirements.",
+            )
 
         # 2. Extract base core components
         components = []
-        
+
         # Determine Core Device Type based on Series
         core_type = ""
         core_part = ""
         if request.series_id == "VSD":
             core_type = "Variable Speed Drive"
             # As a simplified placeholder until 'drive_part_number' is formally in StarterOption, we infer it or leave blank:
-            core_part = getattr(starter, 'drive_part_number', 'VSD-PENDING-MASTER-DATA')
-            components.append(TwinComponent(item_category="Core Device", part_number=core_part, description=core_type, qty=Decimal(request.load_count)))
+            core_part = getattr(starter, "drive_part_number", "VSD-PENDING-MASTER-DATA")
+            components.append(
+                TwinComponent(
+                    item_category="Core Device",
+                    part_number=core_part,
+                    description=core_type,
+                    qty=Decimal(request.load_count),
+                )
+            )
         elif request.series_id == "SS":
             core_type = "Soft Starter"
-            core_part = getattr(starter, 'soft_starter_part_number', 'SS-PENDING-MASTER-DATA')
-            components.append(TwinComponent(item_category="Core Device", part_number=core_part, description=core_type, qty=Decimal(request.load_count)))
+            core_part = getattr(
+                starter, "soft_starter_part_number", "SS-PENDING-MASTER-DATA"
+            )
+            components.append(
+                TwinComponent(
+                    item_category="Core Device",
+                    part_number=core_part,
+                    description=core_type,
+                    qty=Decimal(request.load_count),
+                )
+            )
 
         if starter.magnetic_cb_part_number:
-            components.append(TwinComponent(
-                item_category="Magnetic CB", 
-                part_number=starter.magnetic_cb_part_number, 
-                qty=Decimal(request.load_count)
-            ))
+            components.append(
+                TwinComponent(
+                    item_category="Magnetic CB",
+                    part_number=starter.magnetic_cb_part_number,
+                    qty=Decimal(request.load_count),
+                )
+            )
         if starter.contactor_part_number:
-            components.append(TwinComponent(
-                item_category="Contactor", 
-                part_number=starter.contactor_part_number, 
-                qty=Decimal(request.load_count)
-            ))
+            components.append(
+                TwinComponent(
+                    item_category="Contactor",
+                    part_number=starter.contactor_part_number,
+                    qty=Decimal(request.load_count),
+                )
+            )
         if starter.overload_part_number:
-            components.append(TwinComponent(
-                item_category="Thermal Overload", 
-                part_number=starter.overload_part_number, 
-                qty=Decimal(request.load_count)
-            ))
+            components.append(
+                TwinComponent(
+                    item_category="Thermal Overload",
+                    part_number=starter.overload_part_number,
+                    qty=Decimal(request.load_count),
+                )
+            )
 
         # 3. Enclosure Logic: Evaluate Configuration Rule based on size_class and load_count
-        config_rule = self.db.query(models.ConfigurationRule).filter(
-            models.ConfigurationRule.series_id == request.series_id,
-            models.ConfigurationRule.size_class == starter.size_class,
-            models.ConfigurationRule.load_count == request.load_count,
-            models.ConfigurationRule.ats_included == request.ats_included
-        ).first()
+        config_rule = (
+            self.db.query(models.ConfigurationRule)
+            .filter(
+                models.ConfigurationRule.series_id == request.series_id,
+                models.ConfigurationRule.size_class == starter.size_class,
+                models.ConfigurationRule.load_count == request.load_count,
+                models.ConfigurationRule.ats_included == request.ats_included,
+            )
+            .first()
+        )
 
         if not config_rule:
-             raise HTTPException(status_code=404, detail="No matching enclosure configuration rule found.")
+            raise HTTPException(
+                status_code=404,
+                detail="No matching enclosure configuration rule found.",
+            )
 
         if request.enclosure_ref:
             # If frontend has sent a specific enclosure reference (e.g., from user selection), we should use that instead of the recommended one
-            enclosure_option = self.db.query(models.EnclosureOption).filter(
-                models.EnclosureOption.catalog_ref == request.enclosure_ref
-            ).first()
+            enclosure_option = (
+                self.db.query(models.EnclosureOption)
+                .filter(models.EnclosureOption.catalog_ref == request.enclosure_ref)
+                .first()
+            )
             if not enclosure_option:
-                raise HTTPException(status_code=404, detail="Selected enclosure reference not found in database.")
+                raise HTTPException(
+                    status_code=404,
+                    detail="Selected enclosure reference not found in database.",
+                )
         else:
-
-            enclosure_option = self.db.query(models.EnclosureOption).filter(
-                models.EnclosureOption.enclosure_option_id == config_rule.recommended_enclosure_option_id
-            ).first()
+            enclosure_option = (
+                self.db.query(models.EnclosureOption)
+                .filter(
+                    models.EnclosureOption.enclosure_option_id
+                    == config_rule.recommended_enclosure_option_id
+                )
+                .first()
+            )
 
         if not enclosure_option:
-            raise HTTPException(status_code=404, detail="Mapped Enclosure ID not found in database.")
+            raise HTTPException(
+                status_code=404, detail="Mapped Enclosure ID not found in database."
+            )
 
         enclosure_data = TwinEnclosure(
             catalog_ref=enclosure_option.catalog_ref,
             dimensions_mm=f"{enclosure_option.layout_dim_h_mm}x{enclosure_option.layout_dim_w_mm}x{enclosure_option.layout_dim_d_mm}",
             mounting_type=enclosure_option.mounting_type,
-            alternative_ref=enclosure_option.alternative_catalog_ref, # Added after enclosure alternative updates
-            outdoor_alternative_ref=enclosure_option.outdoor_alternative_catalog_ref # Added after enclosure alternative updates
+            alternative_ref=enclosure_option.alternative_catalog_ref,  # Added after enclosure alternative updates
+            outdoor_alternative_ref=enclosure_option.outdoor_alternative_catalog_ref,  # Added after enclosure alternative updates
         )
 
         # 4. Drawing Template Logic
-        drawing = self.db.query(models.DrawingTemplate).filter(
-            models.DrawingTemplate.series_id == request.series_id,
-            models.DrawingTemplate.load_count == request.load_count
-        ).first()
+        drawing = (
+            self.db.query(models.DrawingTemplate)
+            .filter(
+                models.DrawingTemplate.series_id == request.series_id,
+                models.DrawingTemplate.load_count == request.load_count,
+            )
+            .first()
+        )
         dt_id = drawing.drawing_template_id if drawing else None
 
         # 5. Build Configuration lookup ID
         # Configurations table holds config_id format like: CFG-ST001-1X
         # To strictly map it back, we can infer it or fetch it.
-        config_db_record = self.db.query(models.Configuration).filter(
-            models.Configuration.starter_option_id == starter.starter_option_id,
-            models.Configuration.load_count == request.load_count
-        ).first()
-        cid = config_db_record.config_id if config_db_record else f"CFG-{starter.starter_option_id}-{request.load_count}X"
+        config_db_record = (
+            self.db.query(models.Configuration)
+            .filter(
+                models.Configuration.starter_option_id == starter.starter_option_id,
+                models.Configuration.load_count == request.load_count,
+            )
+            .first()
+        )
+        cid = (
+            config_db_record.config_id
+            if config_db_record
+            else f"CFG-{starter.starter_option_id}-{request.load_count}X"
+        )
 
         # 6. Evaluate Accessory Rules
         accessories = []
-        ac_rules = self.db.query(models.AccessoryRule).options(
-            joinedload(models.AccessoryRule.catalog_item)
-        ).filter(
-            models.AccessoryRule.series_id == request.series_id,
-            models.AccessoryRule.size_class == starter.size_class
-        ).all()
+        ac_rules = (
+            self.db.query(models.AccessoryRule)
+            .options(joinedload(models.AccessoryRule.catalog_item))
+            .filter(
+                models.AccessoryRule.series_id == request.series_id,
+                models.AccessoryRule.size_class == starter.size_class,
+            )
+            .all()
+        )
 
         parser = MathSafeParser({"load_count": request.load_count})
 
@@ -197,14 +268,20 @@ class ConfigurationEngine:
                 # Ensure we skip zero quantities
                 if qty_val > Decimal("0"):
                     # Utilizing the joinedload ORM relationship to avoid N+1 DB round-trips
-                    acc_desc = rule.catalog_item.standard_use_case if rule.catalog_item else None
+                    acc_desc = (
+                        rule.catalog_item.standard_use_case
+                        if rule.catalog_item
+                        else None
+                    )
 
-                    accessories.append(TwinAccessory(
-                        category=rule.accessory_subcategory,
-                        part_number=rule.part_number,
-                        description=acc_desc,
-                        qty=qty_val
-                    ))
+                    accessories.append(
+                        TwinAccessory(
+                            category=rule.accessory_subcategory,
+                            part_number=rule.part_number,
+                            description=acc_desc,
+                            qty=qty_val,
+                        )
+                    )
             except Exception as e:
                 print(f"Skipping rule {rule.accessory_rule_id} due to eval error: {e}")
                 pass
@@ -221,102 +298,137 @@ class ConfigurationEngine:
             drawing_template_id=dt_id,
             notes=config_rule.rationale if config_rule else None,
             communication=request.communication,
-            bypass_strategy=getattr(starter, 'bypass_strategy', 'None'),
-            bypass_contactor_part_number=getattr(starter, 'bypass_contactor_part_number', None),
+            bypass_strategy=getattr(starter, "bypass_strategy", "None"),
+            bypass_contactor_part_number=getattr(
+                starter, "bypass_contactor_part_number", None
+            ),
             plc_included=request.plc_included,
             scada_included=request.scada_included,
             selected_assets=request.selected_assets,
             multi_line_diagram_b64=request.multi_line_diagram_b64,
-            environment=request.environment
+            environment=request.environment,
         )
-        
+
         # 7b. Fetch mapped BOM Lines from table
-        db_bom_lines = self.db.query(models.BomLine).filter(
-            models.BomLine.config_id == cid
-        ).all()
-        
+        db_bom_lines = (
+            self.db.query(models.BomLine).filter(models.BomLine.config_id == cid).all()
+        )
+
         bom_lines = []
         for line in db_bom_lines:
             item_text = line.description
             notes_text = ""
             source_type_clean = (line.source_type or "").lower().strip()
             source_id_clean = (line.source_id or "").strip()
-            
+
             if source_type_clean in ["enclosure", "enclosure_option"]:
-                enc = self.db.query(models.EnclosureOption).filter(models.EnclosureOption.enclosure_option_id == source_id_clean).first()
+                enc = (
+                    self.db.query(models.EnclosureOption)
+                    .filter(
+                        models.EnclosureOption.enclosure_option_id == source_id_clean
+                    )
+                    .first()
+                )
                 if enc and enc.catalog_ref == enclosure_option.catalog_ref:
                     item_text = f"Enclosure {enc.mounting_type}"
                     notes_text = enc.description
-                else: 
+                else:
                     continue
             elif source_type_clean in ["component", "component_catalog"]:
-                comp = self.db.query(models.ComponentCatalog).filter(models.ComponentCatalog.part_number == line.part_number).first()
+                comp = (
+                    self.db.query(models.ComponentCatalog)
+                    .filter(models.ComponentCatalog.part_number == line.part_number)
+                    .first()
+                )
                 if comp:
                     item_text = comp.generic_description
                     notes_text = f"{comp.part_family} by {comp.manufacturer}"
             elif source_type_clean in ["accessory", "accessory_catalog"]:
-                acc = self.db.query(models.AccessoryCatalog).filter(models.AccessoryCatalog.part_number == line.part_number).first()
+                acc = (
+                    self.db.query(models.AccessoryCatalog)
+                    .filter(models.AccessoryCatalog.part_number == line.part_number)
+                    .first()
+                )
                 if acc:
                     item_text = acc.accessory_subcategory
                     notes_text = f"{acc.product_range} by {acc.manufacturer}"
-                    
-            bom_lines.append(TwinBomLine(
-                line_no=line.line_no,
-                item_category=line.item_category,
-                part_number=line.part_number,
-                description=line.description,
-                qty=line.qty,
-                uom=line.uom,
-                item=item_text or line.description,
-                key_selection_notes=notes_text
-            ))
+
+            bom_lines.append(
+                TwinBomLine(
+                    line_no=line.line_no,
+                    item_category=line.item_category,
+                    part_number=line.part_number,
+                    description=line.description,
+                    qty=line.qty,
+                    uom=line.uom,
+                    item=item_text or line.description,
+                    key_selection_notes=notes_text,
+                )
+            )
         response.bom_lines = bom_lines
 
         # 8. Resolve Application-Specific Templates (IO, Alarms, Options)
-        app_id = "APP-WATER-BOOSTER" # Fixed for this specific application page
-        
+        app_id = "APP-WATER-BOOSTER"  # Fixed for this specific application page
+
         # 8a. IO Templates -> Network Plan
-        io_templates = self.db.query(models.ApplicationIOTemplate).filter(
-            models.ApplicationIOTemplate.application_id == app_id
-        ).all()
-        
+        io_templates = (
+            self.db.query(models.ApplicationIOTemplate)
+            .filter(models.ApplicationIOTemplate.application_id == app_id)
+            .all()
+        )
+
         network_plan = []
         for iot in io_templates:
             # Filter by communication mode if required
-            if iot.required_communication_mode and iot.required_communication_mode != request.communication:
+            if (
+                iot.required_communication_mode
+                and iot.required_communication_mode != request.communication
+            ):
                 continue
-            
+
             if iot.is_per_load:
                 for i in range(1, request.load_count + 1):
                     tag = (iot.tag_template or "").replace("{i}", str(i))
                     desc = (iot.description or "").replace("{i}", str(i))
                     # Simple IP assignment logic if communication is ModbusTCP
                     ip = None
-                    if request.communication == "ModbusTCP" and iot.interface == "Modbus TCP":
-                        ip = f"192.168.1.{10 + i}" # Simple sequential assignment starting .11
-                    
-                    network_plan.append(TwinIO(
-                        tag=tag,
-                        description=desc,
+                    if (
+                        request.communication == "ModbusTCP"
+                        and iot.interface == "Modbus TCP"
+                    ):
+                        ip = f"192.168.1.{10 + i}"  # Simple sequential assignment starting .11
+
+                    network_plan.append(
+                        TwinIO(
+                            tag=tag,
+                            description=desc,
+                            signal_type=iot.signal_type,
+                            interface=iot.interface,
+                            ip_address=ip,
+                        )
+                    )
+            else:
+                network_plan.append(
+                    TwinIO(
+                        tag=iot.tag_template,
+                        description=iot.description,
                         signal_type=iot.signal_type,
                         interface=iot.interface,
-                        ip_address=ip
-                    ))
-            else:
-                network_plan.append(TwinIO(
-                    tag=iot.tag_template,
-                    description=iot.description,
-                    signal_type=iot.signal_type,
-                    interface=iot.interface,
-                    ip_address="192.168.1.10" if request.communication == "ModbusTCP" and iot.interface == "Modbus TCP" else None
-                ))
+                        ip_address="192.168.1.10"
+                        if request.communication == "ModbusTCP"
+                        and iot.interface == "Modbus TCP"
+                        else None,
+                    )
+                )
         response.network_plan = network_plan
 
         # 8b. Alarm Templates -> Alarm List
-        alarm_templates = self.db.query(models.ApplicationAlarmTemplate).filter(
-            models.ApplicationAlarmTemplate.application_id == app_id
-        ).all()
-        
+        alarm_templates = (
+            self.db.query(models.ApplicationAlarmTemplate)
+            .filter(models.ApplicationAlarmTemplate.application_id == app_id)
+            .all()
+        )
+
         alarm_list = []
         for alt in alarm_templates:
             if alt.is_per_load:
@@ -324,29 +436,35 @@ class ConfigurationEngine:
                     code = (alt.alarm_code_template or "").replace("{i}", str(i))
                     source = (alt.tag_source_template or "").replace("{i}", str(i))
                     msg = (alt.operator_message or "").replace("{i}", str(i))
-                    alarm_list.append(TwinAlarm(
-                        code=code,
-                        source_tag=source,
+                    alarm_list.append(
+                        TwinAlarm(
+                            code=code,
+                            source_tag=source,
+                            condition=alt.condition,
+                            priority=alt.priority,
+                            operator_message=msg,
+                        )
+                    )
+            else:
+                alarm_list.append(
+                    TwinAlarm(
+                        code=alt.alarm_code_template,
+                        source_tag=alt.tag_source_template,
                         condition=alt.condition,
                         priority=alt.priority,
-                        operator_message=msg
-                    ))
-            else:
-                alarm_list.append(TwinAlarm(
-                    code=alt.alarm_code_template,
-                    source_tag=alt.tag_source_template,
-                    condition=alt.condition,
-                    priority=alt.priority,
-                    operator_message=alt.operator_message
-                ))
+                        operator_message=alt.operator_message,
+                    )
+                )
         response.alarm_list = alarm_list
 
         # 8c. Option Matrix Logic
-        option_matrix = self.db.query(models.ApplicationOptionMatrix).filter(
-            models.ApplicationOptionMatrix.application_id == app_id
-        ).all()
-        
-        # In a real engine, we'd filter based on 'selected' options, 
+        option_matrix = (
+            self.db.query(models.ApplicationOptionMatrix)
+            .filter(models.ApplicationOptionMatrix.application_id == app_id)
+            .all()
+        )
+
+        # In a real engine, we'd filter based on 'selected' options,
         # but for now we list the matrix applicable to this twin.
         response.option_matrix = [
             TwinOption(
@@ -354,8 +472,9 @@ class ConfigurationEngine:
                 name=opt.option_name,
                 is_base=(opt.is_base_or_optional == "Base"),
                 spec_text=opt.spec_text_hint,
-                engineering_notes=opt.engineering_notes
-            ) for opt in option_matrix
+                engineering_notes=opt.engineering_notes,
+            )
+            for opt in option_matrix
         ]
 
         return response

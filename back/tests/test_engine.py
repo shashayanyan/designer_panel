@@ -22,10 +22,11 @@ test_data = [
     }
 ]
 
+
 @pytest.mark.parametrize("case", test_data)
 def test_engine_resolves_correctly_against_csv(case):
     """
-    Automatically sends requests to /api/v1/engine/configure based on Configurations.csv 
+    Automatically sends requests to /api/v1/engine/configure based on Configurations.csv
     and strictly compares the returned Digital Twin JSON values against the expected columns.
     """
     request_payload = {
@@ -34,29 +35,31 @@ def test_engine_resolves_correctly_against_csv(case):
         "load_count": case["load_count"],
         "ats_included": case["ats_included"],
         "plc_included": "YES",
-        "scada_included": "No"
+        "scada_included": "No",
     }
-    
+
     response = client.post("/api/v1/engine/configure", json=request_payload)
-    
+
     # Assert successful resolution
-    assert response.status_code == 200, f"Failed for {case['config_id']}: {response.text}"
-    
+    assert response.status_code == 200, (
+        f"Failed for {case['config_id']}: {response.text}"
+    )
+
     data = response.json()
-    
+
     # 1. Check ID Mapping
     assert data["config_id"] == case["config_id"]
     assert data["plc_included"] == "YES"
     assert data["scada_included"] == "No"
-    
+
     # 2. Check Enclosure Resolution
     assert data["enclosure"]["catalog_ref"] == case["ex_enclosure_ref"]
     assert data["enclosure"]["dimensions_mm"] == case["ex_enclosure_dims"]
-    
+
     # 3. Check Components parsing
     components = data.get("components", [])
     part_numbers = [c["part_number"] for c in components]
-    
+
     if case["ex_magnetic_cb"] is not None:
         assert case["ex_magnetic_cb"] in part_numbers
     if case["ex_contactor"] is not None:

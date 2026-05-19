@@ -1,7 +1,7 @@
 import { render, screen, act, waitFor } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { AuthProvider, AuthContext } from '../context/AuthContext';
-import { useContext } from 'react';
+import React, { useContext } from 'react';
 
 // Test component that consumes context
 const TestComponent = () => {

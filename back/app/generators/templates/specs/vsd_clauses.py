@@ -2,9 +2,9 @@
 
 vsd_motor_feeders = [
     "Each pump motor shall be controlled by an individual Variable Speed Drive (VSD) suitable for {motor_power_kw} kW motor duty.",
-    "The drive shall control motor speed over the full specified operating range with static speed accuracy better than or equal to ±0.5% of rated speed. [cite: 469]",
-    "The drive shall include an automatic energy-optimisation mode that continuously adjusts motor flux based on measured speed and load to minimise losses. [cite: 477]",
-    "The VSD shall ride through three-phase supply voltage dips up to 20% of nominal voltage for any duration with reduced output power and without tripping. [cite: 528]",
+    "The drive shall control motor speed over the full specified operating range with static speed accuracy better than or equal to ±0.5% of rated speed.",
+    "The drive shall include an automatic energy-optimisation mode that continuously adjusts motor flux based on measured speed and load to minimise losses.",
+    "The VSD shall ride through three-phase supply voltage dips up to 20% of nominal voltage for any duration with reduced output power and without tripping.",
 ]
 
 vsd_control_philosophy = [

@@ -45,3 +45,19 @@ repos:
       - id: eslint
         name: eslint (frontend)
         files: ^front/.*\.(js|jsx|ts|tsx)$
+
+  - repo: local
+    hooks:
+      - id: backend-tests
+        name: backend tests (pytest)
+        entry: bash -c 'cd back && source venv/bin/activate && python -m pytest tests/'
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+
+      - id: frontend-tests
+        name: frontend tests (vitest)
+        entry: bash -c 'cd front && npm test'
+        language: system
+        pass_filenames: false
+        stages: [pre-push]

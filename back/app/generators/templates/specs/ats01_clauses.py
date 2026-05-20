@@ -1,10 +1,10 @@
 # Lower Soft Starter (ATS01) Specification Clauses
 
 ats01_motor_feeders = [
-    "Each pump motor shall be controlled by an individual soft starter providing controlled voltage ramp-up suitable for {motor_power_kw} kW motor duty. [cite: 186]",
-    "The soft starter shall limit motor starting torque and current peaks during motor acceleration. [cite: 190]",
-    "The soft starter shall incorporate an internal bypass relay to shunt the power semiconductors after the motor has reached nominal speed. [cite: 195]",
-    "The starter shall accept a discrete input signal to initiate a run command and a discrete input signal to initiate a stop command. [cite: 226, 227]",
+    "Each pump motor shall be controlled by an individual soft starter providing controlled voltage ramp-up suitable for {motor_power_kw} kW motor duty.",
+    "The soft starter shall limit motor starting torque and current peaks during motor acceleration.",
+    "The soft starter shall incorporate an internal bypass relay to shunt the power semiconductors after the motor has reached nominal speed.",
+    "The starter shall accept a discrete input signal to initiate a run command and a discrete input signal to initiate a stop command.",
 ]
 
 ats01_control_philosophy = [

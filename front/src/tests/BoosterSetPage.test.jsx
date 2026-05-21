@@ -150,7 +150,10 @@ describe("BoosterSetPage", () => {
     });
 
     // 2. Select an asset
-    fireEvent.click(screen.getByLabelText(/Bill of Materials/i));
+    // First expand the group
+    fireEvent.click(screen.getByLabelText(/Expand Data Sheet/i));
+    // Then click the child
+    fireEvent.click(screen.getByLabelText(/BOM/i));
 
     // 3. Trigger download
     const downloadButton = screen.getByRole("button", {
@@ -185,7 +188,14 @@ describe("BoosterSetPage", () => {
       plc_included: "YES",
       scada_included: "YES",
       enclosure_ref: "NSYS3D6630P",
-      selected_assets: expect.arrayContaining(["Bill of Materials"]),
+      selected_assets: expect.arrayContaining([
+        expect.objectContaining({
+          id: "Data Sheet",
+          children: expect.arrayContaining([
+            expect.objectContaining({ id: "BOM" }),
+          ]),
+        }),
+      ]),
     });
   });
 

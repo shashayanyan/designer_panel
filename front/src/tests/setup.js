@@ -51,3 +51,12 @@ HTMLAnchorElement.prototype.click = function () {
   }
   originalClick.apply(this, arguments);
 };
+
+// Global fetch mock with robust default
+global.fetch = vi.fn(() =>
+  Promise.resolve({
+    ok: true,
+    json: () => Promise.resolve([]),
+    blob: () => Promise.resolve(new Blob([""])),
+  }),
+);

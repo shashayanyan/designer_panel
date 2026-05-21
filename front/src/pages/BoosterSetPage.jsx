@@ -768,6 +768,22 @@ function BoosterSetPage() {
     }));
   };
 
+  const handleReset = () => {
+    setConfig({
+      incomers: "1",
+      pumps: "",
+      motorPower: "",
+      motorStart: "",
+      ipRating: "IP54",
+      communication: "",
+      plc: "",
+      scada: "",
+      enclosure: "",
+    });
+    setEnclosureList(null);
+    setSelectedAssets(buildAssetState(ASSET_TREE));
+  };
+
   const AssetNode = ({ node, value, parentId }) => {
     const parentRef = useRef(null);
     const hasChildren = !!node.children?.length;
@@ -1173,18 +1189,7 @@ function BoosterSetPage() {
             <button
               className="btn-reset"
               style={{ marginTop: "var(--space-md)", width: "100%" }}
-              onClick={() =>
-                setConfig({
-                  incomers: "1",
-                  pumps: "",
-                  motorPower: "",
-                  motorStart: "",
-                  ipRating: "IP54",
-                  communication: "",
-                  plc: "",
-                  scada: "",
-                })
-              }
+              onClick={handleReset}
             >
               Reset
             </button>

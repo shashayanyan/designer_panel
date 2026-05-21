@@ -17,6 +17,7 @@ const mockedNavigate = vi.fn();
 describe("BoosterSetPage - Asset Tree Logic", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.setItem("dashboard_token", "mock-token");
     fetch.mockResolvedValue({
       ok: true,
       json: () => Promise.resolve([]),

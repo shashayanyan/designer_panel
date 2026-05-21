@@ -39,6 +39,7 @@ describe("BoosterSetPage - Dynamic Form Logic", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.setItem("dashboard_token", "mock-token");
     fetch.mockImplementation((url) => {
       if (url.includes("/api/v1/series")) {
         return Promise.resolve({
@@ -121,6 +122,11 @@ describe("BoosterSetPage - Dynamic Form Logic", () => {
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith(
         expect.stringContaining("/api/v1/enclosure-options/3/VSD/15"),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: "Bearer mock-token",
+          }),
+        }),
       );
     });
 

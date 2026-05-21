@@ -1,9 +1,10 @@
-import React, { useState, useMemo, useRef, useEffect } from "react";
+import React, { useState, useMemo, useRef, useEffect, useContext } from "react";
 import { CircleAlert, ChevronDown, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import JSZip from "jszip";
 import "./BoosterSetPage.css";
 import PropTypes from "prop-types";
+import { AuthContext } from "../context/AuthContext";
 
 const ASSET_TREE = [
   {
@@ -511,9 +512,16 @@ function BoosterSetPage() {
     const fetchMasterData = async () => {
       try {
         const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
+        const token = localStorage.getItem("dashboard_token");
+        const headers = {};
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+
         const [seriesRes, startersRes] = await Promise.all([
-          fetch(`${apiUrl}/api/v1/series`),
-          fetch(`${apiUrl}/api/v1/starter-options`),
+          fetch(`${apiUrl}/api/v1/series`, { headers, credentials: "include" }),
+          fetch(`${apiUrl}/api/v1/starter-options`, {
+            headers,
+            credentials: "include",
+          }),
         ]);
         if (seriesRes.ok) setSeriesList(await seriesRes.json());
         if (startersRes.ok) setStarterOptionsList(await startersRes.json());
@@ -538,8 +546,13 @@ function BoosterSetPage() {
 
       try {
         const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
+        const token = localStorage.getItem("dashboard_token");
+        const headers = {};
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+
         const enclosuresRes = await fetch(
           `${apiUrl}/api/v1/enclosure-options/${config.pumps}/${config.motorStart}/${config.motorPower}`,
+          { headers, credentials: "include" },
         );
 
         if (!enclosuresRes.ok) {
@@ -1010,10 +1023,15 @@ function BoosterSetPage() {
       };
 
       const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
+      const token = localStorage.getItem("dashboard_token");
+      const headers = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
       const response = await fetch(`${apiUrl}/api/v1/engine/generate-package`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify(requestPayload),
+        credentials: "include",
       });
 
       if (!response.ok) {

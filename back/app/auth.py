@@ -136,3 +136,14 @@ def get_current_active_user(
     current_user: Annotated[models.User, Depends(get_current_user)],
 ):
     return current_user
+
+
+def get_admin_user(
+    current_user: Annotated[models.User, Depends(get_current_active_user)],
+):
+    if current_user.role != models.Role.Admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="The user does not have enough privileges",
+        )
+    return current_user

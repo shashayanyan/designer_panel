@@ -49,7 +49,9 @@ class ZipService:
         )
 
         readme_bytes = generate_readme_from_twin(twin)
-        spec_text_bytes = generate_spec_text_from_twin(twin)
+        spec_text_bytes = (
+            generate_spec_text_from_twin(twin) if has_asset("Specification") else None
+        )
 
         # 2. Build the Manifest dynamically
         files_included = [
@@ -99,9 +101,10 @@ class ZipService:
             # Conditionally write generated files
             for filename, filebytes in excel_files.items():
                 zip_file.writestr(filename, filebytes)
-            zip_file.writestr(
-                f"{asset_numbers['spec-txt']}_SpecTextBlock.txt", spec_text_bytes
-            )
+            if spec_text_bytes:
+                zip_file.writestr(
+                    f"{asset_numbers['spec-txt']}_SpecTextBlock.txt", spec_text_bytes
+                )
             if word_bytes:
                 zip_file.writestr(
                     f"{asset_numbers['spec-docx']}_EngineeringSpec_{twin.config_id}.docx",

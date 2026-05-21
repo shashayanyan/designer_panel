@@ -1,7 +1,7 @@
 # back/app/utils/assets.py
 from __future__ import annotations
 
-from typing import Any, Dict, Iterable, List
+from typing import Any, Iterable, List
 
 
 def _node_value(node: Any, key: str, default: Any = None) -> Any:
@@ -39,29 +39,3 @@ def flatten_asset_ids(nodes: Iterable[Any]) -> List[str]:
             deduped.append(asset_id)
 
     return deduped
-
-
-def build_id_label_map(
-    nodes: Iterable[Any], out: Dict[str, str] | None = None
-) -> Dict[str, str]:
-    """
-    Build a recursive id -> label map from a selected asset tree.
-    """
-    if out is None:
-        out = {}
-
-    for node in nodes or []:
-        if not node:
-            continue
-
-        node_id = _node_value(node, "id")
-        label = _node_value(node, "label")
-        children = _node_value(node, "children", None)
-
-        if node_id and label:
-            out[str(node_id)] = str(label)
-
-        if children:
-            build_id_label_map(children, out)
-
-    return out

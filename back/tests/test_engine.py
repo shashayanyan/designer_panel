@@ -9,7 +9,7 @@ client = TestClient(app)
 test_data = [
     {
         "config_id": "CFG-TEST_OPT_1-2X",
-        "series_id": "TEST_SR",
+        "series_id": "DOL",
         "motor_power_kw": 10.0,
         "load_count": 2,
         "ats_included": False,
@@ -69,3 +69,59 @@ def test_engine_resolves_correctly_against_csv(case):
     # Verify component quantities equal load_count
     for c in components:
         assert float(c["qty"]) == float(case["load_count"])
+
+
+def test_vsd_core_device_resolution():
+    """
+    Verify that VSD series correctly resolves the core device from contactor_part_number
+    and does not add a separate contactor component.
+    """
+    request_payload = {
+        "series_id": "VSD",
+        "motor_power_kw": 15.0,
+        "load_count": 2,
+        "ats_included": False,
+    }
+
+    response = client.post("/api/v1/engine/configure", json=request_payload)
+    assert response.status_code == 200
+    data = response.json()
+
+    components = data.get("components", [])
+    categories = [c["item_category"] for c in components]
+
+    # Should have Core Device, should NOT have Contactor
+    assert "Core Device" in categories
+    assert "Contactor" not in categories
+
+    # Verify part number matches our test data (TEST_VSD_CORE)
+    core_device = next(c for c in components if c["item_category"] == "Core Device")
+    assert core_device["part_number"] == "TEST_VSD_CORE"
+
+
+def test_ss_core_device_resolution():
+    """
+    Verify that SS series correctly resolves the core device from contactor_part_number
+    and does not add a separate contactor component.
+    """
+    request_payload = {
+        "series_id": "SS",
+        "motor_power_kw": 15.0,
+        "load_count": 2,
+        "ats_included": False,
+    }
+
+    response = client.post("/api/v1/engine/configure", json=request_payload)
+    assert response.status_code == 200
+    data = response.json()
+
+    components = data.get("components", [])
+    categories = [c["item_category"] for c in components]
+
+    # Should have Core Device, should NOT have Contactor
+    assert "Core Device" in categories
+    assert "Contactor" not in categories
+
+    # Verify part number matches our test data (TEST_SS_CORE)
+    core_device = next(c for c in components if c["item_category"] == "Core Device")
+    assert core_device["part_number"] == "TEST_SS_CORE"

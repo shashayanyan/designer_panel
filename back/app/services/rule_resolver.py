@@ -108,29 +108,28 @@ class ConfigurationEngine:
         core_part = ""
         if request.series_id == "VSD":
             core_type = "Variable Speed Drive"
-            # As a simplified placeholder until 'drive_part_number' is formally in StarterOption, we infer it or leave blank:
-            core_part = getattr(starter, "drive_part_number", "VSD-PENDING-MASTER-DATA")
-            components.append(
-                TwinComponent(
-                    item_category="Core Device",
-                    part_number=core_part,
-                    description=core_type,
-                    qty=Decimal(request.load_count),
+            core_part = starter.contactor_part_number
+            if core_part:
+                components.append(
+                    TwinComponent(
+                        item_category="Core Device",
+                        part_number=core_part,
+                        description=core_type,
+                        qty=Decimal(request.load_count),
+                    )
                 )
-            )
         elif request.series_id == "SS":
             core_type = "Soft Starter"
-            core_part = getattr(
-                starter, "soft_starter_part_number", "SS-PENDING-MASTER-DATA"
-            )
-            components.append(
-                TwinComponent(
-                    item_category="Core Device",
-                    part_number=core_part,
-                    description=core_type,
-                    qty=Decimal(request.load_count),
+            core_part = starter.contactor_part_number
+            if core_part:
+                components.append(
+                    TwinComponent(
+                        item_category="Core Device",
+                        part_number=core_part,
+                        description=core_type,
+                        qty=Decimal(request.load_count),
+                    )
                 )
-            )
 
         if starter.magnetic_cb_part_number:
             components.append(
@@ -140,7 +139,9 @@ class ConfigurationEngine:
                     qty=Decimal(request.load_count),
                 )
             )
-        if starter.contactor_part_number:
+        # Contactor is only a base component for DOL.
+        # For VSD/SS, the 'contactor_part_number' column stores the core device.
+        if request.series_id == "DOL" and starter.contactor_part_number:
             components.append(
                 TwinComponent(
                     item_category="Contactor",

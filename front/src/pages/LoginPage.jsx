@@ -33,6 +33,7 @@ function LoginPage() {
 
       if (response.ok) {
         const data = await response.json();
+        localStorage.setItem("dashboard_token", data.access_token);
         login(data.access_token, null); // user data is fetched by AuthContext effect
         navigate("/");
       } else {

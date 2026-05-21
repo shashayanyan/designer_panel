@@ -52,6 +52,7 @@ describe("BoosterSetPage", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.setItem("dashboard_token", "mock-token");
     // Mock initial master data fetch
     fetch.mockImplementation((url) => {
       if (url.includes("/api/v1/series")) {
@@ -178,6 +179,12 @@ describe("BoosterSetPage", () => {
     const payloadCall = fetch.mock.calls.find((call) =>
       call[0].includes("generate-package"),
     );
+
+    // Verify headers
+    expect(payloadCall[1].headers).toMatchObject({
+      Authorization: "Bearer mock-token",
+    });
+
     const payload = JSON.parse(payloadCall[1].body);
 
     expect(payload).toMatchObject({

@@ -40,6 +40,7 @@ describe("BoosterSetPage - Edge Cases and SVG Logic", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.setItem("dashboard_token", "mock-token");
     fetch.mockImplementation((url) => {
       if (url.includes("/api/v1/series")) {
         return Promise.resolve({

@@ -10,6 +10,7 @@ from ..generators.spec_text_gen import generate_spec_text_from_twin
 from ..generators.templates.readme_template import generate_readme_from_twin
 from ..generators.word_gen import generate_word_from_twin
 from ..schemas.configurator import DigitalTwinResponse
+from ..utils.assets import flatten_asset_ids
 
 
 class ZipService:
@@ -19,7 +20,7 @@ class ZipService:
         Orchestrates the generation of Excel, Word, IFC, JSON and packages
         them all into a single structured ZIP file in memory.
         """
-        assets = [a.strip() for a in (twin.selected_assets or [])]
+        assets = flatten_asset_ids(twin.selected_assets)
         asset_numbers = generate_asset_numbers(assets)  # dict of dynamic asset numbers
 
         # 1. Determine which engine generators to fire

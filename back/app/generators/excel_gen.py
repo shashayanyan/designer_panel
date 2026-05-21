@@ -6,6 +6,7 @@ from openpyxl.styles import Alignment, Font, PatternFill
 
 from ..generators.asset_number_gen import generate_asset_numbers
 from ..schemas.configurator import DigitalTwinResponse
+from ..utils.assets import flatten_asset_ids
 
 
 def generate_excel_from_twin(twin: DigitalTwinResponse) -> Dict[str, bytes]:
@@ -15,7 +16,8 @@ def generate_excel_from_twin(twin: DigitalTwinResponse) -> Dict[str, bytes]:
     Returns a dictionary mapping filenames to raw byte streams.
     """
     generated_files = {}
-    asset_numbers = generate_asset_numbers(twin.selected_assets)
+    assets_flat = flatten_asset_ids(twin.selected_assets)
+    asset_numbers = generate_asset_numbers(assets_flat)
 
     def df_to_excel_bytes(df: pd.DataFrame) -> bytes:
         output = BytesIO()
@@ -165,7 +167,7 @@ def generate_excel_from_twin(twin: DigitalTwinResponse) -> Dict[str, bytes]:
         )
     df_io = pd.DataFrame(io_data)
 
-    assets = [a.lower().strip() for a in (twin.selected_assets or [])]
+    assets = [a.lower().strip() for a in assets_flat]
 
     if not assets or "data sheet" in assets:
         generated_files[f"{asset_numbers['BOM']}_BOM-Template.xlsx"] = (

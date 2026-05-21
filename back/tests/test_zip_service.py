@@ -3,6 +3,7 @@ import json
 import zipfile
 
 from app.generators.asset_number_gen import generate_asset_numbers
+from app.utils.assets import flatten_asset_ids
 from app.main import app
 from fastapi.testclient import TestClient
 
@@ -22,7 +23,19 @@ def test_generate_package_returns_valid_zip():
         "ats_included": False,
         "plc_included": "YES",
         "scada_included": "No",
-        "selected_assets": ["Data Sheet", "Bill of Materials", "Specification"],
+        "selected_assets": [
+            {
+                "id": "Data Sheet",
+                "label": "Data Sheet",
+                "selected": True,
+                "children": [
+                    {"id": "Parameters", "label": "Parameters", "selected": True},
+                    {"id": "BOM", "label": "BOM", "selected": True},
+                    {"id": "IO", "label": "IO List", "selected": True},
+                ],
+            },
+            {"id": "Specification", "label": "Specification", "selected": True},
+        ],
     }
 
     response = client.post("/api/v1/engine/generate-package", json=request_payload)
@@ -31,7 +44,8 @@ def test_generate_package_returns_valid_zip():
     assert response.status_code == 200, f"Endpoint failed: {response.text}"
     assert response.headers["content-type"] == "application/x-zip-compressed"
 
-    asset_numbers = generate_asset_numbers(request_payload["selected_assets"])
+    assets_flat = flatten_asset_ids(request_payload["selected_assets"])
+    asset_numbers = generate_asset_numbers(assets_flat)
 
     # Load byte stream into python's native ZipFile library
     zip_bytes = io.BytesIO(response.content)

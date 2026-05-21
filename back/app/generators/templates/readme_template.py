@@ -1,10 +1,11 @@
 from app.generators.asset_number_gen import generate_asset_numbers
+from app.utils.assets import flatten_asset_ids
 
 from ...schemas.configurator import DigitalTwinResponse
 
 
-def has_asset(name, twin):
-    return any(a.lower() == name.lower() for a in twin.selected_assets)
+def has_asset(name, assets_flat):
+    return any(a.lower() == name.lower() for a in assets_flat)
 
 
 def generate_readme_from_twin(twin: DigitalTwinResponse) -> bytes:
@@ -21,21 +22,23 @@ def generate_readme_from_twin(twin: DigitalTwinResponse) -> bytes:
         else "IP54 floor standing"
     )
     redundancy = twin.bypass_strategy if twin.bypass_strategy else "[TBD-REDUNDANCY]"
-    asset_numbers = generate_asset_numbers(twin.selected_assets or [])
+
+    assets_flat = flatten_asset_ids(twin.selected_assets)
+    asset_numbers = generate_asset_numbers(assets_flat)
     bullet_point_number = 3
     assets = ""
 
-    if has_asset("Data Sheet", twin):
+    if has_asset("Data Sheet", assets_flat):
         assets += f"{bullet_point_number}) {asset_numbers['Parameters']}_Parameters.xlsx, {asset_numbers['BOM']}_BOM-template.xlsx, {asset_numbers['IO']}_IO-List.xlsx, {asset_numbers['Network']}_Network-IP-Plan.xlsx, {asset_numbers['Alarms']}_Alarm_List.xlsx, {asset_numbers['Options']}_Option-Matrix.xlsx\n   - Extracted data sheets and templates\n"
         bullet_point_number += 1
-    if has_asset("Multi Line Diagram", twin):
+    if has_asset("Multi Line Diagram", assets_flat):
         assets += f"{bullet_point_number}) {asset_numbers['MLD-svg']}_MultiLineDiagram.svg / .png, {asset_numbers['RefArch']}_ReferenceArchitecture.png\n   - Generated Multi Line and Reference Architecture diagrams\n"
         bullet_point_number += 1
-    if has_asset("Specification", twin):
+    if has_asset("Specification", assets_flat):
         assets += f"{bullet_point_number}) {asset_numbers['spec-docx']}_EngineeringSpec_{twin.config_id}.docx, {asset_numbers['spec-txt']}_SpecTextBlock.txt:\n   - Copy/paste-ready specification appendix (shall language)\n"
         assets += "   - Includes reference architecture and typical multi line figure\n"
         bullet_point_number += 1
-    if has_asset("BIM Object", twin):
+    if has_asset("BIM Object", assets_flat):
         assets += f"{bullet_point_number}) BIM/{asset_numbers['BIM-logical']}_Logical_{twin.config_id}.ifc, BIM/{asset_numbers['BIM-visual']}_Visual_{twin.config_id}.ifc:\n   - BIM Object variants\n"
         bullet_point_number += 1
 

@@ -3,6 +3,7 @@ import json
 import zipfile
 
 from app.generators.asset_number_gen import generate_asset_numbers
+from app.utils.assets import flatten_asset_ids
 from app.main import app
 from fastapi.testclient import TestClient
 
@@ -16,13 +17,25 @@ def test_generate_package_returns_valid_zip():
     the expected manifest, neutral, and docs files.
     """
     request_payload = {
-        "series_id": "TEST_SR",
+        "series_id": "DOL",
         "motor_power_kw": 10.0,
         "load_count": 2,
         "ats_included": False,
         "plc_included": "YES",
         "scada_included": "No",
-        "selected_assets": ["Data Sheet", "Bill of Materials", "Specification"],
+        "selected_assets": [
+            {
+                "id": "Data Sheet",
+                "label": "Data Sheet",
+                "selected": True,
+                "children": [
+                    {"id": "Parameters", "label": "Parameters", "selected": True},
+                    {"id": "BOM", "label": "BOM", "selected": True},
+                    {"id": "IO", "label": "IO List", "selected": True},
+                ],
+            },
+            {"id": "Specification", "label": "Specification", "selected": True},
+        ],
     }
 
     response = client.post("/api/v1/engine/generate-package", json=request_payload)
@@ -31,7 +44,8 @@ def test_generate_package_returns_valid_zip():
     assert response.status_code == 200, f"Endpoint failed: {response.text}"
     assert response.headers["content-type"] == "application/x-zip-compressed"
 
-    asset_numbers = generate_asset_numbers(request_payload["selected_assets"])
+    assets_flat = flatten_asset_ids(request_payload["selected_assets"])
+    asset_numbers = generate_asset_numbers(assets_flat)
 
     # Load byte stream into python's native ZipFile library
     zip_bytes = io.BytesIO(response.content)
@@ -44,7 +58,7 @@ def test_generate_package_returns_valid_zip():
 
         # 2. Assert manifest is legitimate JSON with expected keys
         manifest_data = json.loads(zf.read("001_manifest.json").decode("utf-8"))
-        assert manifest_data["series"] == "TEST_SR"
+        assert manifest_data["series"] == "DOL"
         config_id = manifest_data["config_id"]
 
         # 3. Assert files exist exactly as architected
@@ -63,4 +77,4 @@ def test_generate_package_returns_valid_zip():
         # 4. Light verification of JSON twin extraction
         extracted_twin = json.loads(zf.read(json_path).decode("utf-8"))
         assert extracted_twin["load_count"] == 2
-        assert extracted_twin["series_id"] == "TEST_SR"
+        assert extracted_twin["series_id"] == "DOL"

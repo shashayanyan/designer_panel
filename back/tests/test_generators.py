@@ -6,6 +6,7 @@ from app.generators.asset_number_gen import generate_asset_numbers
 from app.generators.excel_gen import generate_excel_from_twin
 from app.generators.spec_text_gen import generate_spec_text_from_twin
 from app.generators.word_gen import generate_word_from_twin
+from app.utils.assets import flatten_asset_ids
 from app.schemas.configurator import (
     DigitalTwinResponse,
     TwinAccessory,
@@ -31,7 +32,19 @@ mock_twin = DigitalTwinResponse(
     accessories=[TwinAccessory(part_number="HMIZ", qty=Decimal("1"), category="HMI")],
     plc_included="YES",
     scada_included="No",
-    selected_assets=["Data Sheet", "Bill of Materials", "Specification"],
+    selected_assets=[
+        {
+            "id": "Data Sheet",
+            "label": "Data Sheet",
+            "selected": True,
+            "children": [
+                {"id": "Parameters", "label": "Parameters", "selected": True},
+                {"id": "BOM", "label": "BOM", "selected": True},
+                {"id": "IO", "label": "IO List", "selected": True},
+            ],
+        },
+        {"id": "Specification", "label": "Specification", "selected": True},
+    ],
 )
 
 
@@ -41,7 +54,8 @@ def test_excel_generation_produces_valid_bytes_and_sheets():
     with the explicitly developed files.
     """
     excel_files = generate_excel_from_twin(mock_twin)
-    asset_numbers = generate_asset_numbers(mock_twin.selected_assets)
+    assets_flat = flatten_asset_ids(mock_twin.selected_assets)
+    asset_numbers = generate_asset_numbers(assets_flat)
 
     # Assert bytes isn't empty
     assert len(excel_files) > 0

@@ -3,13 +3,14 @@ from typing import Dict, List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from .. import models
+from .. import auth, models
 from ..database import get_db
 from ..schemas import master_data as schemas_master
 
 router = APIRouter(
     prefix="/api/v1",
     tags=["Master Data"],
+    dependencies=[Depends(auth.get_current_active_user)],
 )
 
 
@@ -26,6 +27,12 @@ def get_starter_options(db: Session = Depends(get_db)):
 @router.get("/enclosures", response_model=List[schemas_master.EnclosureOption])
 def get_enclosures(db: Session = Depends(get_db)):
     return db.query(models.EnclosureOption).all()
+
+
+@router.get("/admin-check")
+def admin_check(admin_user: models.User = Depends(auth.get_admin_user)):
+    """Simple route to verify if the current user has admin privileges."""
+    return {"message": f"Hello Admin {admin_user.username}", "role": admin_user.role}
 
 
 # more to be added if needed... early version right now

@@ -15,3 +15,5 @@ seed.py
 .mypy_cache/
 .ruff_cache/
 .venv/
+.coverage
+coverage/

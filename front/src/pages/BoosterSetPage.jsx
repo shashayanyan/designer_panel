@@ -1,17 +1,27 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
-import { CircleAlert } from "lucide-react";
+import { CircleAlert, ChevronDown, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import JSZip from "jszip";
 import "./BoosterSetPage.css";
 import PropTypes from "prop-types";
 
-const ASSET_LIST = [
-  "Data Sheet",
-  "Multi Line Diagram",
-  "Bill of Materials",
-  "Drawings",
-  "Specification",
-  "BIM Object",
+const ASSET_TREE = [
+  {
+    id: "Data Sheet",
+    label: "Data Sheet",
+    children: [
+      { id: "Parameters", label: "Parameters" },
+      { id: "BOM", label: "BOM" },
+      { id: "IO", label: "IO List" },
+      { id: "Network", label: "Network Plan" },
+      { id: "Alarms", label: "Alarm List" },
+      { id: "Options", label: "Engineering Options" },
+    ],
+  },
+  { id: "Multi Line Diagram", label: "Multi Line Diagram" },
+  { id: "Drawings", label: "Drawings" },
+  { id: "Specification", label: "Specification" },
+  { id: "BIM Object", label: "BIM Object" },
 ];
 
 // --- SVG Symbol Components (For Multi-Line) ---
@@ -481,6 +491,22 @@ function BoosterSetPage() {
   const [enclosureList, setEnclosureList] = useState(null);
   const enclosureRequestId = useRef(0);
 
+  const [expandedNodes, setExpandedNodes] = useState(() => {
+    const buildExpandedState = (nodes) =>
+      Object.fromEntries(
+        nodes.map((node) => [node.id, node.children?.length ? false : true]),
+      );
+
+    return buildExpandedState(ASSET_TREE);
+  });
+
+  const toggleExpandedNode = (nodeId) => {
+    setExpandedNodes((prev) => ({
+      ...prev,
+      [nodeId]: !prev[nodeId],
+    }));
+  };
+
   useEffect(() => {
     const fetchMasterData = async () => {
       try {
@@ -544,6 +570,7 @@ function BoosterSetPage() {
     () => seriesList.map((s) => s.series_id),
     [seriesList],
   );
+
   const dynamicMotorPowerOptions = useMemo(() => {
     if (!config.motorStart) return [];
     const filtered = starterOptionsList.filter(
@@ -622,8 +649,25 @@ function BoosterSetPage() {
     ],
   );
 
-  const [selectedAssets, setSelectedAssets] = useState(
-    ASSET_LIST.reduce((acc, a) => ({ ...acc, [a]: false }), {}),
+  const buildAssetState = (nodes) =>
+    Object.fromEntries(
+      nodes.map((node) => {
+        if (node.children?.length) {
+          return [
+            node.id,
+            {
+              selected: false,
+              children: buildAssetState(node.children),
+            },
+          ];
+        }
+
+        return [node.id, false];
+      }),
+    );
+
+  const [selectedAssets, setSelectedAssets] = useState(() =>
+    buildAssetState(ASSET_TREE),
   );
 
   const allFieldsFilled = useMemo(
@@ -673,16 +717,210 @@ function BoosterSetPage() {
     );
   }, [config.pumps, config.motorStart, config.motorPower, enclosureList]);
 
-  const toggleAsset = (asset) =>
-    setSelectedAssets((prev) => ({ ...prev, [asset]: !prev[asset] }));
+  const setNodeChildren = (children, value) =>
+    Object.fromEntries(
+      Object.keys(children).map((childId) => [childId, value]),
+    );
+
+  const areAllChildrenSelected = (children) =>
+    Object.values(children).every(Boolean);
+
+  const areSomeChildrenSelected = (children) =>
+    Object.values(children).some(Boolean);
+
+  const toggleParentNode = (parentId) => {
+    setSelectedAssets((prev) => {
+      const parent = prev[parentId];
+      const nextSelected = !areAllChildrenSelected(parent.children);
+
+      return {
+        ...prev,
+        [parentId]: {
+          selected: nextSelected,
+          children: setNodeChildren(parent.children, nextSelected),
+        },
+      };
+    });
+  };
+
+  const toggleChildNode = (parentId, childId) => {
+    setSelectedAssets((prev) => {
+      const parent = prev[parentId];
+      const nextChildren = {
+        ...parent.children,
+        [childId]: !parent.children[childId],
+      };
+
+      return {
+        ...prev,
+        [parentId]: {
+          selected: areAllChildrenSelected(nextChildren),
+          children: nextChildren,
+        },
+      };
+    });
+  };
+
+  const toggleLeafNode = (nodeId) => {
+    setSelectedAssets((prev) => ({
+      ...prev,
+      [nodeId]: !prev[nodeId],
+    }));
+  };
+
+  const handleReset = () => {
+    setConfig({
+      incomers: "1",
+      pumps: "",
+      motorPower: "",
+      motorStart: "",
+      ipRating: "IP54",
+      communication: "",
+      plc: "",
+      scada: "",
+      enclosure: "",
+    });
+    setEnclosureList(null);
+    setSelectedAssets(buildAssetState(ASSET_TREE));
+  };
+
+  const AssetNode = ({ node, value, parentId }) => {
+    const parentRef = useRef(null);
+    const hasChildren = !!node.children?.length;
+    const isExpanded = expandedNodes[node.id] ?? true;
+
+    useEffect(() => {
+      if (!hasChildren || !parentRef.current) return;
+      const allSelected = areAllChildrenSelected(value.children);
+      const someSelected = areSomeChildrenSelected(value.children);
+      parentRef.current.indeterminate = someSelected && !allSelected;
+    }, [hasChildren, value]);
+
+    if (!hasChildren) {
+      return (
+        <div className="booster__asset-row booster__asset-row--leaf">
+          <span className="booster__asset-spacer" aria-hidden="true" />
+          <label className="booster__check-item booster__check-item--top">
+            <input
+              type="checkbox"
+              checked={value}
+              onChange={() =>
+                parentId
+                  ? toggleChildNode(parentId, node.id)
+                  : toggleLeafNode(node.id)
+              }
+              className="booster__checkbox"
+            />
+            <span className="booster__check-label">{node.label}</span>
+          </label>
+        </div>
+      );
+    }
+
+    return (
+      <div className="booster__asset-group">
+        <div className="booster__asset-row">
+          <button
+            type="button"
+            className="booster__expand-btn"
+            onClick={() => toggleExpandedNode(node.id)}
+            aria-expanded={isExpanded}
+            aria-label={`${isExpanded ? "Collapse" : "Expand"} ${node.label}`}
+          >
+            {isExpanded ? (
+              <ChevronDown size={16} />
+            ) : (
+              <ChevronRight size={16} />
+            )}
+          </button>
+
+          <label className="booster__check-item booster__check-item--top">
+            <input
+              ref={parentRef}
+              type="checkbox"
+              checked={value.selected}
+              onChange={() => toggleParentNode(node.id)}
+              className="booster__checkbox"
+            />
+            <span className="booster__check-label">{node.label}</span>
+          </label>
+        </div>
+
+        {isExpanded && (
+          <div className="booster__asset-children">
+            {node.children.map((child) => (
+              <div key={child.id} className="booster__asset-child">
+                <AssetNode
+                  node={child}
+                  parentId={node.id}
+                  value={value.children[child.id]}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const serializeAssets = (nodes, state) =>
+    nodes.flatMap((node) => {
+      const current = state[node.id];
+
+      if (!node.children?.length) {
+        return current
+          ? [{ id: node.id, label: node.label, selected: true }]
+          : [];
+      }
+
+      const children = serializeAssets(node.children, current.children);
+      if (!current.selected && children.length === 0) return [];
+
+      return [
+        {
+          id: node.id,
+          label: node.label,
+          selected: current.selected,
+          children,
+        },
+      ];
+    });
+
+  const selectAllFromTree = (nodes) =>
+    Object.fromEntries(
+      nodes.map((node) => {
+        if (node.children?.length) {
+          return [
+            node.id,
+            {
+              selected: true,
+              children: selectAllFromTree(node.children),
+            },
+          ];
+        }
+        return [node.id, true];
+      }),
+    );
+
+  const clearAllFromTree = (nodes) =>
+    Object.fromEntries(
+      nodes.map((node) => {
+        if (node.children?.length) {
+          return [
+            node.id,
+            {
+              selected: false,
+              children: clearAllFromTree(node.children),
+            },
+          ];
+        }
+        return [node.id, false];
+      }),
+    );
+
   const selectAllAssets = () =>
-    setSelectedAssets(
-      ASSET_LIST.reduce((acc, a) => ({ ...acc, [a]: true }), {}),
-    );
-  const clearAllAssets = () =>
-    setSelectedAssets(
-      ASSET_LIST.reduce((acc, a) => ({ ...acc, [a]: false }), {}),
-    );
+    setSelectedAssets(selectAllFromTree(ASSET_TREE));
+  const clearAllAssets = () => setSelectedAssets(clearAllFromTree(ASSET_TREE));
   const numberIn3Digits = (num) => {
     return num.toString().padStart(3, "0");
   };
@@ -765,9 +1003,7 @@ function BoosterSetPage() {
         communication: config.communication,
         plc_included: config.plc,
         scada_included: config.scada,
-        selected_assets: Object.keys(selectedAssets).filter(
-          (k) => selectedAssets[k],
-        ),
+        selected_assets: serializeAssets(ASSET_TREE, selectedAssets),
         multi_line_diagram_b64: b64diagram,
         environment: config.environment,
         enclosure_ref: config.enclosure || null,
@@ -953,18 +1189,7 @@ function BoosterSetPage() {
             <button
               className="btn-reset"
               style={{ marginTop: "var(--space-md)", width: "100%" }}
-              onClick={() =>
-                setConfig({
-                  incomers: "1",
-                  pumps: "",
-                  motorPower: "",
-                  motorStart: "",
-                  ipRating: "IP54",
-                  communication: "",
-                  plc: "",
-                  scada: "",
-                })
-              }
+              onClick={handleReset}
             >
               Reset
             </button>
@@ -981,16 +1206,12 @@ function BoosterSetPage() {
               </button>
             </div>
             <div className="booster__checklist">
-              {ASSET_LIST.map((asset) => (
-                <label className="booster__check-item" key={asset}>
-                  <input
-                    type="checkbox"
-                    checked={selectedAssets[asset]}
-                    onChange={() => toggleAsset(asset)}
-                    className="booster__checkbox"
-                  />
-                  <span className="booster__check-label">{asset}</span>
-                </label>
+              {ASSET_TREE.map((node) => (
+                <AssetNode
+                  key={node.id}
+                  node={node}
+                  value={selectedAssets[node.id]}
+                />
               ))}
             </div>
             <button
@@ -1381,24 +1602,25 @@ function BoosterSetPage() {
               >
                 <g stroke="#0f172a" strokeWidth="2">
                   {/* Super Level Routing (SCADA/Remote -> PLC/Bus) */}
-                  {hasSCADA &&
-                    (hasPLC ? (
-                      <path
-                        d="M 450 110 L 450 170"
-                        stroke="#0ea5e9"
-                        strokeWidth="3"
-                        fill="none"
-                        strokeDasharray="6 4"
-                      />
-                    ) : hasComms ? (
-                      <path
-                        d="M 450 110 L 450 280"
-                        stroke="#0ea5e9"
-                        strokeWidth="3"
-                        fill="none"
-                        strokeDasharray="6 4"
-                      />
-                    ) : null) // SCADA with no PLC and no Comms is illogical, omit connection.
+                  {
+                    hasSCADA &&
+                      (hasPLC ? (
+                        <path
+                          d="M 450 110 L 450 170"
+                          stroke="#0ea5e9"
+                          strokeWidth="3"
+                          fill="none"
+                          strokeDasharray="6 4"
+                        />
+                      ) : hasComms ? (
+                        <path
+                          d="M 450 110 L 450 280"
+                          stroke="#0ea5e9"
+                          strokeWidth="3"
+                          fill="none"
+                          strokeDasharray="6 4"
+                        />
+                      ) : null) // SCADA with no PLC and no Comms is illogical, omit connection.
                   }
 
                   {/* Remote Comms Dropdown (If Comms but no local PLC/SCADA) */}

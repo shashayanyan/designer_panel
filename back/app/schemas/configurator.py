@@ -1,7 +1,20 @@
+from __future__ import annotations
 from decimal import Decimal
 from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
+
+
+class SelectedAssetNode(BaseModel):
+    id: str = Field(..., description="Asset identifier (stable machine id)")
+    label: str = Field(..., description="Human readable label")
+    selected: bool = Field(False, description="Whether this node is selected")
+    children: List[SelectedAssetNode] = Field(default_factory=list)
+
+    model_config = ConfigDict(extra="forbid")
+
+
+SelectedAssetNode.model_rebuild()  # ensure recursive model is wired
 
 
 # --- INPUT SCHEMAS ---
@@ -27,8 +40,8 @@ class DigitalTwinRequest(BaseModel):
     scada_included: Optional[str] = Field(
         "No", description="SCADA inclusion ('YES' or 'No')"
     )
-    selected_assets: Optional[List[str]] = Field(
-        default_factory=list, description="Requested documents from the UI checklist"
+    selected_assets: List[SelectedAssetNode] = Field(
+        default_factory=list, description="Nested asset tree (ids + labels + selected)"
     )
     multi_line_diagram_b64: Optional[str] = Field(
         None,
@@ -118,7 +131,7 @@ class DigitalTwinResponse(BaseModel):
     bypass_contactor_part_number: Optional[str] = None
     plc_included: Optional[str] = "No"
     scada_included: Optional[str] = "No"
-    selected_assets: Optional[List[str]] = None
+    selected_assets: List[SelectedAssetNode] = Field(default_factory=list)
     multi_line_diagram_b64: Optional[str] = None
     environment: Optional[str] = None
 

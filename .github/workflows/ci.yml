@@ -23,6 +23,7 @@ jobs:
         cd back
         python -m pip install --upgrade pip
         pip install -r requirements.txt
+        pip install pytest-cov
 
     - name: Run Pytest suite
       env:
@@ -34,7 +35,7 @@ jobs:
         DB_NAME: "dummy_db"
       run: |
         cd back
-        python -m pytest tests/
+        python -m pytest --cov=app --cov-fail-under=80 tests/
 
   frontend-test:
     name: Frontend Vitest
@@ -55,4 +56,4 @@ jobs:
     - name: Run Vitest suite
       run: |
         cd front
-        npm test
+        npm test -- --coverage

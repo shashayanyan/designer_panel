@@ -490,6 +490,7 @@ function BoosterSetPage() {
   const [seriesList, setSeriesList] = useState([]);
   const [starterOptionsList, setStarterOptionsList] = useState([]);
   const [enclosureList, setEnclosureList] = useState(null);
+  const [isGenerating, setIsGenerating] = useState(false);
   const enclosureRequestId = useRef(0);
 
   const [expandedNodes, setExpandedNodes] = useState(() => {
@@ -938,6 +939,7 @@ function BoosterSetPage() {
     return num.toString().padStart(3, "0");
   };
   const handleDownload = async () => {
+    setIsGenerating(true);
     try {
       const renderSvgToPng = async (svgElement) => {
         if (!svgElement) return { dataURL: null, rawSvgData: null };
@@ -1097,6 +1099,8 @@ function BoosterSetPage() {
     } catch (e) {
       console.error("Error generating zip:", e);
       alert("An error occurred while generating the package.");
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -1234,10 +1238,12 @@ function BoosterSetPage() {
             </div>
             <button
               className="btn-primary booster__download-btn"
-              disabled={!allFieldsFilled}
+              disabled={!allFieldsFilled || isGenerating}
               onClick={handleDownload}
             >
-              <span>📦</span> Download Package
+              {isGenerating
+                ? "⌛ Generating Package..."
+                : "📦 Download Package"}
             </button>
           </section>
         </aside>

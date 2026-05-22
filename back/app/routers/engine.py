@@ -57,7 +57,8 @@ def generate_asset_package(request: DigitalTwinRequest, db: Session = Depends(ge
         twin = engine.generate_twin(request)
 
         # 2. Package Twin into Zip bytes
-        zip_bytes = ZipService.create_project_package(twin)
+        zip_service = ZipService()
+        zip_bytes = zip_service.create_project_package(twin)
 
         # 3. Stream back as downloadable Zip
         return StreamingResponse(

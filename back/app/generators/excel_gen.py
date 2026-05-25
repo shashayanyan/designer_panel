@@ -64,120 +64,121 @@ def generate_excel_from_twin(twin: DigitalTwinResponse) -> Dict[str, bytes]:
         return output.read()
 
     # --- 1. Parameters ---
-    parameters_data = [
-        {"Field": "Application", "Value": "Water Booster Set"},
-        {
-            "Field": "Starter Type",
-            "Value": {
-                "DOL": "Direct-On-Line",
-                "YD": "Star-Delta",
-                "VFD": "Variable Speed Drive",
-            }.get(twin.series_id, twin.series_id),
-        },
-        {"Field": "Motor Power (each)", "Value": f"{twin.motor_power_kw} kW"},
-        {"Field": "Quantity", "Value": f"{twin.load_count} pumps"},
-        {
-            "Field": "Enclosure",
-            "Value": f"{twin.enclosure.dimensions_mm} - {twin.enclosure.mounting_type}",
-        },
-        {"Field": "Configurations ID", "Value": twin.config_id},
-        {"Field": "Bypass Strategy", "Value": twin.bypass_strategy or "N/A"},
-    ]
-    df_params = pd.DataFrame(parameters_data)
-    generated_files[f"{asset_numbers['Parameters']}_Parameters.xlsx"] = (
-        df_to_excel_bytes(df_params)
-    )
+    if "Parameters" in assets_flat:
+        parameters_data = [
+            {"Field": "Application", "Value": "Water Booster Set"},
+            {
+                "Field": "Starter Type",
+                "Value": {
+                    "DOL": "Direct-On-Line",
+                    "YD": "Star-Delta",
+                    "VFD": "Variable Speed Drive",
+                }.get(twin.series_id, twin.series_id),
+            },
+            {"Field": "Motor Power (each)", "Value": f"{twin.motor_power_kw} kW"},
+            {"Field": "Quantity", "Value": f"{twin.load_count} pumps"},
+            {
+                "Field": "Enclosure",
+                "Value": f"{twin.enclosure.dimensions_mm} - {twin.enclosure.mounting_type}",
+            },
+            {"Field": "Configurations ID", "Value": twin.config_id},
+            {"Field": "Bypass Strategy", "Value": twin.bypass_strategy or "N/A"},
+        ]
+        df_params = pd.DataFrame(parameters_data)
+        generated_files[f"{asset_numbers['Parameters']}_Parameters.xlsx"] = (
+            df_to_excel_bytes(df_params)
+        )
 
     # --- 2. BOM Template ---
-    bom_data = []
+    if "BOM" in assets_flat:
+        bom_data = []
 
-    # Exclusively database defined BOM Lines driven logically from resolved configuration
-    if twin.bom_lines:
-        for line in twin.bom_lines:
-            bom_data.append(
-                {
-                    "Item Category": line.item_category,
-                    "Item": line.item,
-                    "Qty": float(line.qty),
-                    "Part No.": line.part_number,
-                    "Key Selection Notes / Options": (line.key_selection_notes or "-"),
-                }
-            )
+        # Exclusively database defined BOM Lines driven logically from resolved configuration
+        if twin.bom_lines:
+            for line in twin.bom_lines:
+                bom_data.append(
+                    {
+                        "Item Category": line.item_category,
+                        "Item": line.item,
+                        "Qty": float(line.qty),
+                        "Part No.": line.part_number,
+                        "Key Selection Notes / Options": (
+                            line.key_selection_notes or "-"
+                        ),
+                    }
+                )
 
-    df_bom = pd.DataFrame(
-        bom_data,
-        columns=[
-            "Item Category",
-            "Item",
-            "Qty",
-            "Part No.",
-            "Key Selection Notes / Options",
-        ],
-    )
-
-    # --- 3. IO-List ---
-    io_data = []
-    io_data.append(
-        {
-            "Tag": "ESD-01",
-            "Description": "Emergency stop (panel)",
-            "Equipment": "Booster Panel",
-            "Signal Type": "DI",
-            "Interface": "Hardwired",
-            "Normal": "Closed",
-            "PLC Destination": "DI Module",
-            "Alarm?": "Y",
-        }
-    )
-
-    for i in range(1, twin.load_count + 1):
-        io_data.extend(
-            [
-                {
-                    "Tag": f"RUNCMD-P{i}",
-                    "Description": f"Run command Pump {i}",
-                    "Equipment": f"Pump {i}",
-                    "Signal Type": "CMD",
-                    "Interface": "Modbus TCP",
-                    "Normal": "",
-                    "PLC Destination": f"Drive #{i} Control Word",
-                    "Alarm?": "N",
-                },
-                {
-                    "Tag": f"STATUS-P{i}",
-                    "Description": f"Drive status Pump {i}",
-                    "Equipment": f"Pump {i}",
-                    "Signal Type": "FB",
-                    "Interface": "Modbus TCP",
-                    "Normal": "",
-                    "PLC Destination": f"Drive #{i} Status Word",
-                    "Alarm?": "Y",
-                },
-                {
-                    "Tag": f"FAULT-P{i}",
-                    "Description": f"Drive fault code Pump {i}",
-                    "Equipment": f"Pump {i}",
-                    "Signal Type": "FB",
-                    "Interface": "Modbus TCP",
-                    "Normal": "",
-                    "PLC Destination": f"Drive #{i} Fault Code",
-                    "Alarm?": "Y",
-                },
-            ]
+        df_bom = pd.DataFrame(
+            bom_data,
+            columns=[
+                "Item Category",
+                "Item",
+                "Qty",
+                "Part No.",
+                "Key Selection Notes / Options",
+            ],
         )
-    df_io = pd.DataFrame(io_data)
-
-    assets = [a.lower().strip() for a in assets_flat]
-
-    if not assets or "data sheet" in assets:
         generated_files[f"{asset_numbers['BOM']}_BOM-Template.xlsx"] = (
             df_to_excel_bytes(df_bom)
         )
 
+    # --- 3. IO-List ---
+    if "IO List" in assets_flat or "IO" in assets_flat:
+        io_data = []
+        io_data.append(
+            {
+                "Tag": "ESD-01",
+                "Description": "Emergency stop (panel)",
+                "Equipment": "Booster Panel",
+                "Signal Type": "DI",
+                "Interface": "Hardwired",
+                "Normal": "Closed",
+                "PLC Destination": "DI Module",
+                "Alarm?": "Y",
+            }
+        )
+
+        for i in range(1, twin.load_count + 1):
+            io_data.extend(
+                [
+                    {
+                        "Tag": f"RUNCMD-P{i}",
+                        "Description": f"Run command Pump {i}",
+                        "Equipment": f"Pump {i}",
+                        "Signal Type": "CMD",
+                        "Interface": "Modbus TCP",
+                        "Normal": "",
+                        "PLC Destination": f"Drive #{i} Control Word",
+                        "Alarm?": "N",
+                    },
+                    {
+                        "Tag": f"STATUS-P{i}",
+                        "Description": f"Drive status Pump {i}",
+                        "Equipment": f"Pump {i}",
+                        "Signal Type": "FB",
+                        "Interface": "Modbus TCP",
+                        "Normal": "",
+                        "PLC Destination": f"Drive #{i} Status Word",
+                        "Alarm?": "Y",
+                    },
+                    {
+                        "Tag": f"FAULT-P{i}",
+                        "Description": f"Drive fault code Pump {i}",
+                        "Equipment": f"Pump {i}",
+                        "Signal Type": "FB",
+                        "Interface": "Modbus TCP",
+                        "Normal": "",
+                        "PLC Destination": f"Drive #{i} Fault Code",
+                        "Alarm?": "Y",
+                    },
+                ]
+            )
+        df_io = pd.DataFrame(io_data)
         generated_files[f"{asset_numbers['IO']}_IO-List.xlsx"] = df_to_excel_bytes(
             df_io
         )
 
+    if "Network Plan" in assets_flat:
         network_data = [
             {
                 "Tag": item.tag,
@@ -198,6 +199,7 @@ def generate_excel_from_twin(twin: DigitalTwinResponse) -> Dict[str, bytes]:
             df_to_excel_bytes(df_network)
         )
 
+    if "Alarm List" in assets_flat:
         alarm_data = [
             {
                 "Code": item.code,
@@ -213,23 +215,6 @@ def generate_excel_from_twin(twin: DigitalTwinResponse) -> Dict[str, bytes]:
         )
         generated_files[f"{asset_numbers['Alarms']}_Alarm_List.xlsx"] = (
             df_to_excel_bytes(df_alarm)
-        )
-
-        option_data = [
-            {
-                "Category": item.category,
-                "Option Name": item.name,
-                "Type": "Base" if item.is_base else "Optional",
-                "Specification Hint": item.spec_text,
-                "Notes": item.engineering_notes,
-            }
-            for item in twin.option_matrix
-        ]
-        df_option = pd.DataFrame(
-            option_data if option_data else [{"Status": "No options resolved"}]
-        )
-        generated_files[f"{asset_numbers['Options']}_Option-Matrix.xlsx"] = (
-            df_to_excel_bytes(df_option)
         )
 
     return generated_files

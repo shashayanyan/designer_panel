@@ -29,6 +29,8 @@ def flatten_asset_ids(nodes: Iterable[Any]) -> List[str]:
             result.append(str(node_id))
 
         if children:
+            if str(node_id) not in result:
+                result.append(str(node_id))
             result.extend(flatten_asset_ids(children))
 
     seen = set()

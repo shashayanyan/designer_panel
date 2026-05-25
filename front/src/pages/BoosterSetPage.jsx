@@ -16,7 +16,6 @@ const ASSET_TREE = [
       { id: "IO", label: "IO List" },
       { id: "Network", label: "Network Plan" },
       { id: "Alarms", label: "Alarm List" },
-      { id: "Options", label: "Engineering Options" },
     ],
   },
   { id: "Multi Line Diagram", label: "Multi Line Diagram" },

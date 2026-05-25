@@ -54,7 +54,6 @@ describe("BoosterSetPage - Asset Tree Logic", () => {
       "IO List",
       "Network Plan",
       "Alarm List",
-      "Engineering Options",
     ];
     children.forEach((label) => {
       expect(screen.getByLabelText(label).checked).toBe(true);
@@ -93,7 +92,6 @@ describe("BoosterSetPage - Asset Tree Logic", () => {
       "IO List",
       "Network Plan",
       "Alarm List",
-      "Engineering Options",
     ];
     await act(async () => {
       for (const label of otherChildren) {

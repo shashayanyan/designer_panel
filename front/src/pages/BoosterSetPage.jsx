@@ -24,6 +24,12 @@ const ASSET_TREE = [
   { id: "BIM Object", label: "BIM Object" },
 ];
 
+const MOTOR_START_TYPES = {
+  DOL: "Direct On Line",
+  SS: "Soft Starter",
+  VSD: "Variable Speed Drive",
+};
+
 // --- SVG Symbol Components (For Multi-Line) ---
 const CircuitBreaker = ({ x, y, label }) => (
   <g transform={`translate(${x}, ${y})`}>
@@ -580,7 +586,11 @@ function BoosterSetPage() {
   }, [config.pumps, config.motorStart, config.motorPower]);
 
   const dynamicMotorStartOptions = useMemo(
-    () => seriesList.map((s) => s.series_id),
+    () =>
+      seriesList.map((s) => ({
+        value: s.series_id,
+        label: MOTOR_START_TYPES[s.series_id],
+      })),
     [seriesList],
   );
 
@@ -1011,6 +1021,7 @@ function BoosterSetPage() {
 
       const requestPayload = {
         series_id: config.motorStart,
+        series_name: MOTOR_START_TYPES[config.motorStart] || config.motorStart,
         motor_power_kw: parseFloat(config.motorPower),
         load_count: parseInt(config.pumps),
         ats_included: config.incomers === "2",
@@ -1198,7 +1209,9 @@ function BoosterSetPage() {
                         }
                         return (
                           <option key={opt.value} value={opt.value}>
-                            - {opt.value} ({opt.label})
+                            {key === "motorStart"
+                              ? opt.label
+                              : `- ${opt.value} (${opt.label})`}
                           </option>
                         );
                       })}

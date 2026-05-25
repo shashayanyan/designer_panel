@@ -178,7 +178,7 @@ def generate_excel_from_twin(twin: DigitalTwinResponse) -> Dict[str, bytes]:
             df_io
         )
 
-    if "Network Plan" in assets_flat:
+    if "Network Plan" in assets_flat or "Network" in assets_flat:
         network_data = [
             {
                 "Tag": item.tag,
@@ -199,7 +199,7 @@ def generate_excel_from_twin(twin: DigitalTwinResponse) -> Dict[str, bytes]:
             df_to_excel_bytes(df_network)
         )
 
-    if "Alarm List" in assets_flat:
+    if "Alarm List" in assets_flat or "Alarms" in assets_flat:
         alarm_data = [
             {
                 "Code": item.code,

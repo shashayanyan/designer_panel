@@ -573,6 +573,7 @@ function BoosterSetPage() {
         // Only apply the latest response
         if (requestId === enclosureRequestId.current) {
           setEnclosureList(data);
+          setConfig((prev) => ({ ...prev, enclosure: data.recommended || "" }));
         }
       } catch (error) {
         if (requestId === enclosureRequestId.current) {

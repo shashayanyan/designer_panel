@@ -97,6 +97,25 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
             "[PLACEHOLDER: Generated multi line diagram will be inserted here when requested via UI payload.]"
         )
 
+    # Inject reference architecture image if base64 provided
+    if hasattr(twin, "reference_architecture_b64") and twin.reference_architecture_b64:
+        try:
+            b64_data = twin.reference_architecture_b64
+            if "," in b64_data:
+                b64_data = b64_data.split(",")[1]
+            image_data = base64.b64decode(b64_data)
+            image_stream = io.BytesIO(image_data)
+            doc.add_picture(image_stream, width=Inches(6.0))
+            doc.add_paragraph(
+                "Figure - Generated reference architecture diagram injected from digital twin configuration."
+            )
+        except Exception as e:
+            doc.add_paragraph(f"[Image Generation Failed: {e}]")
+    else:
+        doc.add_paragraph(
+            "[PLACEHOLDER: Generated reference architecture diagram will be inserted here when requested via UI payload.]"
+        )
+
     # 4. Panel Scope and Deliverables
     doc.add_heading("4. Panel Scope and Deliverables", level=1)
     doc.add_paragraph("The booster control panel assembly shall include, as a minimum:")

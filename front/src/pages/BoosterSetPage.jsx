@@ -19,10 +19,27 @@ const ASSET_TREE = [
     ],
   },
   { id: "Multi Line Diagram", label: "Multi Line Diagram" },
-  { id: "Drawings", label: "Drawings" },
+  {
+    id: "Drawings",
+    label: "Drawings",
+    children: [
+      { id: "Panel", label: "Panel Layout", disabled: true },
+      { id: "Components", label: "Components Drawings" },
+    ],
+  },
   { id: "Specification", label: "Specification" },
   { id: "BIM Object", label: "BIM Object" },
 ];
+
+const getAssetById = (nodes, id) => {
+  for (let node of nodes) {
+    if (node.id === id) return node;
+    if (node.children) {
+      const found = getAssetById(node.children, id);
+      if (found) return found;
+    }
+  }
+};
 
 const MOTOR_START_TYPES = {
   DOL: "Direct On Line",
@@ -741,15 +758,29 @@ function BoosterSetPage() {
     );
   }, [config.pumps, config.motorStart, config.motorPower, enclosureList]);
 
-  const setNodeChildren = (children, value) =>
-    Object.fromEntries(
-      Object.keys(children).map((childId) => [childId, value]),
+  const setNodeChildren = (children, value) => {
+    // apply the change only to those that are not disabled
+    return Object.fromEntries(
+      Object.entries(children).map(([childId, selected]) => {
+        const childNode = getAssetById(ASSET_TREE, childId);
+        if (childNode.disabled) {
+          return [childId, selected];
+        }
+        return [childId, value];
+      }),
     );
+  };
 
-  const areAllChildrenSelected = (children) =>
-    Object.values(children).every(Boolean);
+  const areAllChildrenSelected = (children) => {
+    // check if all children that are not disabled are selected
+    return Object.entries(children).every(([childId, selected]) => {
+      const childNode = getAssetById(ASSET_TREE, childId);
+      return childNode.disabled || selected;
+    });
+  };
 
   const areSomeChildrenSelected = (children) =>
+    // check if at least one child is selected (ignoring disabled ones)
     Object.values(children).some(Boolean);
 
   const toggleParentNode = (parentId) => {
@@ -822,12 +853,19 @@ function BoosterSetPage() {
 
     if (!hasChildren) {
       return (
-        <div className="booster__asset-row booster__asset-row--leaf">
+        <div
+          className={
+            node.disabled
+              ? "booster__asset-row booster__asset-row--leaf booster__page--disabled"
+              : "booster__asset-row booster__asset-row--leaf"
+          }
+        >
           <span className="booster__asset-spacer" aria-hidden="true" />
           <label className="booster__check-item booster__check-item--top">
             <input
               type="checkbox"
               checked={value}
+              disabled={node.disabled}
               onChange={() =>
                 parentId
                   ? toggleChildNode(parentId, node.id)
@@ -913,6 +951,9 @@ function BoosterSetPage() {
   const selectAllFromTree = (nodes) =>
     Object.fromEntries(
       nodes.map((node) => {
+        if (node.disabled) {
+          return [node.id, false];
+        }
         if (node.children?.length) {
           return [
             node.id,
@@ -1018,6 +1059,7 @@ function BoosterSetPage() {
       const refArchResult = await renderSvgToPng(refArchRef.current);
 
       let b64diagram = multiLineResult.dataURL;
+      let b64archi = refArchResult.dataURL;
       let rawSvgData = multiLineResult.rawSvgData;
 
       const requestPayload = {
@@ -1031,6 +1073,7 @@ function BoosterSetPage() {
         scada_included: config.scada,
         selected_assets: serializeAssets(ASSET_TREE, selectedAssets),
         multi_line_diagram_b64: b64diagram,
+        reference_architecture_b64: b64archi,
         environment: config.environment,
         enclosure_ref: config.enclosure || null,
       };
@@ -1681,12 +1724,13 @@ function BoosterSetPage() {
                   )}
 
                   {/* Main Control Bus (Horizontal) */}
-                  {(hasSCADA || hasPLC || hasComms) && (
+                  {(hasSCADA || hasPLC || config.communication !== "") && (
                     <>
+                      {/* Shorten the main horizontal line by the curve radius so it connects perfectly */}
                       <line
-                        x1="140"
+                        x1={pumpCount > 1 ? 150 + 20 : 140}
                         y1="280"
-                        x2="760"
+                        x2={pumpCount > 1 ? 750 - 20 : 760}
                         y2="280"
                         stroke={hasComms ? "#8b5cf6" : "#64748b"}
                         strokeWidth="3"
@@ -1712,20 +1756,32 @@ function BoosterSetPage() {
                     const step = totalWidth / ((pumpCount || 2) - 1 || 1);
                     const xPos = pumpCount === 1 ? 450 : startX + i * step;
 
+                    // Calculate radius for outer curves
+                    const radius = 25;
+
                     return (
                       <g key={`physical-link-${i}`}>
                         {/* Control Bus to Starter Drop Line */}
-                        {(hasSCADA || hasPLC || hasComms) && (
-                          <line
-                            x1={xPos}
-                            y1="280"
-                            x2={xPos}
-                            y2="340"
-                            stroke={hasComms ? "#8b5cf6" : "#64748b"}
-                            strokeWidth="2"
-                            strokeDasharray={hasComms ? "" : "4 2"}
-                          />
-                        )}
+                        {(hasSCADA || hasPLC || config.communication !== "") &&
+                          (pumpCount > 1 && (i === 0 || i === pumpCount - 1) ? (
+                            <path
+                              d={`M ${i === 0 ? xPos + radius : xPos - radius} 280 Q ${xPos} 280 ${xPos} ${280 + radius} L ${xPos} 340`}
+                              stroke={hasComms ? "#8b5cf6" : "#64748b"}
+                              strokeWidth="3"
+                              fill="none"
+                              strokeDasharray={hasComms ? "" : "4 2"}
+                            />
+                          ) : (
+                            <line
+                              x1={xPos}
+                              y1="280"
+                              x2={xPos}
+                              y2="340"
+                              stroke={hasComms ? "#8b5cf6" : "#64748b"}
+                              strokeWidth="3"
+                              strokeDasharray={hasComms ? "" : "4 2"}
+                            />
+                          ))}
 
                         {/* Power Line from Starter to Pump */}
                         <line
@@ -1822,8 +1878,8 @@ function BoosterSetPage() {
 
                       {/* Labels */}
                       <text
-                        x={xPos}
-                        y="330"
+                        x={xPos + 50}
+                        y="380"
                         textAnchor="middle"
                         fontSize="12"
                         fontWeight="bold"

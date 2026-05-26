@@ -36,6 +36,7 @@ class ZipService:
         gen_bim = has_asset("BIM Object")
         gen_diagram = has_asset("Multi Line Diagram")
         gen_drawings = has_asset("Drawings")
+        gen_components = has_asset("Components")
 
         excel_files = generate_excel_from_twin(twin) if gen_excel else {}
         word_bytes = generate_word_from_twin(twin) if gen_word else None
@@ -128,27 +129,30 @@ class ZipService:
 
             # Drawings logic: write directly to root ZIP
             if gen_drawings:
-                folders = ["top", "right", "left", "bottom", "front", "back", "iso"]
-                for line in twin.bom_lines:
-                    # Filter for components only
-                    if line.item_category.lower() in [
-                        "soft starter",
-                        "magnetic cb",
-                        "line contactor",
-                        "overload",
-                        "variable speed drive",
-                    ]:
-                        for folder in folders:
-                            # S3 key convention: folder/partnumber_folder.dxf
-                            s3_key = f"{folder}/{line.part_number.lower()}_{folder}.dxf"
-                            try:
-                                file_bytes = self.storage_service.get_file(s3_key)
-                                zip_file.writestr(
-                                    f"Drawings/{folder}/{line.part_number.lower()}_{folder}.dxf",
-                                    file_bytes,
+                if gen_components:
+                    folders = ["top", "right", "left", "bottom", "front", "back", "iso"]
+                    for line in twin.bom_lines:
+                        # Filter for components only
+                        if line.item_category.lower() in [
+                            "soft starter",
+                            "magnetic cb",
+                            "line contactor",
+                            "overload",
+                            "variable speed drive",
+                        ]:
+                            for folder in folders:
+                                # S3 key convention: folder/partnumber_folder.dxf
+                                s3_key = (
+                                    f"{folder}/{line.part_number.lower()}_{folder}.dxf"
                                 )
-                            except ClientError:
-                                continue
+                                try:
+                                    file_bytes = self.storage_service.get_file(s3_key)
+                                    zip_file.writestr(
+                                        f"Drawings/{folder}/{line.part_number.lower()}_{folder}.dxf",
+                                        file_bytes,
+                                    )
+                                except ClientError:
+                                    continue
 
         zip_buffer.seek(0)
         return zip_buffer.read()

@@ -69,20 +69,44 @@ def generate_excel_from_twin(twin: DigitalTwinResponse) -> Dict[str, bytes]:
             {"Field": "Application", "Value": "Water Booster Set"},
             {
                 "Field": "Starter Type",
-                "Value": {
-                    "DOL": "Direct-On-Line",
-                    "YD": "Star-Delta",
-                    "VFD": "Variable Speed Drive",
-                }.get(twin.series_id, twin.series_id),
+                "Value": twin.series_name,
             },
             {"Field": "Motor Power (each)", "Value": f"{twin.motor_power_kw} kW"},
             {"Field": "Quantity", "Value": f"{twin.load_count} pumps"},
-            {
-                "Field": "Enclosure",
-                "Value": f"{twin.enclosure.dimensions_mm} - {twin.enclosure.mounting_type}",
-            },
             {"Field": "Configurations ID", "Value": twin.config_id},
-            {"Field": "Bypass Strategy", "Value": twin.bypass_strategy or "N/A"},
+            {
+                "Field": "Enclosure - Dimensions",
+                "Value": f"{twin.enclosure.dimensions_mm}",
+            },
+            {
+                "Field": "Enclosure - Mounting",
+                "Value": twin.enclosure.mounting_type,
+            },
+            {
+                "Field": "Enclosure - Material",
+                "Value": twin.enclosure.material,
+            },
+            {
+                "Field": "Enclosure - IP Rating",
+                "Value": twin.enclosure.ip_rating or "N/A",
+            },
+            {
+                "Field": "Enclosure - IK Rating",
+                "Value": twin.enclosure.ik_rating or "N/A",
+            },
+            {
+                "Field": "Enclosure - Door Type",
+                "Value": twin.enclosure.door_type or "N/A",
+            },
+            {
+                "Field": "Communication",
+                "Value": (
+                    twin.communication if twin.communication != "No" else "Hardwired"
+                ),
+            },
+            {"Field": "PLC", "Value": twin.plc_included},
+            {"Field": "SCADA", "Value": twin.scada_included},
+            {"Field": "Incomer Count", "Value": "1"},
         ]
         df_params = pd.DataFrame(parameters_data)
         generated_files[f"{asset_numbers['Parameters']}_Parameters.xlsx"] = (

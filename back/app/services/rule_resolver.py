@@ -214,6 +214,17 @@ class ConfigurationEngine:
             mounting_type=enclosure_option.mounting_type,
             alternative_ref=enclosure_option.alternative_catalog_ref,  # Added after enclosure alternative updates
             outdoor_alternative_ref=enclosure_option.outdoor_alternative_catalog_ref,  # Added after enclosure alternative updates
+            material=(
+                "Polyester"
+                if (
+                    "PLA" in enclosure_option.catalog_ref.upper()
+                    or "PLM" in enclosure_option.catalog_ref.upper()
+                )
+                else "Steel"
+            ),  # Extra data parsing logic for material
+            ip_rating=enclosure_option.ip_rating,  # Direct mapping for IP rating
+            ik_rating=enclosure_option.ik_rating,  # Direct mapping for IK rating
+            door_type=enclosure_option.door_type,  # Direct mapping for door type
         )
 
         # 4. Drawing Template Logic

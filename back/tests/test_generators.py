@@ -25,6 +25,10 @@ mock_twin = DigitalTwinResponse(
         catalog_ref="NSYSM18840",
         dimensions_mm="1800x800x400",
         mounting_type="Floor standing",
+        material="Steel",
+        ip_rating="IP54",
+        ik_rating="IK10",
+        door_type="plain door",
     ),
     components=[
         TwinComponent(part_number="LC1D50", qty=Decimal("3"), item_category="Contactor")
@@ -71,7 +75,7 @@ def test_excel_generation_produces_valid_bytes_and_sheets():
     )
     params_sheet = wb.active  # Since there is only one sheet now
     # Check that the config ID was rendered on the 6th row
-    assert params_sheet["B7"].value == "CFG-MOCK-3X"
+    assert params_sheet["B6"].value == "CFG-MOCK-3X"
 
 
 def test_word_generation_produces_valid_bytes_and_replaces_tags():

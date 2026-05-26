@@ -98,6 +98,11 @@ class TwinEnclosure(BaseModel):
     # Added after enclosure alternative updates
     alternative_ref: Optional[str] = None
     outdoor_alternative_ref: Optional[str] = None
+    # Extra data
+    material: Optional[str] = None
+    ip_rating: Optional[str] = None
+    ik_rating: Optional[str] = None
+    door_type: Optional[str] = None
 
 
 class TwinIO(BaseModel):

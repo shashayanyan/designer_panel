@@ -1722,12 +1722,13 @@ function BoosterSetPage() {
                   )}
 
                   {/* Main Control Bus (Horizontal) */}
-                  {(hasSCADA || hasPLC || hasComms) && (
+                  {(hasSCADA || hasPLC || config.communication !== "") && (
                     <>
+                      {/* Shorten the main horizontal line by the curve radius so it connects perfectly */}
                       <line
-                        x1="140"
+                        x1={pumpCount > 1 ? 150 + 20 : 140}
                         y1="280"
-                        x2="760"
+                        x2={pumpCount > 1 ? 750 - 20 : 760}
                         y2="280"
                         stroke={hasComms ? "#8b5cf6" : "#64748b"}
                         strokeWidth="3"
@@ -1753,20 +1754,32 @@ function BoosterSetPage() {
                     const step = totalWidth / ((pumpCount || 2) - 1 || 1);
                     const xPos = pumpCount === 1 ? 450 : startX + i * step;
 
+                    // Calculate radius for outer curves
+                    const radius = 25;
+
                     return (
                       <g key={`physical-link-${i}`}>
                         {/* Control Bus to Starter Drop Line */}
-                        {(hasSCADA || hasPLC || hasComms) && (
-                          <line
-                            x1={xPos}
-                            y1="280"
-                            x2={xPos}
-                            y2="340"
-                            stroke={hasComms ? "#8b5cf6" : "#64748b"}
-                            strokeWidth="2"
-                            strokeDasharray={hasComms ? "" : "4 2"}
-                          />
-                        )}
+                        {(hasSCADA || hasPLC || config.communication !== "") &&
+                          (pumpCount > 1 && (i === 0 || i === pumpCount - 1) ? (
+                            <path
+                              d={`M ${i === 0 ? xPos + radius : xPos - radius} 280 Q ${xPos} 280 ${xPos} ${280 + radius} L ${xPos} 340`}
+                              stroke={hasComms ? "#8b5cf6" : "#64748b"}
+                              strokeWidth="3"
+                              fill="none"
+                              strokeDasharray={hasComms ? "" : "4 2"}
+                            />
+                          ) : (
+                            <line
+                              x1={xPos}
+                              y1="280"
+                              x2={xPos}
+                              y2="340"
+                              stroke={hasComms ? "#8b5cf6" : "#64748b"}
+                              strokeWidth="3"
+                              strokeDasharray={hasComms ? "" : "4 2"}
+                            />
+                          ))}
 
                         {/* Power Line from Starter to Pump */}
                         <line
@@ -1863,8 +1876,8 @@ function BoosterSetPage() {
 
                       {/* Labels */}
                       <text
-                        x={xPos}
-                        y="330"
+                        x={xPos + 50}
+                        y="380"
                         textAnchor="middle"
                         fontSize="12"
                         fontWeight="bold"

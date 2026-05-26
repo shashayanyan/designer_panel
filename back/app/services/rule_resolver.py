@@ -314,6 +314,7 @@ class ConfigurationEngine:
             scada_included=request.scada_included,
             selected_assets=request.selected_assets,
             multi_line_diagram_b64=request.multi_line_diagram_b64,
+            reference_architecture_b64=request.reference_architecture_b64,
             environment=request.environment,
         )
 

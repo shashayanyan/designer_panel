@@ -1059,6 +1059,7 @@ function BoosterSetPage() {
       const refArchResult = await renderSvgToPng(refArchRef.current);
 
       let b64diagram = multiLineResult.dataURL;
+      let b64archi = refArchResult.dataURL;
       let rawSvgData = multiLineResult.rawSvgData;
 
       const requestPayload = {
@@ -1072,6 +1073,7 @@ function BoosterSetPage() {
         scada_included: config.scada,
         selected_assets: serializeAssets(ASSET_TREE, selectedAssets),
         multi_line_diagram_b64: b64diagram,
+        reference_architecture_b64: b64archi,
         environment: config.environment,
         enclosure_ref: config.enclosure || null,
       };

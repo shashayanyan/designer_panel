@@ -1,6 +1,6 @@
 import enum
 
-from sqlalchemy import Boolean, Column
+from sqlalchemy import Boolean, Column, Float
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy import ForeignKey, Integer, Numeric, String
 from sqlalchemy.orm import relationship
@@ -184,6 +184,22 @@ class Configuration(Base):
     alternative_enclosure_ref = Column(String)
     outdoor_alternative_enclosure_ref = Column(String)
 
+    # ventilation
+    effective_dp_w = Column(Float)
+    req_airflow_m3h = Column(Float)
+    def_fan_model = Column(String)
+    def_fan_qty = Column(Integer)
+    def_grill_model = Column(String)
+    def_grill_qty = Column(Integer)
+    alt_fan_model = Column(String)
+    alt_fan_qty = Column(Integer)
+    alt_grill_model = Column(String)
+    alt_grill_qty = Column(Integer)
+    out_fan_model = Column(String)
+    out_fan_qty = Column(Integer)
+    out_grill_model = Column(String)
+    out_grill_qty = Column(Integer)
+
 
 class BomLine(Base):
     __tablename__ = "bom_line"
@@ -197,6 +213,7 @@ class BomLine(Base):
     uom = Column(String)
     source_type = Column(String)
     source_id = Column(String)
+    condition = Column(String)  # For conditional items like fans/grills
 
 
 class DataQualityIssue(Base):

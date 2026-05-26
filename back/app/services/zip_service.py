@@ -86,7 +86,8 @@ class ZipService:
 
         manifest = {
             "config_id": twin.config_id,
-            "series": twin.series_id,
+            "series": twin.series_id
+            + (f" ({twin.series_name})" if twin.series_name else ""),
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "files_included": files_included,
         }

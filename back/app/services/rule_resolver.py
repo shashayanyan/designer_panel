@@ -292,6 +292,7 @@ class ConfigurationEngine:
         response = DigitalTwinResponse(
             config_id=cid,
             series_id=request.series_id,
+            series_name=request.series_name,  # Added for better UX, optional field
             motor_power_kw=request.motor_power_kw,
             load_count=request.load_count,
             enclosure=enclosure_data,

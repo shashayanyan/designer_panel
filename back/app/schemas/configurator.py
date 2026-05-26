@@ -20,6 +20,9 @@ SelectedAssetNode.model_rebuild()  # ensure recursive model is wired
 # --- INPUT SCHEMAS ---
 class DigitalTwinRequest(BaseModel):
     series_id: str = Field(..., description="E.g., DOL, YD, VFD")
+    series_name: Optional[str] = Field(
+        None, description="Human readable series name (for better UX, optional)"
+    )
     motor_power_kw: Decimal = Field(..., description="Rated power in kW")
     load_count: int = Field(
         ..., gt=0, description="Number of parallel starters/feeders"
@@ -65,6 +68,7 @@ class TwinBomLine(BaseModel):
     uom: str
     item: Optional[str] = None
     key_selection_notes: Optional[str] = None
+    condition: Optional[str] = None  # For conditional items like fans/grills
 
 
 class TwinComponent(BaseModel):
@@ -119,6 +123,7 @@ class TwinOption(BaseModel):
 class DigitalTwinResponse(BaseModel):
     config_id: str = Field(..., description="Unique ID for this configuration result")
     series_id: str
+    series_name: Optional[str] = None
     motor_power_kw: Decimal
     load_count: int
     enclosure: TwinEnclosure

@@ -79,6 +79,11 @@ class ConfigurationEngine:
     def __init__(self, db: Session):
         self.db = db
 
+    def _bom_lines_sorted_by_line_no(self, bom_lines):
+        return sorted(
+            bom_lines, key=lambda x: x.line_no if x.line_no is not None else 9999
+        )
+
     def generate_twin(self, request: DigitalTwinRequest) -> DigitalTwinResponse:
         """
         Main execution flow resolving the digital twin based on input constraints.
@@ -344,8 +349,37 @@ class ConfigurationEngine:
                     .first()
                 )
                 if comp:
-                    item_text = comp.generic_description
-                    notes_text = f"{comp.part_family} by {comp.manufacturer}"
+                    # if fan/grill, check condition first to see if it matches the enclosure
+                    if line.item_category.lower() in ["fan", "grille"]:
+                        if "outdoor" in line.condition.lower():
+                            if ("pla" in enclosure_option.catalog_ref.lower()) or (
+                                "plm" in enclosure_option.catalog_ref.lower()
+                            ):
+                                # ventilation for outdoor, enclosure outdoor, we add the line
+                                item_text = comp.generic_description
+                                notes_text = (
+                                    f"{comp.part_family} by {comp.manufacturer}"
+                                )
+                            else:
+                                # ventilation for outdoor, enclosure NOT outdoor, we skip the line
+                                continue
+
+                        else:
+                            # it's indoor, check other way around
+                            if ("pla" not in enclosure_option.catalog_ref.lower()) and (
+                                "plm" not in enclosure_option.catalog_ref.lower()
+                            ):
+                                # ventilation for indoor, enclosure indoor, we add the line
+                                item_text = comp.generic_description
+                                notes_text = (
+                                    f"{comp.part_family} by {comp.manufacturer}"
+                                )
+                            else:
+                                # ventilation for indoor, enclosure NOT indoor, we skip the line
+                                continue
+                    else:
+                        item_text = comp.generic_description
+                        notes_text = f"{comp.part_family} by {comp.manufacturer}"
             elif source_type_clean in ["accessory", "accessory_catalog"]:
                 acc = (
                     self.db.query(models.AccessoryCatalog)
@@ -368,7 +402,7 @@ class ConfigurationEngine:
                     key_selection_notes=notes_text,
                 )
             )
-        response.bom_lines = bom_lines
+        response.bom_lines = self._bom_lines_sorted_by_line_no(bom_lines)
 
         # 8. Resolve Application-Specific Templates (IO, Alarms, Options)
         app_id = "APP-WATER-BOOSTER"  # Fixed for this specific application page

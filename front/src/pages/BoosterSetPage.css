@@ -149,6 +149,7 @@
   width: 1.5rem;
   height: 1.5rem;
   display: inline-block;
+  cursor: inherit;
 }
 
 .booster__asset-row {
@@ -214,6 +215,7 @@
   min-width: 0;
   padding: 0;
   cursor: pointer;
+  cursor: inherit;
   width: 100%;
 }
 
@@ -230,6 +232,7 @@
   height: 16px;
   accent-color: var(--accent);
   cursor: pointer;
+  cursor: inherit;
   flex: 0 0 auto;
 }
 
@@ -238,6 +241,7 @@
   color: var(--text-primary);
   line-height: 1.2;
   min-width: 0;
+  cursor: inherit;
 }
 
 .booster__asset-children {
@@ -406,4 +410,9 @@
     gap: var(--space-md);
     align-items: flex-start;
   }
+}
+
+.booster__page--disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
 }

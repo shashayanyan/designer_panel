@@ -19,10 +19,27 @@ const ASSET_TREE = [
     ],
   },
   { id: "Multi Line Diagram", label: "Multi Line Diagram" },
-  { id: "Drawings", label: "Drawings" },
+  {
+    id: "Drawings",
+    label: "Drawings",
+    children: [
+      { id: "Panel", label: "Panel Layout", disabled: true },
+      { id: "Components", label: "Components Drawings" },
+    ],
+  },
   { id: "Specification", label: "Specification" },
   { id: "BIM Object", label: "BIM Object" },
 ];
+
+const getAssetById = (nodes, id) => {
+  for (let node of nodes) {
+    if (node.id === id) return node;
+    if (node.children) {
+      const found = getAssetById(node.children, id);
+      if (found) return found;
+    }
+  }
+};
 
 const MOTOR_START_TYPES = {
   DOL: "Direct On Line",
@@ -741,15 +758,29 @@ function BoosterSetPage() {
     );
   }, [config.pumps, config.motorStart, config.motorPower, enclosureList]);
 
-  const setNodeChildren = (children, value) =>
-    Object.fromEntries(
-      Object.keys(children).map((childId) => [childId, value]),
+  const setNodeChildren = (children, value) => {
+    // apply the change only to those that are not disabled
+    return Object.fromEntries(
+      Object.entries(children).map(([childId, selected]) => {
+        const childNode = getAssetById(ASSET_TREE, childId);
+        if (childNode.disabled) {
+          return [childId, selected];
+        }
+        return [childId, value];
+      }),
     );
+  };
 
-  const areAllChildrenSelected = (children) =>
-    Object.values(children).every(Boolean);
+  const areAllChildrenSelected = (children) => {
+    // check if all children that are not disabled are selected
+    return Object.entries(children).every(([childId, selected]) => {
+      const childNode = getAssetById(ASSET_TREE, childId);
+      return childNode.disabled || selected;
+    });
+  };
 
   const areSomeChildrenSelected = (children) =>
+    // check if at least one child is selected (ignoring disabled ones)
     Object.values(children).some(Boolean);
 
   const toggleParentNode = (parentId) => {
@@ -822,12 +853,19 @@ function BoosterSetPage() {
 
     if (!hasChildren) {
       return (
-        <div className="booster__asset-row booster__asset-row--leaf">
+        <div
+          className={
+            node.disabled
+              ? "booster__asset-row booster__asset-row--leaf booster__page--disabled"
+              : "booster__asset-row booster__asset-row--leaf"
+          }
+        >
           <span className="booster__asset-spacer" aria-hidden="true" />
           <label className="booster__check-item booster__check-item--top">
             <input
               type="checkbox"
               checked={value}
+              disabled={node.disabled}
               onChange={() =>
                 parentId
                   ? toggleChildNode(parentId, node.id)
@@ -913,6 +951,9 @@ function BoosterSetPage() {
   const selectAllFromTree = (nodes) =>
     Object.fromEntries(
       nodes.map((node) => {
+        if (node.disabled) {
+          return [node.id, false];
+        }
         if (node.children?.length) {
           return [
             node.id,

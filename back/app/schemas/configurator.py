@@ -68,6 +68,7 @@ class TwinBomLine(BaseModel):
     uom: str
     item: Optional[str] = None
     key_selection_notes: Optional[str] = None
+    condition: Optional[str] = None  # For conditional items like fans/grills
 
 
 class TwinComponent(BaseModel):

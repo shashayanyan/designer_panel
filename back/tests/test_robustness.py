@@ -1,10 +1,16 @@
 import io
 import zipfile
 import json
+from app.auth import create_access_token
 from app.main import app
 from fastapi.testclient import TestClient
 
 client = TestClient(app)
+
+
+def auth_headers():
+    token = create_access_token(data={"sub": "testuser"})
+    return {"Authorization": f"Bearer {token}"}
 
 
 def test_large_scale_system_generation():
@@ -23,7 +29,11 @@ def test_large_scale_system_generation():
         ],
     }
 
-    response = client.post("/api/v1/engine/generate-package", json=request_payload)
+    response = client.post(
+        "/api/v1/engine/generate-package",
+        json=request_payload,
+        headers=auth_headers(),
+    )
     assert response.status_code == 200
 
     zip_bytes = io.BytesIO(response.content)
@@ -53,7 +63,11 @@ def test_minimal_config_empty_accessories():
         ],
     }
 
-    response = client.post("/api/v1/engine/generate-package", json=request_payload)
+    response = client.post(
+        "/api/v1/engine/generate-package",
+        json=request_payload,
+        headers=auth_headers(),
+    )
     assert response.status_code == 200
     assert response.headers["content-type"] == "application/x-zip-compressed"
 
@@ -71,7 +85,11 @@ def test_zip_generation_with_no_assets_selected():
         "selected_assets": [],
     }
 
-    response = client.post("/api/v1/engine/generate-package", json=request_payload)
+    response = client.post(
+        "/api/v1/engine/generate-package",
+        json=request_payload,
+        headers=auth_headers(),
+    )
     assert response.status_code == 200
 
     zip_bytes = io.BytesIO(response.content)

@@ -46,6 +46,35 @@
   color: var(--text-muted);
 }
 
+/* ─── Config Metadata ─── */
+.booster__metadata {
+  padding: var(--space-md) var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.booster__metadata-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.booster__metadata-subtitle {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.booster__metadata-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-md);
+}
+
+.booster__field--wide {
+  grid-column: 1 / -1;
+}
+
 /* ─── Main Body ─── */
 .booster__body {
   display: grid;
@@ -124,6 +153,38 @@
 .booster__select option {
   background: var(--bg-secondary);
   color: var(--text-primary);
+}
+
+.booster__text-input,
+.booster__textarea {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 0.88rem;
+  outline: none;
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+  box-sizing: border-box;
+}
+
+.booster__text-input:focus,
+.booster__textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.booster__textarea {
+  min-height: 7rem;
+  resize: vertical;
+}
+
+.booster__text-input::placeholder,
+.booster__textarea::placeholder {
+  color: var(--text-muted);
 }
 
 /* ─── Assets Panel ─── */
@@ -393,6 +454,10 @@
 
 /* ─── Responsive ─── */
 @media (max-width: 860px) {
+  .booster__metadata-grid {
+    grid-template-columns: 1fr;
+  }
+
   .booster__body {
     grid-template-columns: 1fr;
   }

@@ -292,3 +292,21 @@ class ApplicationOptionMatrix(Base):
     is_base_or_optional = Column(String)
     spec_text_hint = Column(String)
     engineering_notes = Column(String)
+
+
+# --- Project Metadata for traceability ---
+class ProjectMetadata(Base):
+    __tablename__ = "project_metadata"
+    id = Column(Integer, primary_key=True, index=True)
+    config_id = Column(String, ForeignKey("configuration.config_id"), unique=True)
+    username = Column(String, ForeignKey("users.username"))
+    project_name = Column(String)
+    client = Column(String)
+    technical_manager = Column(String)
+    location = Column(String)
+    date = Column(String)
+    notes = Column(String)
+    enclosure_ref = Column(String)
+    communication = Column(String)
+    plc = Column(Boolean)
+    scada = Column(Boolean)

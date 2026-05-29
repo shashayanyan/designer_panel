@@ -3,8 +3,58 @@ import io
 
 from docx import Document
 from docx.shared import Inches
+from docx.oxml.shared import OxmlElement
+from docx.oxml.ns import qn
 
 from ..schemas.configurator import DigitalTwinResponse
+from .spec_text_gen import get_enclosure_clauses, get_starter_templates
+
+# Source - https://stackoverflow.com/a/68530806
+# Posted by JGC
+# Retrieved 2026-05-29, License - CC BY-SA 4.0
+
+
+# Stack overflow goated
+def insertHR(paragraph):
+    p = paragraph._p  # p is the <w:p> XML element
+    pPr = p.get_or_add_pPr()
+    pBdr = OxmlElement("w:pBdr")
+    pPr.insert_element_before(
+        pBdr,
+        "w:shd",
+        "w:tabs",
+        "w:suppressAutoHyphens",
+        "w:kinsoku",
+        "w:wordWrap",
+        "w:overflowPunct",
+        "w:topLinePunct",
+        "w:autoSpaceDE",
+        "w:autoSpaceDN",
+        "w:bidi",
+        "w:adjustRightInd",
+        "w:snapToGrid",
+        "w:spacing",
+        "w:ind",
+        "w:contextualSpacing",
+        "w:mirrorIndents",
+        "w:suppressOverlap",
+        "w:jc",
+        "w:textDirection",
+        "w:textAlignment",
+        "w:textboxTightWrap",
+        "w:outlineLvl",
+        "w:divId",
+        "w:cnfStyle",
+        "w:rPr",
+        "w:sectPr",
+        "w:pPrChange",
+    )
+    bottom = OxmlElement("w:bottom")
+    bottom.set(qn("w:val"), "single")
+    bottom.set(qn("w:sz"), "6")
+    bottom.set(qn("w:space"), "1")
+    bottom.set(qn("w:color"), "auto")
+    pBdr.append(bottom)
 
 
 def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
@@ -14,13 +64,30 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
     doc.add_paragraph(f"Project Configuration DNA: {twin.config_id}")
     doc.add_paragraph(f"Water Booster Set - {twin.load_count}-pump system")
 
+    # Add a summary of the metadata for the project if exists
+    if twin.project_name:
+        doc.add_paragraph(f"Project Name: {twin.project_name}")
+    if twin.project_client:
+        doc.add_paragraph(f"Client: {twin.project_client}")
+    if twin.project_technical_manager:
+        doc.add_paragraph(f"Technical Manager: {twin.project_technical_manager}")
+    if twin.project_location:
+        doc.add_paragraph(f"Location: {twin.project_location}")
+    if twin.project_date:
+        doc.add_paragraph(f"Date: {twin.project_date}")
+    if twin.project_notes:
+        doc.add_paragraph(f"Additional Notes: {twin.project_notes}")
+
+    # draw a black dashed horizontal line
+    insertHR(doc.add_paragraph())
+
     device_type = (
         twin.components[0].description if twin.components else "Variable Speed Drive"
     )
     mounting = twin.enclosure.mounting_type if twin.enclosure else "Floor Standing"
     dimensions = twin.enclosure.dimensions_mm if twin.enclosure else "N/A"
     doc.add_paragraph(
-        f"{device_type} Control Panel - {twin.load_count} x {twin.motor_power_kw} kW | {dimensions} | IP54 {mounting} | Cascade PID | {twin.communication} | IEC 62443 Baseline"
+        f"{device_type} Control Panel - {twin.load_count} x {twin.motor_power_kw} kW | {dimensions} | {twin.enclosure.ip_rating} {mounting} | Cascade PID | {twin.communication}"
     )
 
     # 1. Purpose and How to Use
@@ -59,17 +126,14 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
         "Cascade PID with staging/de-staging and automatic alternation",
     )
     add_row(
-        5, "Enclosure", f"IP54 {mounting.lower()} control panel (universal enclosure)"
+        5,
+        "Enclosure",
+        f"{twin.enclosure.ip_rating} {mounting.lower()} control panel (universal enclosure)",
     )
     add_row(
         6,
         "Communications",
         f"{twin.communication} between PLC and drives; optional uplink to SCADA",
-    )
-    add_row(
-        7,
-        "Cybersecurity",
-        "Baseline requirements aligned with IEC 62443 principles (zones, accounts, logging)",
     )
 
     # 3. Reference Architecture
@@ -151,20 +215,11 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
     doc.add_heading("5. Electrical Requirements", level=1)
     doc.add_heading("5.1 Enclosure and Assembly", level=2)
     doc.add_paragraph(
-        f"The control panel enclosure shall be {mounting.lower()} with minimum ingress protection rating IP54 and suitable for indoor technical room installation unless stated otherwise."
+        f"The control panel enclosure shall be {mounting.lower()} with minimum ingress protection rating {twin.enclosure.ip_rating} and suitable for indoor technical room installation unless stated otherwise."
     )
-    doc.add_paragraph(
-        "The enclosure shall include a gland plate (or equivalent) for bottom cable entry, earthing bar, and provision for safe maintenance access."
-    )
-    doc.add_paragraph(
-        "The panel builder shall provide thermal management (fan/filter or air conditioning as required) to maintain component temperatures within manufacturer limits at site ambient conditions."
-    )
-    doc.add_paragraph(
-        "All components shall be clearly labeled; wiring shall be ferruled and identified in accordance with the drawings."
-    )
-    doc.add_paragraph(
-        "The assembly shall be designed, manufactured, and tested in accordance with applicable IEC requirements for low-voltage switchgear and controlgear assemblies (e.g., IEC 61439 where applicable)."
-    )
+    enc_lines = get_enclosure_clauses(twin)
+    for line in enc_lines:
+        doc.add_paragraph(line)
 
     doc.add_heading("5.2 Feeders", level=2)
     doc.add_paragraph(
@@ -177,6 +232,34 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
         "The design shall include appropriate upstream protection and isolation for each feeder."
     )
 
+    # dynamic feeder clauses
+    device_type = twin.components[0].description if twin.components else "Motor Starter"
+    comm_protocol = twin.communication if twin.communication else "Modbus TCP"
+
+    templates = get_starter_templates(twin.series_id)
+    feeder_clauses = [
+        clause.format(motor_power_kw=twin.motor_power_kw)
+        for clause in templates["feeders"]
+    ]
+    for clause in feeder_clauses:
+        doc.add_paragraph(clause)
+
+    # Append communication capabilities of the feeders
+    if comm_protocol.lower() == "no":
+        doc.add_paragraph(
+            f"Each {device_type} shall support hardwired I/O for start/stop, speed reference, and monitoring."
+        )
+        doc.add_paragraph(
+            f"Each {device_type} shall provide access to at least the following data via analog/digital signals: run status, fault status, and feedback."
+        )
+    else:
+        doc.add_paragraph(
+            f"Each {device_type} shall support Ethernet communications using {comm_protocol} for start/stop, speed reference, and monitoring."
+        )
+        doc.add_paragraph(
+            f"Each {device_type} shall provide access to at least the following data: run status, feedback, current, power, energy, fault status, and fault code."
+        )
+
     doc.add_heading("5.3 Control Power and Auxiliaries", level=2)
     doc.add_paragraph(
         "The panel shall include a 24 VDC control power supply sized for PLC, HMI, network devices, and field instrumentation loops as required."
@@ -188,18 +271,56 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
         "Door interlock and maintenance mode provisions shall be implemented as required by local regulations and end user standards."
     )
 
+    # dynamic control clauses
+    has_plc = str(twin.plc_included).strip().lower() in ["yes", "true", "1"]
+    has_scada = str(twin.scada_included).strip().lower() in ["yes", "true", "1"]
+    controller_text = (
+        "a PLC" if has_plc else "a dedicated pump controller (or remote PLC)"
+    )
+
+    doc.add_paragraph(
+        f"The panel shall include {controller_text} with sufficient capacity and I/O to implement required controls."
+    )
+
+    if has_scada:
+        doc.add_paragraph(
+            "The panel shall include a local HMI and a network uplink to a supervisory SCADA system for remote monitoring and control."
+        )
+    else:
+        doc.add_paragraph(
+            "The panel shall include a local HMI for operator control and monitoring (start/stop, setpoints, status, alarms, runtime)."
+        )
+
+    doc.add_paragraph(
+        "The control system shall support a redundant discharge pressure transmitter. Upon primary signal fault/out-of-range, control shall automatically switch to the redundant transmitter and alarm.\n"
+    )
+
     # 6. Control Philosophy
     doc.add_heading("6. Control Philosophy - Cascade PID (Booster Set)", level=1)
-    doc.add_paragraph(
-        f"The booster set shall maintain discharge pressure at a configurable setpoint using cascade PID control and automatic staging of {twin.load_count} pumps. The PLC shall coordinate drive start/stop and speed references over {twin.communication}."
-    )
-    doc.add_paragraph(
-        "Minimum functional requirements:\n"
-        "- PID pressure control using a primary discharge pressure transmitter.\n"
-        "- Pump staging/de-staging based on demand thresholds.\n"
-        "- Automatic alternation of duty to equalize runtime.\n"
-        "- Failover: if any pump/drive becomes unavailable, remaining pumps shall continue to control pressure."
-    )
+    controller_master_text = "The PLC" if has_plc else "The dedicated pump controller"
+
+    if comm_protocol.lower() == "no":
+        doc.add_paragraph("G. COMMUNICATIONS - HARDWIRED")
+        doc.add_paragraph(
+            f"Control and monitoring signals between {(controller_master_text.lower()).replace('the ', '')} and motor starters shall be hardwired via discrete and analog I/O."
+        )
+        doc.add_paragraph(
+            "The panel shall include sufficient terminal blocks to land all interposing hardwired control links."
+        )
+        doc.add_paragraph(
+            "Loss of critical hardwired permissives (e.g., E-Stop, pressure switch) shall transition the system to a defined safe state."
+        )
+    else:
+        doc.add_paragraph(f"G. COMMUNICATIONS - {comm_protocol.upper()}")
+        doc.add_paragraph(
+            f"{controller_master_text} shall act as client/master and each motor starter shall act as a server/slave over {comm_protocol}."
+        )
+        doc.add_paragraph(
+            "Each networked device shall have a unique IP address; an IP plan shall be provided."
+        )
+        doc.add_paragraph(
+            "Loss of communications shall generate an alarm and the system shall transition to a defined safe state."
+        )
 
     # 7. Communications
     doc.add_heading(f"7. Communications - {twin.communication}", level=1)
@@ -207,16 +328,16 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
         f"The PLC shall act as master. Each drive shall be a server via {twin.communication}. The network shall be designed for deterministic control."
     )
 
-    # 8. Cybersecurity
-    doc.add_heading("8. Cybersecurity Baseline (IEC 62443-aligned)", level=1)
+    # 8. FAT/SAT
+    doc.add_heading("8. FAT/SAT - Minimum Acceptance Tests", level=1)
     doc.add_paragraph(
-        "This project shall implement baseline cybersecurity controls consistent with IEC 62443 principles."
+        "The supplier shall provide electrical drawings (SLD, schematics, GA, terminal schedule), I/O list, network IP plan, PLC/HMI backups, and operating manuals."
     )
-
-    # 9. FAT/SAT
-    doc.add_heading("9. FAT/SAT - Minimum Acceptance Tests", level=1)
     doc.add_paragraph(
-        "Factory Acceptance Test (FAT) & Site Acceptance Test (SAT) shall include visual, electrical, network, functional, and HMI validations per standard clauses."
+        "FAT shall verify wiring, labeling, communications, HMI, and core control sequences including staging/de-staging, alternation, and redundancy behavior."
+    )
+    doc.add_paragraph(
+        "SAT shall verify field wiring, motor rotation, transmitter scaling, PID stability, and redundancy in live operation."
     )
 
     output = io.BytesIO()

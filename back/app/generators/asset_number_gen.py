@@ -7,14 +7,25 @@ def get_asset_number(asset_index: int) -> str:
 def generate_asset_numbers(selected_assets: list[str]) -> dict[str, str]:
     base_index = 4
     asset_numbers = {}
-    if "Data Sheet" in selected_assets:
+    if "Parameters" in selected_assets:
         asset_numbers["Parameters"] = get_asset_number(base_index)
-        asset_numbers["BOM"] = get_asset_number(base_index + 1)
-        asset_numbers["IO"] = get_asset_number(base_index + 2)
-        asset_numbers["Network"] = get_asset_number(base_index + 3)
-        asset_numbers["Alarms"] = get_asset_number(base_index + 4)
-        asset_numbers["Options"] = get_asset_number(base_index + 5)
-        base_index += 6
+        base_index += 1
+
+    if "BOM" in selected_assets:
+        asset_numbers["BOM"] = get_asset_number(base_index)
+        base_index += 1
+
+    if "IO" in selected_assets:
+        asset_numbers["IO"] = get_asset_number(base_index)
+        base_index += 1
+
+    if "Network" in selected_assets:
+        asset_numbers["Network"] = get_asset_number(base_index)
+        base_index += 1
+
+    if "Alarms" in selected_assets:
+        asset_numbers["Alarms"] = get_asset_number(base_index)
+        base_index += 1
 
     if "Multi Line Diagram" in selected_assets:
         """

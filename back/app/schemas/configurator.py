@@ -60,6 +60,19 @@ class DigitalTwinRequest(BaseModel):
     enclosure_ref: Optional[str] = Field(
         None, description="Reference for the selected enclosure option, if any"
     )
+    # Project metadata fields
+    project_name: Optional[str] = Field(
+        None, description="Project name for this configuration"
+    )
+    project_client: Optional[str] = Field(
+        None, description="Client name for this project"
+    )
+    project_technical_manager: Optional[str] = Field(
+        None, description="Technical manager for this project"
+    )
+    project_location: Optional[str] = Field(None, description="Project location")
+    project_date: Optional[str] = Field(None, description="Project date")
+    project_notes: Optional[str] = Field(None, description="Project notes")
 
 
 # --- OUTPUT SCHEMAS (DIGITAL TWIN) ---
@@ -157,3 +170,17 @@ class DigitalTwinResponse(BaseModel):
     option_matrix: List[TwinOption] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
+
+    # Metadata fields
+    project_name: Optional[str] = Field(
+        None, description="Project name for this configuration"
+    )
+    project_client: Optional[str] = Field(
+        None, description="Client name for this project"
+    )
+    project_technical_manager: Optional[str] = Field(
+        None, description="Technical manager for this project"
+    )
+    project_location: Optional[str] = Field(None, description="Project location")
+    project_date: Optional[str] = Field(None, description="Project date")
+    project_notes: Optional[str] = Field(None, description="Project notes")

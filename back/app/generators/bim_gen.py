@@ -23,6 +23,70 @@ import numpy as np
 # ------------------------------------------------------------
 
 
+def create_color_style(model, name, r, g, b, transparency=0.0):
+    """
+    Creates an IFC Surface Style. Transparency is 0.0 (opaque) to 1.0 (invisible).
+    """
+    style = ifcopenshell.api.style.add_style(model, name=name)
+    ifcopenshell.api.style.add_surface_style(
+        model,
+        style=style,
+        ifc_class="IfcSurfaceStyleRendering",
+        attributes={
+            "SurfaceColour": {
+                "Name": None,
+                "Red": float(r),
+                "Green": float(g),
+                "Blue": float(b),
+            },
+            "Transparency": float(transparency),
+        },
+    )
+    return style
+
+
+def create_clearance_zone(
+    model, context, panel, name, width, depth, height, x, y, z, color_style
+):
+    """
+    Creates an industry-standard PROVISIONFORSPACE clash detection zone.
+    """
+    proxy = ifcopenshell.api.root.create_entity(
+        model, ifc_class="IfcBuildingElementProxy", name=name
+    )
+
+    # This is the critical IFC4 tag that tells BIM software this is a spatial requirement, not physical hardware
+    if hasattr(proxy, "PredefinedType"):
+        proxy.PredefinedType = "PROVISIONFORSPACE"
+
+    proxy.Description = "Electrical Clearance / Maintenance Zone"
+
+    # Attach the clearance zone to the main panel
+    ifcopenshell.api.aggregate.assign_object(
+        model, products=[proxy], relating_object=panel
+    )
+
+    # Generate Geometry
+    rep = create_box_representation(model, context, width, depth, height)
+    ifcopenshell.api.geometry.assign_representation(
+        model, product=proxy, representation=rep
+    )
+
+    if color_style:
+        ifcopenshell.api.style.assign_item_style(
+            model, item=rep.Items[0], style=color_style
+        )
+
+    # Place relative to the panel
+    matrix = np.eye(4)
+    matrix[0, 3] = x
+    matrix[1, 3] = y
+    matrix[2, 3] = z
+    ifcopenshell.api.geometry.edit_object_placement(model, product=proxy, matrix=matrix)
+
+    return proxy
+
+
 def mm_to_m(v_mm):
     return v_mm / 1000.0
 
@@ -72,27 +136,6 @@ def assign_representation(model, product, representation):
     ifcopenshell.api.geometry.assign_representation(
         model, product=product, representation=representation
     )
-
-
-def create_color_style(model, name, r, g, b):
-    """
-    Creates an IFC Surface Style with specific RGB values (0.0 to 1.0).
-    """
-    style = ifcopenshell.api.style.add_style(model, name=name)
-    ifcopenshell.api.style.add_surface_style(
-        model,
-        style=style,
-        ifc_class="IfcSurfaceStyleRendering",
-        attributes={
-            "SurfaceColour": {
-                "Name": None,
-                "Red": float(r),
-                "Green": float(g),
-                "Blue": float(b),
-            }
-        },
-    )
-    return style
 
 
 def create_port(
@@ -212,6 +255,14 @@ def generate_ifc_from_twin(twin_data: dict, visualize_ports: bool = False) -> by
     gray_style = create_color_style(model, "Panel_Gray", 0.6, 0.6, 0.62)
     warning_red_style = create_color_style(model, "Warning_Red", 0.9, 0.1, 0.1)
 
+    # Transparent styles for clearances (0.8 = 80% transparent)
+    door_clearance_style = create_color_style(
+        model, "Clearance_Door", 0.2, 0.5, 0.8, transparency=0.8
+    )
+    cable_clearance_style = create_color_style(
+        model, "Clearance_Cable", 0.9, 0.8, 0.1, transparency=0.8
+    )
+
     # Panel Creation
     config_id = data.get("config_id", "Unknown_Panel")
     panel_type = ifcopenshell.api.root.create_entity(
@@ -257,6 +308,40 @@ def generate_ifc_from_twin(twin_data: dict, visualize_ports: bool = False) -> by
 
     # --- Apply the Gray color to the Panel's geometry mesh ---
     ifcopenshell.api.style.assign_item_style(model, item=rep.Items[0], style=gray_style)
+
+    # ------------------------------------------------------------
+    # Revit Identity Data (Pset_ManufacturerTypeInformation)
+    # ------------------------------------------------------------
+
+    # 1. Deduce URL dynamically by finding the Core Device
+    components = data.get("components", [])
+    core_part = ""
+    for comp in components:
+        if comp.get("item_category") == "Core Device":
+            core_part = comp.get("part_number", "")
+            break
+
+    # Generate standard product URL
+    derived_url = f"https://www.se.com/ww/en/product/{core_part}/" if core_part else ""
+
+    # 2. Apply standard Manufacturer Pset to populate Revit native fields
+    add_pset(
+        model,
+        panel_type,
+        "Pset_ManufacturerTypeInformation",
+        {
+            "Manufacturer": "Schneider Electric",  # Injected based on library context
+            "ModelLabel": data.get("config_id", ""),  # Populates Revit 'Model'
+            "ModelReference": data.get("series_id", ""),
+            "ArticleNumber": data.get("enclosure", {}).get("catalog_ref", ""),
+            "Description": data.get("notes", ""),  # Populates Revit 'Description'
+            "ManufacturerUrl": derived_url,  # Populates Revit 'URL'
+        },
+    )
+
+    # ------------------------------------------------------------
+    # Custom Digital Twin Data
+    # ------------------------------------------------------------
 
     # Psets
     add_pset(
@@ -319,6 +404,50 @@ def generate_ifc_from_twin(twin_data: dict, visualize_ports: bool = False) -> by
             z=height,
             visualize=visualize_ports,
             color_style=warning_red_style,
+        )
+
+    # ------------------------------------------------------------
+    # Clearances (PROVISIONFORSPACE Zones)
+    # ------------------------------------------------------------
+    if (
+        visualize_ports
+    ):  # We tie this to the visualize flag so the logical model stays purely logical
+
+        # 1. Door / Working Clearance (Front of panel)
+        # IEC/NEC Standard: Minimum 1000mm (1.0m) depth in front. Height matches panel or 2.0m min.
+        working_depth = 1.0
+        working_height = max(height, 2.0)
+
+        create_clearance_zone(
+            model,
+            body_context,
+            panel,
+            "Clearance_WorkingSpace",
+            width=width,
+            depth=working_depth,
+            height=working_height,
+            x=0,
+            y=depth,
+            z=0,  # Placed at the front face (y=depth)
+            color_style=door_clearance_style,
+        )
+
+        # 2. Cable Bending Clearance (Top of panel)
+        # Standard: ~400mm (0.4m) above top gland plates for cable routing.
+        bending_height = 0.4
+
+        create_clearance_zone(
+            model,
+            body_context,
+            panel,
+            "Clearance_TopCables",
+            width=width,
+            depth=depth,
+            height=bending_height,
+            x=0,
+            y=0,
+            z=height,  # Placed directly on top of the panel (z=height)
+            color_style=cable_clearance_style,
         )
 
     return model.to_string().encode("utf-8")

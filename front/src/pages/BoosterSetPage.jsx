@@ -47,6 +47,19 @@ const MOTOR_START_TYPES = {
   VSD: "Variable Speed Drive",
 };
 
+const PROJECT_METADATA_FIELDS = [
+  { key: "projectName", label: "Project Name", type: "text" },
+  { key: "client", label: "Client", type: "text" },
+  {
+    key: "technicalManager",
+    label: "Technical Manager",
+    type: "text",
+  },
+  { key: "location", label: "Location", type: "text" },
+  { key: "date", label: "Date", type: "date" },
+  { key: "notes", label: "Notes", type: "textarea", wide: true },
+];
+
 // --- SVG Symbol Components (For Multi-Line) ---
 const CircuitBreaker = ({ x, y, label }) => (
   <g transform={`translate(${x}, ${y})`}>
@@ -509,6 +522,15 @@ function BoosterSetPage() {
     scada: "",
   });
 
+  const [projectMetadata, setProjectMetadata] = useState({
+    projectName: "",
+    client: "",
+    technicalManager: "",
+    location: "",
+    date: "",
+    notes: "",
+  });
+
   const [seriesList, setSeriesList] = useState([]);
   const [starterOptionsList, setStarterOptionsList] = useState([]);
   const [enclosureList, setEnclosureList] = useState(null);
@@ -728,6 +750,13 @@ function BoosterSetPage() {
       }
       return nextConfig;
     });
+  };
+
+  const handleMetadataChange = (key, value) => {
+    setProjectMetadata((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
   };
 
   const dynamicEnclosureTootlip = useMemo(() => {
@@ -1076,6 +1105,12 @@ function BoosterSetPage() {
         reference_architecture_b64: b64archi,
         environment: config.environment,
         enclosure_ref: config.enclosure || null,
+        project_name: projectMetadata.projectName,
+        project_client: projectMetadata.client,
+        project_technical_manager: projectMetadata.technicalManager,
+        project_location: projectMetadata.location,
+        project_date: projectMetadata.date,
+        project_notes: projectMetadata.notes,
       };
 
       const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
@@ -1118,7 +1153,10 @@ function BoosterSetPage() {
       if (selectedAssets["Multi Line Diagram"]) {
         let assetIndex = 4;
         if (selectedAssets["Data Sheet"]) {
-          assetIndex = 10;
+          // shift by the number of data sheets selected
+          assetIndex += Object.values(
+            selectedAssets["Data Sheet"].children,
+          ).filter(Boolean).length;
         }
 
         if (rawSvgData)
@@ -1199,6 +1237,53 @@ function BoosterSetPage() {
           </button>
         </div>
       </header>
+
+      <section className="booster__metadata glass-card fade-in">
+        <div className="booster__metadata-header">
+          <h2 className="booster__section-title">Project Metadata</h2>
+          <p className="booster__metadata-subtitle">
+            Capture the project context before configuring the booster set.
+          </p>
+        </div>
+        <div className="booster__metadata-grid">
+          {PROJECT_METADATA_FIELDS.map((field) => (
+            <div
+              className={`booster__field${field.wide ? " booster__field--wide" : ""}`}
+              key={field.key}
+            >
+              <label
+                className="booster__label"
+                htmlFor={`metadata-${field.key}`}
+              >
+                {field.label}
+              </label>
+              {field.type === "textarea" ? (
+                <textarea
+                  id={`metadata-${field.key}`}
+                  className="booster__text-input booster__textarea"
+                  placeholder="Add notes, assumptions, or project context"
+                  value={projectMetadata[field.key]}
+                  onChange={(e) =>
+                    handleMetadataChange(field.key, e.target.value)
+                  }
+                  rows={4}
+                />
+              ) : (
+                <input
+                  id={`metadata-${field.key}`}
+                  className="booster__text-input"
+                  type={field.type}
+                  placeholder={field.label}
+                  value={projectMetadata[field.key]}
+                  onChange={(e) =>
+                    handleMetadataChange(field.key, e.target.value)
+                  }
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
 
       <div className="booster__body">
         <aside className="booster__sidebar">

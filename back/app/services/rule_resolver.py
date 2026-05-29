@@ -16,7 +16,6 @@ from ..schemas.configurator import (
     TwinComponent,
     TwinEnclosure,
     TwinIO,
-    TwinOption,
 )
 
 
@@ -508,24 +507,16 @@ class ConfigurationEngine:
                 )
         response.alarm_list = alarm_list
 
-        # 8c. Option Matrix Logic
-        option_matrix = (
-            self.db.query(models.ApplicationOptionMatrix)
-            .filter(models.ApplicationOptionMatrix.application_id == app_id)
-            .all()
+        print(
+            f"Project Metadata in Response: Name={request.project_name}, Client={request.project_client}, Technical Manager={request.project_technical_manager}, Location={request.project_location}, Date={request.project_date}, Notes={request.project_notes}"
         )
 
-        # In a real engine, we'd filter based on 'selected' options,
-        # but for now we list the matrix applicable to this twin.
-        response.option_matrix = [
-            TwinOption(
-                category=opt.option_category,
-                name=opt.option_name,
-                is_base=(opt.is_base_or_optional == "Base"),
-                spec_text=opt.spec_text_hint,
-                engineering_notes=opt.engineering_notes,
-            )
-            for opt in option_matrix
-        ]
+        # 9. Add project metadata to the response
+        response.project_name = request.project_name
+        response.project_client = request.project_client
+        response.project_technical_manager = request.project_technical_manager
+        response.project_location = request.project_location
+        response.project_date = request.project_date
+        response.project_notes = request.project_notes
 
         return response

@@ -31,7 +31,7 @@ def get_enclosure_clauses(twin: DigitalTwinResponse) -> List[str]:
         return sm_lines
     else:
         mounting = twin.enclosure.mounting_type if twin.enclosure else "Floor Standing"
-        ip_rating = "IP54"
+        ip_rating = twin.enclosure.ip_rating if twin.enclosure else "IP54"
         return [
             f"The enclosure shall be {mounting}, indoor type, minimum {ip_rating}, with provision for bottom cable entry.",
             "The panel shall include an earthing bar, internal wiring ducting, and clear labeling of devices, terminals, and cables.",
@@ -211,7 +211,7 @@ def generate_spec_text_from_twin(twin: DigitalTwinResponse) -> bytes:
     lines.append("")
 
     # H. CYBERSECURITY
-    lines.append("H. CYBERSECURITY BASELINE (IEC 62443-ALIGNED)")
+    lines.append("H. CYBERSECURITY BASELINE")
     lines.append(
         "1. The control network shall be treated as an industrial control zone and shall be logically separated from corporate networks."
     )

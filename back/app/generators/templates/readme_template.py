@@ -29,7 +29,18 @@ def generate_readme_from_twin(twin: DigitalTwinResponse) -> bytes:
     assets = ""
 
     if has_asset("Data Sheet", assets_flat):
-        assets += f"{bullet_point_number}) {asset_numbers['Parameters']}_Parameters.xlsx, {asset_numbers['BOM']}_BOM-template.xlsx, {asset_numbers['IO']}_IO-List.xlsx, {asset_numbers['Network']}_Network-IP-Plan.xlsx, {asset_numbers['Alarms']}_Alarm_List.xlsx, {asset_numbers['Options']}_Option-Matrix.xlsx\n   - Extracted data sheets and templates\n"
+        data_sheet_text = ""
+        if has_asset("Parameters", assets_flat):
+            data_sheet_text += f"- {asset_numbers['Parameters']}_Parameters.xlsx "
+        if has_asset("BOM", assets_flat):
+            data_sheet_text += f"- {asset_numbers['BOM']}_BOM-template.xlsx "
+        if has_asset("IO", assets_flat):
+            data_sheet_text += f"- {asset_numbers['IO']}_IO-List.xlsx "
+        if has_asset("Network", assets_flat):
+            data_sheet_text += f"- {asset_numbers['Network']}_Network-IP-Plan.xlsx "
+        if has_asset("Alarms", assets_flat):
+            data_sheet_text += f"- {asset_numbers['Alarms']}_Alarm_List.xlsx "
+        assets += f"{bullet_point_number}) {data_sheet_text}\n - Extracted data sheets and templates "
         bullet_point_number += 1
     if has_asset("Multi Line Diagram", assets_flat):
         assets += f"{bullet_point_number}) {asset_numbers['MLD-svg']}_MultiLineDiagram.svg / .png, {asset_numbers['RefArch']}_ReferenceArchitecture.png\n   - Generated Multi Line and Reference Architecture diagrams\n"

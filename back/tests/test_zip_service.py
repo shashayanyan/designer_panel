@@ -3,11 +3,17 @@ import json
 import zipfile
 
 from app.generators.asset_number_gen import generate_asset_numbers
+from app.auth import create_access_token
 from app.utils.assets import flatten_asset_ids
 from app.main import app
 from fastapi.testclient import TestClient
 
 client = TestClient(app)
+
+
+def auth_headers():
+    token = create_access_token(data={"sub": "testuser"})
+    return {"Authorization": f"Bearer {token}"}
 
 
 def test_generate_package_returns_valid_zip():
@@ -38,7 +44,11 @@ def test_generate_package_returns_valid_zip():
         ],
     }
 
-    response = client.post("/api/v1/engine/generate-package", json=request_payload)
+    response = client.post(
+        "/api/v1/engine/generate-package",
+        json=request_payload,
+        headers=auth_headers(),
+    )
 
     # Assert successful generation
     assert response.status_code == 200, f"Endpoint failed: {response.text}"

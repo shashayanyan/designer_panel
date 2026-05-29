@@ -1153,7 +1153,10 @@ function BoosterSetPage() {
       if (selectedAssets["Multi Line Diagram"]) {
         let assetIndex = 4;
         if (selectedAssets["Data Sheet"]) {
-          assetIndex = 10;
+          // shift by the number of data sheets selected
+          assetIndex += Object.values(
+            selectedAssets["Data Sheet"].children,
+          ).filter(Boolean).length;
         }
 
         if (rawSvgData)

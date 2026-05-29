@@ -511,4 +511,12 @@ class ConfigurationEngine:
             f"Project Metadata in Response: Name={request.project_name}, Client={request.project_client}, Technical Manager={request.project_technical_manager}, Location={request.project_location}, Date={request.project_date}, Notes={request.project_notes}"
         )
 
+        # 9. Add project metadata to the response
+        response.project_name = request.project_name
+        response.project_client = request.project_client
+        response.project_technical_manager = request.project_technical_manager
+        response.project_location = request.project_location
+        response.project_date = request.project_date
+        response.project_notes = request.project_notes
+
         return response

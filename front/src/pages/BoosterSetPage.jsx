@@ -1622,7 +1622,7 @@ function BoosterSetPage() {
                   })}
 
                   {/* --- Standard Title Block (Bottom Right) --- */}
-                  <g transform="translate(670, 480)">
+                  {/*<g transform="translate(670, 480)">
                     <rect
                       x="0"
                       y="0"
@@ -1744,7 +1744,7 @@ function BoosterSetPage() {
                     >
                       {config.plc ? "Yes" : "No"}
                     </text>
-                  </g>
+                  </g>*/}
                 </g>
               </svg>
             </div>

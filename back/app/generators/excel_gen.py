@@ -115,6 +115,7 @@ def generate_excel_from_twin(twin: DigitalTwinResponse) -> Dict[str, bytes]:
 
     # --- 2. BOM Template ---
     if "BOM" in assets_flat:
+        row_index = 1
         bom_data = []
 
         # Exclusively database defined BOM Lines driven logically from resolved configuration
@@ -122,6 +123,7 @@ def generate_excel_from_twin(twin: DigitalTwinResponse) -> Dict[str, bytes]:
             for line in twin.bom_lines:
                 bom_data.append(
                     {
+                        "Index": str(row_index),
                         "Item Category": line.item_category,
                         "Item": line.item,
                         "Qty": float(line.qty),
@@ -131,10 +133,12 @@ def generate_excel_from_twin(twin: DigitalTwinResponse) -> Dict[str, bytes]:
                         ),
                     }
                 )
+                row_index += 1
 
         df_bom = pd.DataFrame(
             bom_data,
             columns=[
+                "Index",
                 "Item Category",
                 "Item",
                 "Qty",

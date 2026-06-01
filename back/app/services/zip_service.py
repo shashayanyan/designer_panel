@@ -130,7 +130,7 @@ class ZipService:
             # Drawings logic: write directly to root ZIP
             if gen_drawings:
                 if gen_components:
-                    folders = ["top", "right", "left", "bottom", "front", "back", "iso"]
+                    folders = ["top", "right", "front", "back", "iso"]
                     for line in twin.bom_lines:
                         # Filter for components only
                         if line.item_category.lower() in [

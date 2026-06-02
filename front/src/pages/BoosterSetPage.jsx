@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect, useContext } from "react";
-import { CircleAlert, ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import JSZip from "jszip";
 import "./BoosterSetPage.css";
@@ -49,7 +49,7 @@ const MOTOR_START_TYPES = {
 
 const PROJECT_METADATA_FIELDS = [
   { key: "projectName", label: "Project Name", type: "text" },
-  { key: "client", label: "Client", type: "text" },
+  { key: "client", label: "Client", type: "text" }, // change to costumer
   {
     key: "technicalManager",
     label: "Technical Manager",
@@ -612,7 +612,21 @@ function BoosterSetPage() {
         // Only apply the latest response
         if (requestId === enclosureRequestId.current) {
           setEnclosureList(data);
-          setConfig((prev) => ({ ...prev, enclosure: data.recommended || "" }));
+          // `data` is now an array of structured options from the API.
+          // Pick the 'Recommended' reference if present, otherwise fallback to the first available reference.
+          let defaultRef = "";
+          if (Array.isArray(data) && data.length) {
+            const recommended = data.find(
+              (o) => o.recommendation_type === "Recommended",
+            );
+            defaultRef =
+              (recommended && recommended.reference) || data[0].reference || "";
+          } else if (data && data.recommended) {
+            // backward-compatible guard (if API returns old shape)
+            defaultRef = data.recommended;
+          }
+
+          setConfig((prev) => ({ ...prev, enclosure: defaultRef }));
         }
       } catch (error) {
         if (requestId === enclosureRequestId.current) {
@@ -646,44 +660,17 @@ function BoosterSetPage() {
   }, [config.motorStart, starterOptionsList]);
 
   const dynamicEnclosureOptions = useMemo(() => {
-    if (
-      !config.pumps ||
-      !config.motorStart ||
-      !config.motorPower ||
-      !enclosureList
-    ) {
+    if (!config.pumps || !config.motorStart || !config.motorPower) {
       return [];
     }
-    const byValue = new Map();
 
-    const addOption = (value, label) => {
-      if (!value) return;
-
-      const existing = byValue.get(value);
-      if (!existing) {
-        byValue.set(value, { value, label });
-        return;
-      }
-
-      const labelPriority = {
-        Recommended: 3,
-        Alternative: 2,
-        "Outdoor Alternative": 1,
-      };
-
-      const existingPriority = labelPriority[existing.label] || 0;
-      const newPriority = labelPriority[label] || 0;
-
-      if (newPriority > existingPriority) {
-        byValue.set(value, { value, label });
-      }
-    };
-
-    addOption(enclosureList.recommended, "Recommended");
-    addOption(enclosureList.alternative, "Alternative");
-    addOption(enclosureList.outdoor_alternative, "Outdoor Alternative");
-
-    return Array.from(byValue.values());
+    if (!Array.isArray(enclosureList)) {
+      return [];
+    }
+    return enclosureList.map((option) => ({
+      value: option.reference,
+      label: `${option.material} - ${option.recommendation_type} (${option.reference})`,
+    }));
   }, [config.pumps, config.motorStart, config.motorPower, enclosureList]);
 
   const CURRENT_CONFIG_OPTIONS = useMemo(
@@ -758,34 +745,6 @@ function BoosterSetPage() {
       [key]: value,
     }));
   };
-
-  const dynamicEnclosureTootlip = useMemo(() => {
-    if (!config.pumps || !config.motorStart || !config.motorPower) {
-      return "Select pump count, motor start type, and motor power to see enclosure options";
-    }
-
-    if (!enclosureList) {
-      return "Loading enclosure options...";
-    }
-
-    const entries = [
-      enclosureList.recommended && ["Recommended", enclosureList.recommended],
-      enclosureList.alternative && ["Alternative", enclosureList.alternative],
-      enclosureList.outdoor_alternative && [
-        "Outdoor Alternative",
-        enclosureList.outdoor_alternative,
-      ],
-    ].filter(Boolean);
-
-    if (entries.length === 0) {
-      return "No compatible enclosures found for this configuration";
-    }
-
-    return (
-      `${entries.length} enclosure option${entries.length > 1 ? "s" : ""} available:\n` +
-      entries.map(([label, value]) => `- ${value} (${label})`).join("\n")
-    );
-  }, [config.pumps, config.motorStart, config.motorPower, enclosureList]);
 
   const setNodeChildren = (children, value) => {
     // apply the change only to those that are not disabled
@@ -1295,27 +1254,6 @@ function BoosterSetPage() {
                   <div className="booster__field" key={key}>
                     <label className="booster__label" htmlFor={`config-${key}`}>
                       {label}
-                      {key === "enclosure" && (
-                        <span
-                          title={[
-                            "Please choose the enclosure type that best fits your installation environment and requirements.",
-                            "- Recommended: The optimal enclosure based on your configuration, balancing protection and cost.",
-                            "- Alternative: A compatible enclosure that may differ in features or price, but is a viable choice in case of unavailability of the recommended option.",
-                            "- Outdoor Alternative: An enclosure suitable for outdoor installations with enhanced weather protection.",
-                            "Note on materials: PLM and PLA series are polyester enclosures; the other options are stainless steel.",
-                          ].join("\n")}
-                        >
-                          <CircleAlert
-                            style={{
-                              width: "1em",
-                              height: "1em",
-                              verticalAlign: "text-bottom",
-                              marginLeft: "0.5rem",
-                              cursor: "help",
-                            }}
-                          />
-                        </span>
-                      )}
                     </label>
                     <select
                       id={`config-${key}`}
@@ -1338,9 +1276,7 @@ function BoosterSetPage() {
                         }
                         return (
                           <option key={opt.value} value={opt.value}>
-                            {key === "motorStart"
-                              ? opt.label
-                              : `- ${opt.value} (${opt.label})`}
+                            {opt.label}
                           </option>
                         );
                       })}
@@ -1822,10 +1758,13 @@ function BoosterSetPage() {
                         strokeDasharray={hasComms ? "" : "6 4"}
                       />
                       <text
-                        x="210"
+                        x="310"
                         y="270"
-                        fill={hasComms ? "#8b5cf6" : "#64748b"}
-                        fontSize="14"
+                        textAnchor="middle"
+                        fontSize="12"
+                        fontWeight="bold"
+                        fill="#334155"
+                        stroke="none"
                       >
                         {hasComms
                           ? `${config.communication} Bus`

@@ -42,6 +42,12 @@ describe("BoosterSetPage - Edge Cases and SVG Logic", () => {
     vi.clearAllMocks();
     localStorage.setItem("dashboard_token", "mock-token");
     fetch.mockImplementation((url) => {
+      if (url.includes("/images/") || /\.(jpg|png)$/i.test(url)) {
+        return Promise.resolve({
+          ok: true,
+          blob: () => Promise.resolve(new Blob([""], { type: "image/png" })),
+        });
+      }
       if (url.includes("/api/v1/series")) {
         return Promise.resolve({
           ok: true,
@@ -57,7 +63,14 @@ describe("BoosterSetPage - Edge Cases and SVG Logic", () => {
       if (url.includes("/api/v1/enclosure-options/")) {
         return Promise.resolve({
           ok: true,
-          json: () => Promise.resolve({ recommended: "ENC-1" }),
+          json: () =>
+            Promise.resolve([
+              {
+                reference: "ENC-1",
+                material: "Aluminum",
+                recommendation_type: "Recommended",
+              },
+            ]),
         });
       }
       return Promise.resolve({
@@ -116,6 +129,12 @@ describe("BoosterSetPage - Edge Cases and SVG Logic", () => {
     fetch.mockImplementation((url) => {
       if (url.includes("generate-package")) {
         return Promise.resolve({ ok: false });
+      }
+      if (url.includes("/images/") || /\.(jpg|png)$/i.test(url)) {
+        return Promise.resolve({
+          ok: true,
+          blob: () => Promise.resolve(new Blob([""], { type: "image/png" })),
+        });
       }
       return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
     });

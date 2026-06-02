@@ -24,6 +24,12 @@ describe("BoosterSetPage - Validation and Resets", () => {
     vi.clearAllMocks();
     localStorage.setItem("dashboard_token", "mock-token");
     fetch.mockImplementation((url) => {
+      if (url.includes("/images/") || /\.(jpg|png)$/i.test(url)) {
+        return Promise.resolve({
+          ok: true,
+          blob: () => Promise.resolve(new Blob([""], { type: "image/png" })),
+        });
+      }
       if (url.includes("/api/v1/series")) {
         return Promise.resolve({
           ok: true,
@@ -39,7 +45,14 @@ describe("BoosterSetPage - Validation and Resets", () => {
       if (url.includes("/api/v1/enclosure-options/")) {
         return Promise.resolve({
           ok: true,
-          json: () => Promise.resolve({ recommended: "ENC-1" }),
+          json: () =>
+            Promise.resolve([
+              {
+                reference: "ENC-1",
+                material: "Aluminum",
+                recommendation_type: "Recommended",
+              },
+            ]),
         });
       }
       return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });

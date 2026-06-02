@@ -55,6 +55,12 @@ describe("BoosterSetPage", () => {
     localStorage.setItem("dashboard_token", "mock-token");
     // Mock initial master data fetch
     fetch.mockImplementation((url) => {
+      if (url.includes("/images/") || /\.(jpg|png)$/i.test(url)) {
+        return Promise.resolve({
+          ok: true,
+          blob: () => Promise.resolve(new Blob([""], { type: "image/png" })),
+        });
+      }
       if (url.includes("/api/v1/series")) {
         return Promise.resolve({
           ok: true,
@@ -71,11 +77,23 @@ describe("BoosterSetPage", () => {
         return Promise.resolve({
           ok: true,
           json: () =>
-            Promise.resolve({
-              recommended: "NSYS3D6630P",
-              alternative: "NSYCRN66300P",
-              outdoor_alternative: "NSYPLM75G",
-            }),
+            Promise.resolve([
+              {
+                reference: "NSYS3D6630P",
+                material: "Polyester",
+                recommendation_type: "Recommended",
+              },
+              {
+                reference: "NSYCRN66300P",
+                material: "Steel",
+                recommendation_type: "Alternative",
+              },
+              {
+                reference: "NSYPLM75G",
+                material: "Polyester",
+                recommendation_type: "Outdoor Alternative",
+              },
+            ]),
         });
       }
       return Promise.resolve({

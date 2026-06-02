@@ -360,7 +360,9 @@ def setup_test_db():
             config_id="CFG-TEST_OPT_1-2X",
             starter_option_id="TEST_OPT_1",
             series_id="DOL",
+            rated_load_power_kw=10.0,
             load_count=2,
+            selected_enclosure_ref="ENC-001",
         )
     )
 

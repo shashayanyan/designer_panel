@@ -23,6 +23,24 @@ def extract_config_id(response):
     return manifest["config_id"]
 
 
+def test_enclosure_options_returns_structured_labels():
+    response = client.get(
+        "/api/v1/enclosure-options/2/DOL/10.0",
+        headers=auth_headers(),
+    )
+
+    assert response.status_code == 200, response.text
+
+    data = response.json()
+    assert data == [
+        {
+            "reference": "ENC-001",
+            "recommendation_type": "Recommended",
+            "material": "Steel",
+        }
+    ]
+
+
 def test_generate_package_requires_auth():
     response = client.post(
         "/api/v1/engine/generate-package",

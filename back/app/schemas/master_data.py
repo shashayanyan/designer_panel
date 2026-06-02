@@ -79,6 +79,13 @@ class EnclosureOption(EnclosureOptionBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class EnclosureRecommendation(BaseModel):
+    reference: str
+    recommendation_type: str
+    material: str
+    model_config = ConfigDict(from_attributes=True)
+
+
 class ConfigurationRuleBase(BaseModel):
     series_id: Optional[str] = None
     ats_included: Optional[bool] = None

@@ -41,6 +41,12 @@ describe("BoosterSetPage - Dynamic Form Logic", () => {
     vi.clearAllMocks();
     localStorage.setItem("dashboard_token", "mock-token");
     fetch.mockImplementation((url) => {
+      if (url.includes("/images/") || /\.(jpg|png)$/i.test(url)) {
+        return Promise.resolve({
+          ok: true,
+          blob: () => Promise.resolve(new Blob([""], { type: "image/png" })),
+        });
+      }
       if (url.includes("/api/v1/series")) {
         return Promise.resolve({
           ok: true,
@@ -57,7 +63,18 @@ describe("BoosterSetPage - Dynamic Form Logic", () => {
         return Promise.resolve({
           ok: true,
           json: () =>
-            Promise.resolve({ recommended: "ENC-REC", alternative: "ENC-ALT" }),
+            Promise.resolve([
+              {
+                reference: "ENC-REC",
+                material: "Polyester",
+                recommendation_type: "Recommended",
+              },
+              {
+                reference: "ENC-ALT",
+                material: "Steel",
+                recommendation_type: "Alternative",
+              },
+            ]),
         });
       }
       return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
@@ -161,8 +178,20 @@ describe("BoosterSetPage - Dynamic Form Logic", () => {
           const delay = currentCall === 1 ? 200 : 50;
           const result =
             currentCall === 1
-              ? { recommended: "STALE-ENC" }
-              : { recommended: "FRESH-ENC" };
+              ? [
+                  {
+                    reference: "STALE-ENC",
+                    material: "Polyester",
+                    recommendation_type: "Recommended",
+                  },
+                ]
+              : [
+                  {
+                    reference: "FRESH-ENC",
+                    material: "Steel",
+                    recommendation_type: "Recommended",
+                  },
+                ];
 
           setTimeout(() => {
             resolve({ ok: true, json: () => Promise.resolve(result) });

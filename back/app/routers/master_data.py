@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -38,7 +38,7 @@ def admin_check(admin_user: models.User = Depends(auth.get_admin_user)):
 # more to be added if needed... early version right now
 @router.get(
     "/enclosure-options/{pump_count}/{motor_start}/{motor_power}",
-    response_model=Dict[str, str],
+    response_model=List[schemas_master.EnclosureRecommendation],
 )
 def get_enclosure_options_for_config(
     db: Session = Depends(get_db),
@@ -46,8 +46,10 @@ def get_enclosure_options_for_config(
     motor_start: str = "",
     motor_power: float = 0.0,
 ):
-    # Implementation for fetching enclosure options based on configuration
-    # print(f"Fetching enclosure options for pumps={pump_count}, motor_start={motor_start}, motor_power={motor_power}")
+    def infer_material(catalog_ref: str) -> str:
+        reference = (catalog_ref or "").upper()
+        return "Polyester" if ("PLA" in reference or "PLM" in reference) else "Steel"
+
     config_line = (
         db.query(models.Configuration)
         .filter_by(
@@ -59,12 +61,49 @@ def get_enclosure_options_for_config(
     )
     if not config_line:
         raise HTTPException(status_code=404, detail="Configuration not found")
-    res = {
-        "recommended": config_line.selected_enclosure_ref,
-        "alternative": config_line.alternative_enclosure_ref,
-        "outdoor_alternative": config_line.outdoor_alternative_enclosure_ref,
+
+    recommendation_labels = {
+        "recommended": "Recommended",
+        "alternative": "Alternative",
+        "outdoor_alternative": "Outdoor Alternative",
     }
-    # print(res)
-    # get rid of null/empty/duplicate values before returning
-    res = {k: v for k, v in res.items() if v}
-    return res
+    recommendation_priority = {
+        "recommended": 3,
+        "alternative": 2,
+        "outdoor_alternative": 1,
+    }
+    raw_options = [
+        ("recommended", config_line.selected_enclosure_ref),
+        ("alternative", config_line.alternative_enclosure_ref),
+        ("outdoor_alternative", config_line.outdoor_alternative_enclosure_ref),
+    ]
+
+    by_reference = {}
+    for recommendation_key, reference in raw_options:
+        if not reference:
+            continue
+
+        candidate = {
+            "reference": reference,
+            "recommendation_type": recommendation_labels[recommendation_key],
+            "material": infer_material(reference),
+            "priority": recommendation_priority[recommendation_key],
+        }
+
+        existing = by_reference.get(reference)
+        if not existing or candidate["priority"] > existing["priority"]:
+            by_reference[reference] = candidate
+
+    ordered_options = sorted(
+        by_reference.values(),
+        key=lambda option: (-option["priority"], option["reference"]),
+    )
+
+    return [
+        {
+            "reference": option["reference"],
+            "recommendation_type": option["recommendation_type"],
+            "material": option["material"],
+        }
+        for option in ordered_options
+    ]

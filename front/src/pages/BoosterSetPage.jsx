@@ -49,7 +49,7 @@ const MOTOR_START_TYPES = {
 
 const PROJECT_METADATA_FIELDS = [
   { key: "projectName", label: "Project Name", type: "text" },
-  { key: "client", label: "Client", type: "text" }, // change to costumer
+  { key: "client", label: "Customer", type: "text" }, // change to costumer
   {
     key: "technicalManager",
     label: "Technical Manager",

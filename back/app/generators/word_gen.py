@@ -68,7 +68,7 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
     if twin.project_name:
         doc.add_paragraph(f"Project Name: {twin.project_name}")
     if twin.project_client:
-        doc.add_paragraph(f"Client: {twin.project_client}")
+        doc.add_paragraph(f"Customer: {twin.project_client}")
     if twin.project_technical_manager:
         doc.add_paragraph(f"Technical Manager: {twin.project_technical_manager}")
     if twin.project_location:
@@ -101,7 +101,7 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
 
     # 2. Application Data Sheet
     doc.add_heading("2. Application Data Sheet", level=1)
-    table = doc.add_table(rows=8, cols=2)
+    table = doc.add_table(rows=7, cols=2)
     table.style = "Table Grid"
 
     def add_row(idx, key, value):
@@ -297,10 +297,14 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
 
     # 6. Control Philosophy
     doc.add_heading("6. Control Philosophy - Cascade PID (Booster Set)", level=1)
+    for clause in templates["philosophy"]:
+        doc.add_paragraph(clause)
+
+    # 7. Communications
     controller_master_text = "The PLC" if has_plc else "The dedicated pump controller"
 
     if comm_protocol.lower() == "no":
-        doc.add_paragraph("G. COMMUNICATIONS - HARDWIRED")
+        doc.add_heading("7. Communications - Hardwired", level=1)
         doc.add_paragraph(
             f"Control and monitoring signals between {(controller_master_text.lower()).replace('the ', '')} and motor starters shall be hardwired via discrete and analog I/O."
         )
@@ -311,7 +315,7 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
             "Loss of critical hardwired permissives (e.g., E-Stop, pressure switch) shall transition the system to a defined safe state."
         )
     else:
-        doc.add_paragraph(f"G. COMMUNICATIONS - {comm_protocol.upper()}")
+        doc.add_heading(f"7. Communications - {comm_protocol}", level=1)
         doc.add_paragraph(
             f"{controller_master_text} shall act as client/master and each motor starter shall act as a server/slave over {comm_protocol}."
         )
@@ -321,12 +325,6 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
         doc.add_paragraph(
             "Loss of communications shall generate an alarm and the system shall transition to a defined safe state."
         )
-
-    # 7. Communications
-    doc.add_heading(f"7. Communications - {twin.communication}", level=1)
-    doc.add_paragraph(
-        f"The PLC shall act as master. Each drive shall be a server via {twin.communication}. The network shall be designed for deterministic control."
-    )
 
     # 8. FAT/SAT
     doc.add_heading("8. FAT/SAT - Minimum Acceptance Tests", level=1)

@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .routers import auth
 from .routers import engine as engine_router
+from .routers import feedback
 from .routers import master_data
 
 app = FastAPI(title="Designer Panel API")
@@ -42,6 +43,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(master_data.router)
 app.include_router(engine_router.router)
+app.include_router(feedback.router)
 
 
 @app.get("/")

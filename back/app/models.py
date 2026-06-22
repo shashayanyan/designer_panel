@@ -1,9 +1,10 @@
 import enum
 
-from sqlalchemy import Boolean, Column, Float
+from sqlalchemy import Boolean, Column, Float, DateTime
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy import ForeignKey, Integer, Numeric, String
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
 
 from .database import Base
 
@@ -310,3 +311,14 @@ class ProjectMetadata(Base):
     communication = Column(String)
     plc = Column(Boolean)
     scada = Column(Boolean)
+
+
+# --- User Feedback ---
+class Feedback(Base):
+    __tablename__ = "feedback"
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, ForeignKey("users.username"), nullable=False)
+    category = Column(String, nullable=False)
+    comment = Column(String, nullable=False)
+    page_url = Column(String, nullable=False)
+    created_at = Column(DateTime, default=func.now(), nullable=False)

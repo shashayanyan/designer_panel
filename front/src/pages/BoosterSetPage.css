@@ -78,7 +78,7 @@
 /* ─── Main Body ─── */
 .booster__body {
   display: grid;
-  grid-template-columns: 420px 1fr;
+  grid-template-columns: 320px 2fr 1fr;
   gap: var(--space-lg);
   flex: 1;
   min-height: 0;

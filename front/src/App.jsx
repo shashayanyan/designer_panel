@@ -6,6 +6,7 @@ import LoginPage from "./pages/LoginPage";
 import { AuthProvider, AuthContext } from "./context/AuthContext";
 import React, { useContext } from "react";
 import ProtectedRoute from "./components/ProtectedRoute";
+import FeedbackBubble from "./components/FeedbackBubble";
 
 function TopNav() {
   const { token, logout } = useContext(AuthContext);
@@ -25,6 +26,7 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <TopNav />
+        <FeedbackBubble />
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route

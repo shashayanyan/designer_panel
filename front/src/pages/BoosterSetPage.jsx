@@ -1919,6 +1919,10 @@ function BoosterSetPage() {
             </div>
           </section>
         </div>
+
+        <div className="booster__sidebar">
+          <div></div>
+        </div>
       </div>
     </div>
   );

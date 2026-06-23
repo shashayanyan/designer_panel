@@ -58,7 +58,7 @@ def get_motor_start_text(
                 FUNCTIONS,
                 PROTECTIONS,
             )
-    elif motor_start == "VFD":
+    elif motor_start == "VSD":
         from .ui_desc_func_prot_txt.vsd import (
             DESCRIPTION,
             TECHNICAL_CHARACTERISTICS,

@@ -190,3 +190,11 @@ class AccessoryRuleBase(BaseModel):
 class AccessoryRule(AccessoryRuleBase):
     accessory_rule_id: str
     model_config = ConfigDict(from_attributes=True)
+
+
+class MotorStartTextResponse(BaseModel):
+    description: Optional[str] = ""
+    technical_characteristics: Optional[str] = ""
+    functions: Optional[str] = ""
+    protections: Optional[str] = ""
+    model_config = ConfigDict(from_attributes=True)

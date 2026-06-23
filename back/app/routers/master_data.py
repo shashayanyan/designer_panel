@@ -107,3 +107,32 @@ def get_enclosure_options_for_config(
         }
         for option in ordered_options
     ]
+
+
+@router.get(
+    "/motor-start-text/{pump_count}/{motor_start}/{motor_power}/{enclosure_ref}",
+    response_model=schemas_master.MotorStartTextResponse,
+)
+def get_motor_start_text(
+    db: Session = Depends(get_db),
+    pump_count: int = 0,
+    motor_start: str = "",
+    motor_power: float = 0.0,
+    enclosure_ref: str = "",
+):
+    from ..utils.ui_desc import get_motor_start_text
+
+    textual_data = get_motor_start_text(
+        db, pump_count, motor_start, motor_power, enclosure_ref
+    )
+    if not textual_data:
+        raise HTTPException(
+            status_code=404, detail="Textual data not found for the given configuration"
+        )
+
+    return schemas_master.MotorStartTextResponse(
+        description=textual_data[0],
+        technical_characteristics=textual_data[1],
+        functions=textual_data[2],
+        protections=textual_data[3],
+    )

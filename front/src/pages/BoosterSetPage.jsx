@@ -537,6 +537,16 @@ function BoosterSetPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const enclosureRequestId = useRef(0);
 
+  const [motorStartText, setMotorStartText] = useState(null);
+  const [isLoadingText, setIsLoadingText] = useState(false);
+  const textRequestId = useRef(0);
+  const [openMotorTextSections, setOpenMotorTextSections] = useState({
+    description: false,
+    technicalCharacteristics: false,
+    functions: false,
+    protections: false,
+  });
+
   const [expandedNodes, setExpandedNodes] = useState(() => {
     const buildExpandedState = (nodes) =>
       Object.fromEntries(
@@ -638,6 +648,55 @@ function BoosterSetPage() {
 
     fetchEnclosureOptions();
   }, [config.pumps, config.motorStart, config.motorPower]);
+
+  useEffect(() => {
+    const requestId = ++textRequestId.current;
+
+    const fetchMotorStartText = async () => {
+      if (
+        !config.pumps ||
+        !config.motorStart ||
+        !config.motorPower ||
+        !config.enclosure
+      ) {
+        setMotorStartText(null);
+        return;
+      }
+
+      setIsLoadingText(true);
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
+        const token = localStorage.getItem("dashboard_token");
+        const headers = {};
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+
+        const res = await fetch(
+          `${apiUrl}/api/v1/motor-start-text/${config.pumps}/${config.motorStart}/${config.motorPower}/${config.enclosure}`,
+          { headers, credentials: "include" },
+        );
+
+        if (res.ok) {
+          const data = await res.json();
+          if (requestId === textRequestId.current) {
+            setMotorStartText(data);
+          }
+        } else if (requestId === textRequestId.current) {
+          setMotorStartText(null);
+        }
+      } catch (error) {
+        if (requestId === textRequestId.current) {
+          console.error("Failed to fetch motor start text", error);
+          setMotorStartText(null);
+        }
+      } finally {
+        if (requestId === textRequestId.current) {
+          setIsLoadingText(false);
+        }
+      }
+    };
+
+    fetchMotorStartText();
+  }, [config.pumps, config.motorStart, config.motorPower, config.enclosure]);
 
   const dynamicMotorStartOptions = useMemo(
     () =>
@@ -1176,6 +1235,36 @@ function BoosterSetPage() {
   else if (hasSCADA) controlText = "SCADA";
   else if (hasPLC) controlText = "PLC";
   else if (hasComms) controlText = "Networked";
+
+  const motorStartTextSections = [
+    {
+      key: "description",
+      title: "Description",
+      content: motorStartText?.description,
+    },
+    {
+      key: "technicalCharacteristics",
+      title: "Technical Characteristics",
+      content: motorStartText?.technical_characteristics,
+    },
+    {
+      key: "functions",
+      title: "Functions",
+      content: motorStartText?.functions,
+    },
+    {
+      key: "protections",
+      title: "Protections",
+      content: motorStartText?.protections,
+    },
+  ];
+
+  const toggleMotorTextSection = (sectionKey) => {
+    setOpenMotorTextSections((prev) => ({
+      ...prev,
+      [sectionKey]: !prev[sectionKey],
+    }));
+  };
 
   return (
     <div className="booster">
@@ -1909,7 +1998,8 @@ function BoosterSetPage() {
                         fontWeight="bold"
                         fill="#334155"
                       >
-                        Starter {i + 1}
+                        {config.motorStart === "VSD" ? "Drive" : "Starter"}{" "}
+                        {i + 1}
                       </text>
                       {/* <text x={xPos} y="590" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#334155">Pump {i + 1}</text> */}
                     </g>
@@ -1919,9 +2009,46 @@ function BoosterSetPage() {
             </div>
           </section>
         </div>
-
+        {/* Motor Start Text Bubble */}
         <div className="booster__sidebar">
-          <div></div>
+          {motorStartText && (
+            <section className="booster__config glass-card fade-in">
+              <h2 className="booster__section-title">Technical Description</h2>
+              <div className="booster__text-accordion">
+                {motorStartTextSections.map((section) => {
+                  const isOpen = openMotorTextSections[section.key];
+
+                  return (
+                    <div className="booster__text-section" key={section.key}>
+                      <button
+                        type="button"
+                        className="booster__text-section-btn"
+                        onClick={() => toggleMotorTextSection(section.key)}
+                        aria-expanded={isOpen}
+                      >
+                        <span>{section.title}</span>
+                        {isOpen ? (
+                          <ChevronDown size={16} />
+                        ) : (
+                          <ChevronRight size={16} />
+                        )}
+                      </button>
+                      {isOpen && section.content && (
+                        <div className="booster__text-section-panel">
+                          <p>{section.content}</p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+          {isLoadingText && (
+            <section className="booster__config glass-card fade-in">
+              <h2 className="booster__section-title">Loading...</h2>
+            </section>
+          )}
         </div>
       </div>
     </div>

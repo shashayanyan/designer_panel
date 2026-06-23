@@ -53,10 +53,22 @@ HTMLAnchorElement.prototype.click = function () {
 };
 
 // Global fetch mock with robust default
-global.fetch = vi.fn(() =>
-  Promise.resolve({
+global.fetch = vi.fn((url) => {
+  if (url && typeof url === "string" && url.includes("/motor-start-text/")) {
+    return Promise.resolve({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          description: "Mock desc",
+          technical_characteristics: "Mock tech",
+          functions: "Mock functions",
+          protections: "Mock protections",
+        }),
+    });
+  }
+  return Promise.resolve({
     ok: true,
     json: () => Promise.resolve([]),
     blob: () => Promise.resolve(new Blob([""])),
-  }),
-);
+  });
+});

@@ -19,14 +19,28 @@ import ifcopenshell.api.unit
 import numpy as np
 
 # ------------------------------------------------------------
-# Helpers
+# Helpers & Maps
 # ------------------------------------------------------------
+
+IFC_CLASS_MAP = {
+    "Soft Starter": "IfcMotorConnection",
+    "Magnetic CB": "IfcProtectiveDevice",
+    "Line Contactor": "IfcSwitchingDevice",
+    "Overload": "IfcProtectiveDevice",
+    "Start PB": "IfcSwitchingDevice",
+    "Stop PB": "IfcSwitchingDevice",
+    "Pilot Light": "IfcLightFixture",
+    "Power Terminal": "IfcJunctionBox",
+    "Control Terminal": "IfcJunctionBox",
+    "Power PE Terminal": "IfcJunctionBox",
+    "Control PE Terminal": "IfcJunctionBox",
+    "Power Cable Gland": "IfcDiscreteAccessory",
+    "Control Cable Gland": "IfcDiscreteAccessory",
+}
 
 
 def create_color_style(model, name, r, g, b, transparency=0.0):
-    """
-    Creates an IFC Surface Style. Transparency is 0.0 (opaque) to 1.0 (invisible).
-    """
+    """Creates an IFC Surface Style. Transparency is 0.0 (opaque) to 1.0 (invisible)."""
     style = ifcopenshell.api.style.add_style(model, name=name)
     ifcopenshell.api.style.add_surface_style(
         model,
@@ -48,25 +62,17 @@ def create_color_style(model, name, r, g, b, transparency=0.0):
 def create_clearance_zone(
     model, context, panel, name, width, depth, height, x, y, z, color_style
 ):
-    """
-    Creates an industry-standard PROVISIONFORSPACE clash detection zone.
-    """
+    """Creates an industry-standard PROVISIONFORSPACE clash detection zone."""
     proxy = ifcopenshell.api.root.create_entity(
         model, ifc_class="IfcBuildingElementProxy", name=name
     )
-
-    # This is the critical IFC4 tag that tells BIM software this is a spatial requirement, not physical hardware
     if hasattr(proxy, "PredefinedType"):
         proxy.PredefinedType = "PROVISIONFORSPACE"
-
     proxy.Description = "Electrical Clearance / Maintenance Zone"
 
-    # Attach the clearance zone to the main panel
     ifcopenshell.api.aggregate.assign_object(
         model, products=[proxy], relating_object=panel
     )
-
-    # Generate Geometry
     rep = create_box_representation(model, context, width, depth, height)
     ifcopenshell.api.geometry.assign_representation(
         model, product=proxy, representation=rep
@@ -77,7 +83,6 @@ def create_clearance_zone(
             model, item=rep.Items[0], style=color_style
         )
 
-    # Place relative to the panel
     matrix = np.eye(4)
     matrix[0, 3] = x
     matrix[1, 3] = y
@@ -91,7 +96,7 @@ def mm_to_m(v_mm):
     return v_mm / 1000.0
 
 
-def load_data(path="002_DigitalTwin_DNA_CFG-ST019-3X.json"):
+def load_data(path="002_DigitalTwin_DNA_CFG-SS011-2X.json"):
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
@@ -150,38 +155,26 @@ def create_port(
     visualize=False,
     color_style=None,
 ):
-    """
-    Creates a logical IfcDistributionPort. If visualize=True, also creates
-    an IfcBuildingElementProxy with a 3D box to represent the port spatially.
-    """
-    # 1. THE LOGICAL DATA
     port = ifcopenshell.api.root.create_entity(
         model, ifc_class="IfcDistributionPort", name=name
     )
-
     if hasattr(port, "FlowDirection"):
         port.FlowDirection = flow_direction
-
     ifcopenshell.api.system.assign_port(model, element=panel, port=port)
 
-    # 2. THE PHYSICAL VISUALIZATION
     if visualize:
         proxy = ifcopenshell.api.root.create_entity(
             model, ifc_class="IfcBuildingElementProxy", name=f"{name}_Physical_Entry"
         )
-        proxy.Description = "WARNING: Spatial location is strictly an assumption for visual prototyping. Not validated by the Digital Twin single source of truth."
-
+        proxy.Description = "Assumed Spatial Port"
         ifcopenshell.api.aggregate.assign_object(
             model, products=[proxy], relating_object=panel
         )
-
         port_size = 0.05
         rep = create_box_representation(model, context, port_size, port_size, port_size)
         ifcopenshell.api.geometry.assign_representation(
             model, product=proxy, representation=rep
         )
-
-        # Apply the warning color to the geometry mesh (Items[0])
         if color_style:
             ifcopenshell.api.style.assign_item_style(
                 model, item=rep.Items[0], style=color_style
@@ -194,18 +187,63 @@ def create_port(
         ifcopenshell.api.geometry.edit_object_placement(
             model, product=proxy, matrix=matrix
         )
-
     return port
+
+
+def create_subcomponent(
+    model, context, parent_panel, line_data, instance_index, x, y, z, w, d, h, color
+):
+    """Creates a localized child component attached to the main panel."""
+    part_number = line_data.get("part_number", "Unknown")
+    category = line_data.get("item_category", "Component")
+    ifc_class = IFC_CLASS_MAP.get(category, "IfcDiscreteAccessory")
+
+    # 1. Create Entity
+    comp_name = f"{category}_{part_number}_{instance_index}"
+    comp = ifcopenshell.api.root.create_entity(
+        model, ifc_class=ifc_class, name=comp_name
+    )
+    comp.Description = line_data.get("description", "")
+
+    # 2. Assign to Parent (Creates IfcRelAggregates hierarchy)
+    ifcopenshell.api.aggregate.assign_object(
+        model, products=[comp], relating_object=parent_panel
+    )
+
+    # 3. Create & Assign Geometry
+    rep = create_box_representation(model, context, w, d, h)
+    ifcopenshell.api.geometry.assign_representation(
+        model, product=comp, representation=rep
+    )
+    if color:
+        ifcopenshell.api.style.assign_item_style(model, item=rep.Items[0], style=color)
+
+    # 4. Position Relative to Panel
+    matrix = np.eye(4)
+    matrix[0, 3] = x
+    matrix[1, 3] = y
+    matrix[2, 3] = z
+    ifcopenshell.api.geometry.edit_object_placement(model, product=comp, matrix=matrix)
+
+    # 5. Assign Metadata
+    add_pset(
+        model,
+        comp,
+        "Pset_ManufacturerTypeInformation",
+        {
+            "Manufacturer": "Schneider Electric",
+            "ArticleNumber": part_number,
+            "ModelLabel": line_data.get("item", ""),
+        },
+    )
+
+    return comp
 
 
 # ------------------------------------------------------------
 # Main Execution Logic
 # ------------------------------------------------------------
 def generate_ifc_from_twin(twin_data: dict, visualize_ports: bool = False) -> bytes:
-    """
-    Generates an IFC (BIM) object from digital twin data.
-    Returns the IFC file content as bytes.
-    """
     data = twin_data
 
     # Setup Model and Contexts
@@ -251,17 +289,22 @@ def generate_ifc_from_twin(twin_data: dict, visualize_ports: bool = False) -> by
         model, products=[space], relating_object=storey
     )
 
-    # ---  Create our Color Styles ---
-    gray_style = create_color_style(model, "Panel_Gray", 0.6, 0.6, 0.62)
+    # --- Colors ---
+    gray_style = create_color_style(
+        model, "Panel_Gray_Glass", 0.6, 0.6, 0.62, transparency=0.7
+    )
     warning_red_style = create_color_style(model, "Warning_Red", 0.9, 0.1, 0.1)
-
-    # Transparent styles for clearances (0.8 = 80% transparent)
     door_clearance_style = create_color_style(
         model, "Clearance_Door", 0.2, 0.5, 0.8, transparency=0.8
     )
     cable_clearance_style = create_color_style(
         model, "Clearance_Cable", 0.9, 0.8, 0.1, transparency=0.8
     )
+
+    # Subcomponent Colors
+    door_comp_style = create_color_style(model, "Door_Comp", 0.1, 0.6, 0.2)
+    internal_comp_style = create_color_style(model, "Internal_Comp", 0.3, 0.3, 0.3)
+    terminal_style = create_color_style(model, "Terminal", 0.8, 0.8, 0.8)
 
     # Panel Creation
     config_id = data.get("config_id", "Unknown_Panel")
@@ -305,51 +348,33 @@ def generate_ifc_from_twin(twin_data: dict, visualize_ports: bool = False) -> by
 
     rep = create_box_representation(model, body_context, width, depth, height)
     assign_representation(model, panel_type, rep)
-
-    # --- Apply the Gray color to the Panel's geometry mesh ---
     ifcopenshell.api.style.assign_item_style(model, item=rep.Items[0], style=gray_style)
 
-    # ------------------------------------------------------------
-    # Revit Identity Data (Pset_ManufacturerTypeInformation)
-    # ------------------------------------------------------------
-
-    # 1. Deduce URL dynamically by finding the Core Device
-    components = data.get("components", [])
-    core_part = ""
-    for comp in components:
-        if comp.get("item_category") == "Core Device":
-            core_part = comp.get("part_number", "")
-            break
-
-    # Generate standard product URL
+    # Identity Data
+    core_part = next(
+        (
+            c.get("part_number", "")
+            for c in data.get("components", [])
+            if c.get("item_category") == "Core Device"
+        ),
+        "",
+    )
     derived_url = f"https://www.se.com/ww/en/product/{core_part}/" if core_part else ""
 
-    # 2. Apply standard Manufacturer Pset to populate Revit native fields
     add_pset(
         model,
         panel_type,
         "Pset_ManufacturerTypeInformation",
         {
-            "Manufacturer": "Schneider Electric",  # Injected based on library context
-            "ModelLabel": data.get("config_id", ""),  # Populates Revit 'Model'
+            "Manufacturer": "Schneider Electric",
+            "ModelLabel": data.get("config_id", ""),
             "ModelReference": data.get("series_id", ""),
             "ArticleNumber": data.get("enclosure", {}).get("catalog_ref", ""),
-            "Description": data.get("notes", ""),  # Populates Revit 'Description'
-            "ManufacturerUrl": derived_url,  # Populates Revit 'URL'
+            "Description": data.get("notes", ""),
+            "ManufacturerUrl": derived_url,
         },
     )
 
-    # ------------------------------------------------------------
-    # Custom Digital Twin Data
-    # ------------------------------------------------------------
-
-    # Psets
-    add_pset(
-        model,
-        panel_type,
-        "DT_Pset_Identity",
-        {"ConfigID": data.get("config_id", ""), "SeriesID": data.get("series_id", "")},
-    )
     add_pset(
         model,
         panel_type,
@@ -360,6 +385,81 @@ def generate_ifc_from_twin(twin_data: dict, visualize_ports: bool = False) -> by
             "CommunicationProtocol": data.get("communication", ""),
         },
     )
+
+    # ------------------------------------------------------------
+    # Hierarchical Component Generation (LOD 350 Sub-components)
+    # ------------------------------------------------------------
+    bom_lines = data.get("bom_lines", [])
+
+    # Adaptive Cursors
+    z_cursor_backplate = height - 0.15
+    z_cursor_door = height - 0.10
+    x_cursor_terminals = 0.05
+
+    for line in bom_lines:
+        cat = line.get("item_category", "")
+        if cat == "Enclosure":
+            continue
+
+        qty = int(float(line.get("qty", "1")))
+
+        # Calculate dynamic horizontal spacing blocks
+        x_spacing = width / (qty + 1)
+
+        for i in range(qty):
+            if "PB" in cat or "Pilot Light" in cat:
+                # Mount on Door (y = depth)
+                cw, cd, ch = 0.03, 0.015, 0.03
+                cx = (x_spacing * (i + 1)) - (cw / 2)
+                cy = depth - cd  # Embedded slightly into the door
+                cz = z_cursor_door
+                color = door_comp_style
+
+            elif "Terminal" in cat:
+                # Mount on bottom DIN rail (left to right)
+                cw, cd, ch = 0.006, 0.05, 0.05
+                cx = x_cursor_terminals
+                cy = 0.05
+                cz = 0.1
+                x_cursor_terminals += 0.007
+                color = terminal_style
+
+            elif "Gland" in cat:
+                # Mount on Bottom Gland Plate (z = 0)
+                cw, cd, ch = 0.04, 0.04, 0.04
+                cx = (x_spacing * (i + 1)) - (cw / 2)
+                cy = (depth / 2) - (cd / 2)  # Centered on bottom depth
+                cz = -ch / 2  # Protruding down from bottom face
+                color = terminal_style
+
+            else:
+                # Mount on Backplate Motor Branches (y = 0.05)
+                cw, cd, ch = 0.06, 0.1, 0.1
+                cx = (x_spacing * (i + 1)) - (cw / 2)
+                cy = 0.02
+                cz = z_cursor_backplate
+                color = internal_comp_style
+
+            create_subcomponent(
+                model=model,
+                context=body_context,
+                parent_panel=panel,
+                line_data=line,
+                instance_index=i + 1,
+                x=cx,
+                y=cy,
+                z=cz,
+                w=cw,
+                d=cd,
+                h=ch,
+                color=color,
+            )
+
+        # Update height cursors when the row is finished so the next components stack below
+        if "PB" in cat or "Pilot Light" in cat:
+            z_cursor_door -= 0.08
+        elif "Terminal" not in cat and "Gland" not in cat:
+            z_cursor_backplate -= 0.15
 
     # Ports
     create_port(
@@ -374,17 +474,15 @@ def generate_ifc_from_twin(twin_data: dict, visualize_ports: bool = False) -> by
         visualize=visualize_ports,
         color_style=warning_red_style,
     )
-
     load_count = int(data.get("load_count", 0))
     for i in range(1, load_count + 1):
-        x_pos = width * (i / (load_count + 1))
         create_port(
             model,
             body_context,
             panel,
             f"Motor_{i}_Outgoing",
             "SOURCE",
-            x=x_pos,
+            x=width * (i / (load_count + 1)),
             y=depth * 0.5,
             z=0.0,
             visualize=visualize_ports,
@@ -406,36 +504,21 @@ def generate_ifc_from_twin(twin_data: dict, visualize_ports: bool = False) -> by
             color_style=warning_red_style,
         )
 
-    # ------------------------------------------------------------
-    # Clearances (PROVISIONFORSPACE Zones)
-    # ------------------------------------------------------------
-    if (
-        visualize_ports
-    ):  # We tie this to the visualize flag so the logical model stays purely logical
-
-        # 1. Door / Working Clearance (Front of panel)
-        # IEC/NEC Standard: Minimum 1000mm (1.0m) depth in front. Height matches panel or 2.0m min.
-        working_depth = 1.0
-        working_height = max(height, 2.0)
-
+    # Clearances
+    if visualize_ports:
         create_clearance_zone(
             model,
             body_context,
             panel,
             "Clearance_WorkingSpace",
             width=width,
-            depth=working_depth,
-            height=working_height,
+            depth=1.0,
+            height=max(height, 2.0),
             x=0,
             y=depth,
-            z=0,  # Placed at the front face (y=depth)
+            z=0,
             color_style=door_clearance_style,
         )
-
-        # 2. Cable Bending Clearance (Top of panel)
-        # Standard: ~400mm (0.4m) above top gland plates for cable routing.
-        bending_height = 0.4
-
         create_clearance_zone(
             model,
             body_context,
@@ -443,10 +526,10 @@ def generate_ifc_from_twin(twin_data: dict, visualize_ports: bool = False) -> by
             "Clearance_TopCables",
             width=width,
             depth=depth,
-            height=bending_height,
+            height=0.4,
             x=0,
             y=0,
-            z=height,  # Placed directly on top of the panel (z=height)
+            z=height,
             color_style=cable_clearance_style,
         )
 
@@ -465,17 +548,16 @@ def main():
     )
     args = parser.parse_args()
 
-    # Load Data
-    json_path = "002_DigitalTwin_DNA_CFG-ST019-3X.json"
+    # Load Data (Defaults to the uploaded JSON name if the other is not found)
+    json_path = "002_DigitalTwin_DNA_CFG-SS011-2X.json"
     try:
         data = load_data(json_path)
     except FileNotFoundError:
-        print(f"Error: {json_path} not found for testing.")
+        print(f"Error: {json_path} not found.")
         return
 
     content = generate_ifc_from_twin(data, visualize_ports=args.visualize_ports)
 
-    # Save
     config_id = data.get("config_id", "Unknown_Panel")
     base_name = args.output_name if args.output_name else config_id
     suffix = "_Visual" if args.visualize_ports else "_Logical"

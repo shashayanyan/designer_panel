@@ -7,7 +7,13 @@ from docx.oxml.shared import OxmlElement
 from docx.oxml.ns import qn
 
 from ..schemas.configurator import DigitalTwinResponse
-from .spec_text_gen import get_enclosure_clauses, get_starter_templates
+from .spec_text_gen import (
+    build_spec_context,
+    get_communication_subject,
+    get_enclosure_clauses,
+    get_safe_control_philosophy_clauses,
+    get_starter_templates,
+)
 
 # Source - https://stackoverflow.com/a/68530806
 # Posted by JGC
@@ -60,40 +66,58 @@ def insertHR(paragraph):
 def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
     doc = Document()
 
+    ctx = build_spec_context(twin)
+    has_plc = ctx["has_plc"]
+    has_scada = ctx["has_scada"]
+    has_network = ctx["has_network"]
+    comm_mode = ctx["comm_mode"]
+    comm_label = ctx["comm_label"]
+    starter_kind = ctx["starter_kind"]
+    device_type = ctx["device_type"]
+    supports_speed_reference = ctx["supports_speed_reference"]
+
+    enclosure = getattr(twin, "enclosure", None)
+    mounting = getattr(enclosure, "mounting_type", "Floor Standing")
+    dimensions = getattr(enclosure, "dimensions_mm", "N/A")
+    ip_rating = getattr(enclosure, "ip_rating", "IP rating TBC")
+
+    if starter_kind == "vfd":
+        control_summary = "Pressure control"
+    else:
+        control_summary = "Pump staging control"
+
+    comm_summary = comm_label if has_network else "Hardwired"
+
     doc.add_heading("Application Specification Appendix", 0)
     doc.add_paragraph(f"Project Configuration DNA: {twin.config_id}")
     doc.add_paragraph(f"Water Booster Set - {twin.load_count}-pump system")
 
-    # Add a summary of the metadata for the project if exists
-    if twin.project_name:
+    if getattr(twin, "project_name", None):
         doc.add_paragraph(f"Project Name: {twin.project_name}")
-    if twin.project_client:
+    if getattr(twin, "project_client", None):
         doc.add_paragraph(f"Customer: {twin.project_client}")
-    if twin.project_technical_manager:
+    if getattr(twin, "project_technical_manager", None):
         doc.add_paragraph(f"Technical Manager: {twin.project_technical_manager}")
-    if twin.project_location:
+    if getattr(twin, "project_location", None):
         doc.add_paragraph(f"Location: {twin.project_location}")
-    if twin.project_date:
+    if getattr(twin, "project_date", None):
         doc.add_paragraph(f"Date: {twin.project_date}")
-    if twin.project_notes:
+    if getattr(twin, "project_notes", None):
         doc.add_paragraph(f"Additional Notes: {twin.project_notes}")
 
-    # draw a black dashed horizontal line
     insertHR(doc.add_paragraph())
 
-    device_type = (
-        twin.components[0].description if twin.components else "Variable Speed Drive"
-    )
-    mounting = twin.enclosure.mounting_type if twin.enclosure else "Floor Standing"
-    dimensions = twin.enclosure.dimensions_mm if twin.enclosure else "N/A"
     doc.add_paragraph(
-        f"{device_type} Control Panel - {twin.load_count} x {twin.motor_power_kw} kW | {dimensions} | {twin.enclosure.ip_rating} {mounting} | Cascade PID | {twin.communication}"
+        f"{device_type} Control Panel - "
+        f"{twin.load_count} x {twin.motor_power_kw} kW | "
+        f"{dimensions} | {ip_rating} {mounting} | "
+        f"{control_summary} | {comm_summary}"
     )
 
     # 1. Purpose and How to Use
     doc.add_heading("1. Purpose and How to Use", level=1)
     doc.add_paragraph(
-        "This document is a copy/paste-ready specification appendix intended for Design Firms to include in Concept/FEED and Basic Design packages. It defines a repeatable solution approach for a water booster application and enables early-stage prescription of the complete motor control solution (enclosures, protection, variable speed drives, control, communications, and testing)."
+        "This document is a copy/paste-ready specification appendix intended for Design Firms to include in Concept/FEED and Basic Design packages. It defines a repeatable solution approach for a water booster application and enables early-stage prescription of the complete motor control solution (enclosures, protection, motor starters, control, communications, and testing)."
     )
     doc.add_paragraph(
         "This appendix is technology- and outcome-oriented, but references Schneider Electric solution families where applicable. Final product references (exact part numbers) shall be confirmed during detailed design by the System Integrator / Panel Builder according to local catalog, short-circuit levels, environmental conditions, and end-user standards."
@@ -108,41 +132,68 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
         table.rows[idx].cells[0].text = key
         table.rows[idx].cells[1].text = value
 
+    if starter_kind == "vfd":
+        process_objective = (
+            "Maintain discharge pressure at setpoint across variable demand"
+        )
+        control_mode = (
+            "Pressure control with pump staging/de-staging and automatic alternation "
+            "where provided by the selected controller"
+        )
+    elif starter_kind in ["ats01", "ats130"]:
+        process_objective = "Maintain discharge pressure within the required operating band across variable demand"
+        control_mode = (
+            "Pressure-based pump staging/de-staging with automatic alternation using "
+            "soft starter start/stop control where provided by the selected controller"
+        )
+    elif starter_kind == "dol":
+        process_objective = "Maintain discharge pressure within the required operating band across variable demand"
+        control_mode = (
+            "Pressure-based pump staging/de-staging with automatic alternation using "
+            "DOL start/stop control where provided by the selected controller"
+        )
+    else:
+        process_objective = "Maintain discharge pressure according to the selected booster control philosophy"
+        control_mode = "Pressure-based pump staging/de-staging with automatic alternation where provided by the selected controller"
+
+    if has_network:
+        controller_side = (
+            "PLC" if has_plc else "external controller or site control system"
+        )
+        comm_row = (
+            f"{comm_label} interface for connection between the {controller_side} "
+            "and selected communication-capable devices"
+        )
+    else:
+        comm_row = (
+            "Hardwired control and monitoring signals between the controller interface "
+            "and motor starters"
+        )
+
+    if has_scada:
+        if has_plc:
+            comm_row += "; SCADA interface included"
+        else:
+            comm_row += "; SCADA integration via external controller, BMS, or site control system"
+
     add_row(0, "Application", f"Water Booster Set - {twin.load_count} Pumps")
-    add_row(
-        1,
-        "Process objective",
-        "Maintain discharge pressure at setpoint across variable demand",
-    )
+    add_row(1, "Process objective", process_objective)
     add_row(
         2,
         "Motor configuration",
         f"{twin.load_count} pumps x {twin.motor_power_kw} kW each",
     )
     add_row(3, "Starter type", f"{device_type} for each pump")
-    add_row(
-        4,
-        "Control mode",
-        "Cascade PID with staging/de-staging and automatic alternation",
-    )
-    add_row(
-        5,
-        "Enclosure",
-        f"{twin.enclosure.ip_rating} {mounting.lower()} control panel (universal enclosure)",
-    )
-    add_row(
-        6,
-        "Communications",
-        f"{twin.communication} between PLC and drives; optional uplink to SCADA",
-    )
+    add_row(4, "Control mode", control_mode)
+    add_row(5, "Enclosure", f"{ip_rating} {mounting.lower()} control panel")
+    add_row(6, "Communications", comm_row)
 
-    # 3. Reference Architecture
-    doc.add_heading("3. Reference Architecture", level=1)
+    # 3. Multi-Line Diagram & Reference Architecture
+    doc.add_heading("3. Multi-Line Diagram & Reference Architecture", level=1)
     doc.add_paragraph(
-        "The reference architecture below provides a typical power and control arrangement for a multi-pump booster set with VSD control. It is intended as an early-stage template. The detailed GA, heat dissipation, cable entry, and assembly details shall be provided by the selected panel builder."
+        "The multi-line diagram below provides a typical control and power arrangement for a multi-pump booster set. It is intended as an early-stage template."
     )
 
-    # Inject line diagram image if base64 provided
     if hasattr(twin, "multi_line_diagram_b64") and twin.multi_line_diagram_b64:
         try:
             b64_data = twin.multi_line_diagram_b64
@@ -161,7 +212,10 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
             "[PLACEHOLDER: Generated multi line diagram will be inserted here when requested via UI payload.]"
         )
 
-    # Inject reference architecture image if base64 provided
+    doc.add_paragraph(
+        f"The reference architecture below provides a typical power and control arrangement for a multi-pump booster set with {device_type} control. It is intended as an early-stage template. The detailed GA, heat dissipation, cable entry, and assembly details shall be provided by the selected panel builder."
+    )
+
     if hasattr(twin, "reference_architecture_b64") and twin.reference_architecture_b64:
         try:
             b64_data = twin.reference_architecture_b64
@@ -183,160 +237,352 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
     # 4. Panel Scope and Deliverables
     doc.add_heading("4. Panel Scope and Deliverables", level=1)
     doc.add_paragraph("The booster control panel assembly shall include, as a minimum:")
+
     doc.add_paragraph(
         "Main incoming isolator and/or MCCB sized for the panel maximum demand and fault level.",
         style="List Bullet",
     )
+
+    if starter_kind == "vfd":
+        feeder_label = "VFD feeders"
+    elif starter_kind in ["ats01", "ats130"]:
+        feeder_label = "soft starter feeders"
+    elif starter_kind == "dol":
+        feeder_label = "DOL starter feeders"
+    else:
+        feeder_label = "motor starter feeders"
+
     doc.add_paragraph(
-        f"{twin.load_count} VSD feeders sized for {twin.motor_power_kw} kW motors, including appropriate upstream protection and isolation as per applicable standards.",
-        style="List Bullet",
-    )
-    doc.add_paragraph(
-        "PLC with sufficient Ethernet capability and I/O for pressure feedback, permissives, local controls, and alarms.",
-        style="List Bullet",
-    )
-    doc.add_paragraph(
-        "Local operator interface (HMI) and basic local controls.", style="List Bullet"
-    )
-    doc.add_paragraph(
-        f"Industrial Ethernet switch for {twin.communication} network connectivity.",
-        style="List Bullet",
-    )
-    doc.add_paragraph(
-        "Panel auxiliaries: 24 VDC power supply, control protection, terminal blocks, labeling, earthing, and service accessories (lighting/heater as required).",
-        style="List Bullet",
-    )
-    doc.add_paragraph(
-        "Documentation set: electrical drawings, I/O list, network IP plan, PLC/HMI backups, FAT/SAT records.",
+        f"{twin.load_count} {feeder_label} sized for {twin.motor_power_kw} kW motors, including appropriate upstream protection, isolation, and motor protection as per applicable standards.",
         style="List Bullet",
     )
 
-    # 5. Electrical Requirements
-    doc.add_heading("5. Electrical Requirements", level=1)
+    if has_plc:
+        doc.add_paragraph(
+            "PLC with sufficient I/O and processing capacity for pressure feedback, permissives, local controls, alarms, and pump sequencing.",
+            style="List Bullet",
+        )
+    else:
+        if comm_mode == "hardwired":
+            doc.add_paragraph(
+                "Hardwired interface terminals for connection to the external pump controller, BMS, or site control system.",
+                style="List Bullet",
+            )
+        else:
+            doc.add_paragraph(
+                "Hardwired and/or communication interface terminals for connection to the external pump controller, BMS, or site control system.",
+                style="List Bullet",
+            )
+
+    doc.add_paragraph(
+        "Local hardwired operator devices as required, such as selector switches, pushbuttons, reset pushbuttons, and pilot lights.",
+        style="List Bullet",
+    )
+
+    if has_network:
+        doc.add_paragraph(
+            f"{comm_label} communication interface provisions for connection to the selected controller or site control system.",
+            style="List Bullet",
+        )
+    else:
+        doc.add_paragraph(
+            "Hardwired terminal interface for pump commands, feedback signals, permissives, and alarms.",
+            style="List Bullet",
+        )
+
+    doc.add_paragraph(
+        "Panel auxiliaries: control power supplies where required, control protection, terminal blocks, labeling, earthing, and service accessories such as lighting or heater where required.",
+        style="List Bullet",
+    )
+
+    deliverables = [
+        "electrical drawings",
+        "single-line diagram",
+        "control schematics",
+        "general arrangement drawing",
+        "terminal schedule",
+        "BOM",
+        "FAT/SAT records",
+        "operating and maintenance manuals",
+    ]
+
+    if has_plc:
+        deliverables.extend(["I/O list", "PLC program backup"])
+
+    if comm_mode == "hardwired":
+        deliverables.append("hardwired interface schedule")
+    else:
+        deliverables.extend(
+            [
+                "network architecture",
+                "addressing plan where applicable",
+                "communication parameter list",
+                "available data point list",
+            ]
+        )
+
+    if has_scada:
+        deliverables.append("SCADA interface description")
+
+    doc.add_paragraph(
+        "Documentation set shall include: " + ", ".join(deliverables) + ".",
+        style="List Bullet",
+    )
+
+    # 5. Technical Requirements
+    doc.add_heading("5. Technical Requirements", level=1)
+
     doc.add_heading("5.1 Enclosure and Assembly", level=2)
     doc.add_paragraph(
-        f"The control panel enclosure shall be {mounting.lower()} with minimum ingress protection rating {twin.enclosure.ip_rating} and suitable for indoor technical room installation unless stated otherwise."
+        f"The control panel enclosure shall be {mounting.lower()} with minimum ingress protection rating {ip_rating} and suitable for indoor technical room installation unless stated otherwise."
     )
+
     enc_lines = get_enclosure_clauses(twin)
     for line in enc_lines:
         doc.add_paragraph(line)
 
     doc.add_heading("5.2 Feeders", level=2)
     doc.add_paragraph(
-        f"Each pump motor shall be controlled by an individual {device_type} suitable for {twin.motor_power_kw} kW motor duty and the supply network characteristics."
+        f"The panel shall include {twin.load_count} motor feeder sections, one per pump."
     )
     doc.add_paragraph(
-        f"The drive shall support network control and monitoring via {twin.communication} and shall expose key operating data."
-    )
-    doc.add_paragraph(
-        "The design shall include appropriate upstream protection and isolation for each feeder."
+        "The design shall include appropriate upstream short-circuit protection, overload protection, isolation, and earthing for each feeder."
     )
 
-    # dynamic feeder clauses
-    device_type = twin.components[0].description if twin.components else "Motor Starter"
-    comm_protocol = twin.communication if twin.communication else "Modbus TCP"
-
-    templates = get_starter_templates(twin.series_id)
+    templates = get_starter_templates(twin)
     feeder_clauses = [
         clause.format(motor_power_kw=twin.motor_power_kw)
         for clause in templates["feeders"]
     ]
+
     for clause in feeder_clauses:
         doc.add_paragraph(clause)
 
-    # Append communication capabilities of the feeders
-    if comm_protocol.lower() == "no":
-        doc.add_paragraph(
-            f"Each {device_type} shall support hardwired I/O for start/stop, speed reference, and monitoring."
-        )
-        doc.add_paragraph(
-            f"Each {device_type} shall provide access to at least the following data via analog/digital signals: run status, fault status, and feedback."
-        )
+    if comm_mode == "hardwired":
+        if starter_kind == "vfd":
+            doc.add_paragraph(
+                f"Each {device_type} shall support hardwired I/O for start/stop, speed reference, run feedback, fault feedback, and monitoring."
+            )
+        elif starter_kind == "dol":
+            doc.add_paragraph(
+                "Each DOL feeder shall provide hardwired interfaces for start command, stop command or run permissive, run feedback, fault feedback, overload trip indication, reset where applicable, and monitoring."
+            )
+        else:
+            doc.add_paragraph(
+                f"Each {device_type} shall support hardwired I/O for start command, stop command or run permissive, run feedback, fault feedback, reset where applicable, and monitoring."
+            )
     else:
-        doc.add_paragraph(
-            f"Each {device_type} shall support Ethernet communications using {comm_protocol} for start/stop, speed reference, and monitoring."
-        )
-        doc.add_paragraph(
-            f"Each {device_type} shall provide access to at least the following data: run status, feedback, current, power, energy, fault status, and fault code."
-        )
+        comm_subject = get_communication_subject(ctx)
+
+        if starter_kind == "vfd":
+            doc.add_paragraph(
+                f"{comm_subject} shall support {comm_label} communications for start/stop, speed reference, status, diagnostics, and monitoring."
+            )
+        elif starter_kind == "dol":
+            doc.add_paragraph(
+                f"{comm_subject} shall provide {comm_label}-capable interfaces for pump start/stop commands, run feedback, ready status, fault status, reset where applicable, and diagnostics, where included in the selected architecture."
+            )
+        else:
+            doc.add_paragraph(
+                f"{comm_subject} shall support {comm_label} communications for command, status, diagnostics, and monitoring where supported by the selected device."
+            )
 
     doc.add_heading("5.3 Control Power and Auxiliaries", level=2)
+
+    control_power_loads = [
+        "control relays",
+        "starter control circuits",
+        "field instrumentation loops where required",
+    ]
+
+    if has_plc:
+        control_power_loads.extend(["PLC"])
+
+    if has_network:
+        control_power_loads.append("communication interface devices where included")
+
     doc.add_paragraph(
-        "The panel shall include a 24 VDC control power supply sized for PLC, HMI, network devices, and field instrumentation loops as required."
+        "The panel shall include control power supplies sized for "
+        + ", ".join(control_power_loads[:-1])
+        + " and "
+        + control_power_loads[-1]
+        + "."
     )
+
     doc.add_paragraph(
-        "An emergency stop function shall remove run permission from all drives and place the system into a safe state."
+        "An emergency stop function shall remove run permission from all motor starters and place the system into a safe state."
     )
     doc.add_paragraph(
         "Door interlock and maintenance mode provisions shall be implemented as required by local regulations and end user standards."
     )
 
-    # dynamic control clauses
-    has_plc = str(twin.plc_included).strip().lower() in ["yes", "true", "1"]
-    has_scada = str(twin.scada_included).strip().lower() in ["yes", "true", "1"]
-    controller_text = (
-        "a PLC" if has_plc else "a dedicated pump controller (or remote PLC)"
-    )
-
-    doc.add_paragraph(
-        f"The panel shall include {controller_text} with sufficient capacity and I/O to implement required controls."
-    )
-
-    if has_scada:
+    if has_plc:
         doc.add_paragraph(
-            "The panel shall include a local HMI and a network uplink to a supervisory SCADA system for remote monitoring and control."
+            "The panel shall include a PLC with sufficient capacity and I/O to implement the required booster control functions."
         )
     else:
-        doc.add_paragraph(
-            "The panel shall include a local HMI for operator control and monitoring (start/stop, setpoints, status, alarms, runtime)."
-        )
+        if comm_mode == "hardwired":
+            doc.add_paragraph(
+                "Where no PLC is included in the panel, the panel shall provide the required hardwired interfaces for connection to an external pump controller, BMS, or site control system."
+            )
+        else:
+            doc.add_paragraph(
+                "Where no PLC is included in the panel, the panel shall provide the required hardwired and/or communication interfaces for connection to an external pump controller, BMS, or site control system."
+            )
+
+    if has_scada:
+        if has_plc:
+            doc.add_paragraph(
+                "The panel shall include the required interface for supervisory SCADA monitoring and control, including status, alarms, and commands where required."
+            )
+        else:
+            doc.add_paragraph(
+                "SCADA integration shall be provided through the external controller, BMS, or site control system connected to the panel interfaces."
+            )
+    else:
+        if has_plc:
+            doc.add_paragraph(
+                "Operator control and monitoring shall be provided through local hardwired devices and PLC I/O as defined by the selected control architecture."
+            )
+        else:
+            doc.add_paragraph(
+                "Operator control and monitoring shall be provided through local hardwired devices and/or by the external controller as defined by the selected architecture."
+            )
 
     doc.add_paragraph(
-        "The control system shall support a redundant discharge pressure transmitter. Upon primary signal fault/out-of-range, control shall automatically switch to the redundant transmitter and alarm.\n"
+        "Pressure transmitter quantity, redundancy, scaling, and failover behavior shall be implemented according to the selected I/O configuration and project requirements."
     )
 
     # 6. Control Philosophy
-    doc.add_heading("6. Control Philosophy - Cascade PID (Booster Set)", level=1)
-    for clause in templates["philosophy"]:
+    if starter_kind == "vfd":
+        doc.add_heading("6. Control Philosophy - VFD Booster Set", level=1)
+    elif starter_kind in ["ats01", "ats130"]:
+        doc.add_heading("6. Control Philosophy - Soft Starter Booster Set", level=1)
+    elif starter_kind == "dol":
+        doc.add_heading("6. Control Philosophy - DOL Booster Set", level=1)
+    else:
+        doc.add_heading("6. Control Philosophy - Booster Set", level=1)
+
+    philosophy_clauses = get_safe_control_philosophy_clauses(ctx, templates)
+    for clause in philosophy_clauses:
         doc.add_paragraph(clause)
 
     # 7. Communications
-    controller_master_text = "The PLC" if has_plc else "The dedicated pump controller"
-
-    if comm_protocol.lower() == "no":
-        doc.add_heading("7. Communications - Hardwired", level=1)
-        doc.add_paragraph(
-            f"Control and monitoring signals between {(controller_master_text.lower()).replace('the ', '')} and motor starters shall be hardwired via discrete and analog I/O."
-        )
-        doc.add_paragraph(
-            "The panel shall include sufficient terminal blocks to land all interposing hardwired control links."
-        )
-        doc.add_paragraph(
-            "Loss of critical hardwired permissives (e.g., E-Stop, pressure switch) shall transition the system to a defined safe state."
+    if has_plc:
+        loss_comm_clause = (
+            "Loss of communications shall generate an alarm and the PLC shall transition "
+            "the booster set to a defined safe state according to the control philosophy."
         )
     else:
-        doc.add_heading(f"7. Communications - {comm_protocol}", level=1)
+        loss_comm_clause = (
+            "Loss of communications shall generate an alarm where communication monitoring "
+            "is implemented, and the required fail-safe response shall be defined in the "
+            "external controller or site control system according to the control philosophy."
+        )
+
+    if comm_mode == "hardwired":
+        doc.add_heading("7. Communications - Hardwired", level=1)
+        controller_text = (
+            "PLC" if has_plc else "external controller or site control system"
+        )
+
         doc.add_paragraph(
-            f"{controller_master_text} shall act as client/master and each motor starter shall act as a server/slave over {comm_protocol}."
+            f"Control and monitoring signals between the {controller_text} and the booster panel shall be hardwired via discrete and analog I/O."
         )
         doc.add_paragraph(
-            "Each networked device shall have a unique IP address; an IP plan shall be provided."
+            "The panel shall include sufficient terminal blocks for pump commands, run feedback, fault feedback, reset signals, permissives, pressure signals, and alarm interfaces as required."
         )
         doc.add_paragraph(
-            "Loss of communications shall generate an alarm and the system shall transition to a defined safe state."
+            "Loss of critical hardwired permissives, such as emergency stop or pressure protection signals, shall transition the booster set to a defined safe state."
         )
+
+    elif comm_mode == "modbus":
+        doc.add_heading(f"7. Communications - {comm_label}", level=1)
+
+        if has_plc:
+            doc.add_paragraph(
+                f"The PLC shall exchange command, status, and diagnostic data with the selected communication-capable devices over {comm_label}."
+            )
+        else:
+            doc.add_paragraph(
+                f"The panel shall provide {comm_label}-capable interface points or devices for connection to the external controller, BMS, or site control system, where included in the selected architecture."
+            )
+
+        doc.add_paragraph(
+            "The Modbus address map, communication parameters, timeout behavior, and available data points shall be documented."
+        )
+
+    elif comm_mode == "profinet":
+        doc.add_heading(f"7. Communications - {comm_label}", level=1)
+
+        if has_plc:
+            doc.add_paragraph(
+                f"The PLC shall exchange cyclic command, status, and diagnostic data with the selected communication-capable devices over {comm_label}."
+            )
+        else:
+            doc.add_paragraph(
+                f"The panel shall provide {comm_label}-capable interface points or devices for connection to the external controller, BMS, or site control system, where included in the selected architecture."
+            )
+
+        doc.add_paragraph(
+            "ProfiNet device names, IP addresses where applicable, GSDML files, diagnostic data, and network topology shall be documented where applicable."
+        )
+
+    else:
+        doc.add_heading(f"7. Communications - {comm_label}", level=1)
+        doc.add_paragraph(
+            f"The selected communication interface shall support command, status, diagnostics, and monitoring over {comm_label} where included in the selected architecture."
+        )
+        doc.add_paragraph(
+            "Addressing, communication parameters, available data points, and timeout behavior shall be documented where applicable."
+        )
+
+    if comm_mode != "hardwired":
+        doc.add_paragraph(loss_comm_clause)
 
     # 8. FAT/SAT
     doc.add_heading("8. FAT/SAT - Minimum Acceptance Tests", level=1)
-    doc.add_paragraph(
-        "The supplier shall provide electrical drawings (SLD, schematics, GA, terminal schedule), I/O list, network IP plan, PLC/HMI backups, and operating manuals."
-    )
-    doc.add_paragraph(
-        "FAT shall verify wiring, labeling, communications, HMI, and core control sequences including staging/de-staging, alternation, and redundancy behavior."
-    )
-    doc.add_paragraph(
-        "SAT shall verify field wiring, motor rotation, transmitter scaling, PID stability, and redundancy in live operation."
-    )
+
+    fat_items = [
+        "wiring",
+        "labeling",
+        "protection device settings",
+        "DOL feeder operation" if starter_kind == "dol" else f"{device_type} operation",
+        "local controls",
+        "fault indication",
+    ]
+
+    if has_plc:
+        fat_items.append("automatic booster control sequences")
+
+    if comm_mode != "hardwired":
+        fat_items.append(f"{comm_label} communication/interface tests")
+
+    if supports_speed_reference:
+        fat_items.append("speed reference and pressure control response")
+
+    doc.add_paragraph("FAT shall verify " + ", ".join(fat_items) + ".")
+
+    sat_items = [
+        "field wiring",
+        "motor rotation",
+        "DOL feeder operation" if starter_kind == "dol" else f"{device_type} operation",
+        "protection trips",
+        "local/remote control interface",
+    ]
+
+    if comm_mode != "hardwired":
+        if has_plc:
+            sat_items.append(f"{comm_label} communication with panel control devices")
+        else:
+            sat_items.append(
+                f"{comm_label} interface availability and communication with the external control system where provided"
+            )
+
+    if supports_speed_reference:
+        sat_items.extend(["pressure transmitter scaling", "pressure control stability"])
+
+    doc.add_paragraph("SAT shall verify " + ", ".join(sat_items) + ".")
 
     output = io.BytesIO()
     doc.save(output)

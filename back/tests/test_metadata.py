@@ -19,8 +19,11 @@ def auth_headers(username="testuser"):
 def extract_config_id(response):
     zip_bytes = io.BytesIO(response.content)
     with zipfile.ZipFile(zip_bytes, "r") as zf:
-        manifest = json.loads(zf.read("001_manifest.json").decode("utf-8"))
-    return manifest["config_id"]
+        twin_file = next(
+            f for f in zf.namelist() if f.startswith("002_DigitalTwin_DNA_")
+        )
+        twin_data = json.loads(zf.read(twin_file).decode("utf-8"))
+    return twin_data["config_id"]
 
 
 def test_enclosure_options_returns_structured_labels():

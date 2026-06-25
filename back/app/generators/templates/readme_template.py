@@ -63,15 +63,14 @@ Application
 - Control: Cascade PID pressure control with staging/de-staging + alternation
 - Communications: {twin.communication or "Hardwired"}
 - Enclosure: {enclosure}
-- Cyber: IEC 62443 baseline principles
 
 Purpose
 This pack is designed as "copy/paste" material for Design Firms at Concept/FEED and Basic Design.
 It provides reusable text, drawings, schedules, and templates to prescribe a complete solution approach.
 
 Pack contents
-1) 001_manifest.json
-   - Package manifest and generation meta-data
+1) 001_README.txt
+   - Package readme and generation meta-data
 2) 002_DigitalTwin_DNA_{twin.config_id}.json
    - Full digital twin parameter set
 {assets}

@@ -39,7 +39,6 @@ def test_large_scale_system_generation():
     zip_bytes = io.BytesIO(response.content)
     with zipfile.ZipFile(zip_bytes, "r") as zf:
         file_list = zf.namelist()
-        assert "001_manifest.json" in file_list
 
         # Verify 10-pump system is reflected in the twin within the zip
         twin_file = next(f for f in file_list if f.startswith("002_DigitalTwin_DNA"))
@@ -96,10 +95,9 @@ def test_zip_generation_with_no_assets_selected():
     with zipfile.ZipFile(zip_bytes, "r") as zf:
         file_list = zf.namelist()
         # Should only have manifest, JSON twin, README, and the spec block (default)
-        assert len(file_list) >= 3
-        assert "001_manifest.json" in file_list
+        assert len(file_list) >= 2
         assert any(f.startswith("002_DigitalTwin_DNA") for f in file_list)
-        assert "003_README.txt" in file_list
+        assert "001_README.txt" in file_list
 
 
 def test_malformed_formula_graceful_recovery():

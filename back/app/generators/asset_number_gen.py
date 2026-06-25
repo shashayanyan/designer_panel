@@ -5,7 +5,7 @@ def get_asset_number(asset_index: int) -> str:
 
 
 def generate_asset_numbers(selected_assets: list[str]) -> dict[str, str]:
-    base_index = 4
+    base_index = 3
     asset_numbers = {}
     if "Parameters" in selected_assets:
         asset_numbers["Parameters"] = get_asset_number(base_index)

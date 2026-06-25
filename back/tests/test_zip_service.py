@@ -20,7 +20,7 @@ def test_generate_package_returns_valid_zip():
     """
     Simulates sending a request to /api/v1/engine/generate-package.
     Verifies the response structure is a valid ZIP file and contains
-    the expected manifest, neutral, and docs files.
+    the expected twin, neutral, and docs files.
     """
     request_payload = {
         "series_id": "DOL",
@@ -63,15 +63,12 @@ def test_generate_package_returns_valid_zip():
         # Get list of all file names inside the archive
         file_list = zf.namelist()
 
-        # 1. Assert Manifest exists at root
-        assert "001_manifest.json" in file_list
+        twin_path = next(f for f in file_list if f.startswith("002_DigitalTwin_DNA_"))
+        twin_data = json.loads(zf.read(twin_path).decode("utf-8"))
+        assert twin_data["series_id"] == "DOL"
+        config_id = twin_data["config_id"]
 
-        # 2. Assert manifest is legitimate JSON with expected keys
-        manifest_data = json.loads(zf.read("001_manifest.json").decode("utf-8"))
-        assert manifest_data["series"] == "DOL"
-        config_id = manifest_data["config_id"]
-
-        # 3. Assert files exist exactly as architected
+        # Assert files exist exactly as architected
         json_path = f"002_DigitalTwin_DNA_{config_id}.json"
         excel_param_path = f"{asset_numbers['Parameters']}_Parameters.xlsx"
         excel_bom_path = f"{asset_numbers['BOM']}_BOM-Template.xlsx"
@@ -84,7 +81,7 @@ def test_generate_package_returns_valid_zip():
         assert word_path in file_list
         assert spec_text_path in file_list
 
-        # 4. Light verification of JSON twin extraction
+        # Light verification of JSON twin extraction
         extracted_twin = json.loads(zf.read(json_path).decode("utf-8"))
         assert extracted_twin["load_count"] == 2
         assert extracted_twin["series_id"] == "DOL"

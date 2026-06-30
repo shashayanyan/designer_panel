@@ -413,6 +413,34 @@ class ConfigurationEngine:
                     key_selection_notes=notes_text,
                 )
             )
+
+        if request.plc_included:
+            bom_lines.append(
+                TwinBomLine(
+                    line_no=9998,
+                    item_category="PLC",
+                    part_number="TM3AI4",
+                    description="Programmable Logic Controller",
+                    qty=Decimal("1"),
+                    uom="EA",
+                    item="PLC Module",
+                    key_selection_notes="TM3AI4 or TM241CE40R or equivalent, depending on availability and supplier. Ensure compatibility with the system architecture.",
+                )
+            )
+
+        if request.scada_included:
+            bom_lines.append(
+                TwinBomLine(
+                    line_no=9999,
+                    item_category="SCADA",
+                    part_number="------",
+                    description="SCADA System Integration",
+                    qty=Decimal("1"),
+                    uom="EA",
+                    item="SCADA Integration",
+                    key_selection_notes="Reference left blank for SCADA system integration. Ensure compatibility with the system architecture and communication protocols.",
+                )
+            )
         response.bom_lines = self._bom_lines_sorted_by_line_no(bom_lines)
 
         # 8. Resolve Application-Specific Templates (IO, Alarms, Options)
@@ -506,10 +534,6 @@ class ConfigurationEngine:
                     )
                 )
         response.alarm_list = alarm_list
-
-        print(
-            f"Project Metadata in Response: Name={request.project_name}, Client={request.project_client}, Technical Manager={request.project_technical_manager}, Location={request.project_location}, Date={request.project_date}, Notes={request.project_notes}"
-        )
 
         # 9. Add project metadata to the response
         response.project_name = request.project_name

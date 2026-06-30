@@ -324,9 +324,6 @@ def generate_excel_from_twin(twin: DigitalTwinResponse) -> Dict[str, bytes]:
             except FileNotFoundError:
                 events_map = {}
 
-            print(f"Resolved {len(events_map)} events for series {twin.series_id}")
-            print(f"Example event: {events_map[0] if events_map else 'N/A'}")
-
             events_data = [
                 {
                     "Tag": item["Event tag"],

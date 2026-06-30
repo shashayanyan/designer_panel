@@ -2,7 +2,7 @@
   "documentTitle": "Direct On Line — IO, Alarms, and Events",
   "revision": "Prototype basic list with added breaker status and mode selectors",
   "date": "2026-06-29",
-  "package": "Direct On Line, using GV2L20 + LC1D25 + LRD21",
+  "package": "Direct On Line, using magnetic motor circuit breaker + contactor + thermal overload relay",
   "quantityBasis": "Per motor feeder. Existing package has 3 motor feeders, so multiply physical I/O by 3.",
   "physicalIOListPerMotor": {
     "digitalInputs": [
@@ -11,7 +11,7 @@
         "Signal name": "Local start pushbutton",
         "Direction": "Input",
         "Type": "DI",
-        "Source device": "XB4BA3311",
+        "Source device": "Start pushbutton",
         "Mandatory": "Yes",
         "Basic notes": "Local start request. Accepted mainly in Local + Manual mode."
       },
@@ -20,7 +20,7 @@
         "Signal name": "Local stop pushbutton healthy",
         "Direction": "Input",
         "Type": "DI",
-        "Source device": "XB4BA4322",
+        "Source device": "Stop pushbutton",
         "Mandatory": "Yes",
         "Basic notes": "NC logic: 1 = healthy, 0 = stop pressed / circuit open. Stop should act in all modes."
       },
@@ -29,7 +29,7 @@
         "Signal name": "Circuit breaker ON / closed",
         "Direction": "Input",
         "Type": "DI",
-        "Source device": "GV2L20 + GVAD1010 instantaneous contact",
+        "Source device": "Magnetic motor circuit breaker + Auxiliary contact block instantaneous contact",
         "Mandatory": "Yes",
         "Basic notes": "Physical breaker status."
       },
@@ -38,7 +38,7 @@
         "Signal name": "Circuit breaker trip",
         "Direction": "Input",
         "Type": "DI",
-        "Source device": "GV2L20 + GVAD1010 fault contact",
+        "Source device": "Magnetic motor circuit breaker + Auxiliary contact block fault contact",
         "Mandatory": "Yes",
         "Basic notes": "Magnetic breaker trip/fault status."
       },
@@ -47,7 +47,7 @@
         "Signal name": "Remote mode selected",
         "Direction": "Input",
         "Type": "DI",
-        "Source device": "XB4BD25 Local/Remote selector",
+        "Source device": "Local/Remote selector switch",
         "Mandatory": "Yes",
         "Basic notes": "1 = Remote, 0 = Local."
       },
@@ -56,7 +56,7 @@
         "Signal name": "Auto mode selected",
         "Direction": "Input",
         "Type": "DI",
-        "Source device": "XB4BD25 Auto/Manual selector",
+        "Source device": "Auto/Manual selector switch",
         "Mandatory": "Yes",
         "Basic notes": "1 = Auto, 0 = Manual."
       },
@@ -65,7 +65,7 @@
         "Signal name": "Contactor closed / motor running feedback",
         "Direction": "Input",
         "Type": "DI",
-        "Source device": "LC1D25 built-in auxiliary contact",
+        "Source device": "Contactor built-in auxiliary contact",
         "Mandatory": "Yes",
         "Basic notes": "Basic running feedback."
       },
@@ -74,7 +74,7 @@
         "Signal name": "Thermal overload trip",
         "Direction": "Input",
         "Type": "DI",
-        "Source device": "LRD21 overload relay auxiliary contact",
+        "Source device": "Thermal overload relay auxiliary contact",
         "Mandatory": "Yes",
         "Basic notes": "Motor overload trip."
       }
@@ -85,7 +85,7 @@
         "Signal name": "Contactor run command",
         "Direction": "Output",
         "Type": "DO",
-        "Target device": "LC1D25 coil",
+        "Target device": "Contactor coil",
         "Mandatory": "Yes",
         "Basic notes": "Energizes DOL contactor when permissive and start command are valid."
       },
@@ -94,7 +94,7 @@
         "Signal name": "Run pilot light",
         "Direction": "Output",
         "Type": "DO",
-        "Target device": "XB4BVGM3T",
+        "Target device": "Run pilot light",
         "Mandatory": "Yes",
         "Basic notes": "ON when RUN_FB = 1."
       },
@@ -103,7 +103,7 @@
         "Signal name": "Fault pilot light",
         "Direction": "Output",
         "Type": "DO",
-        "Target device": "XB4BVGM4T",
+        "Target device": "Fault pilot light",
         "Mandatory": "Yes",
         "Basic notes": "ON for any active motor fault."
       }

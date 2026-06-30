@@ -2,7 +2,7 @@
   "documentTitle": "Soft Starter — IO, Alarms, and Events",
   "revision": "Prototype basic list with added breaker status and mode selectors",
   "date": "2026-06-29",
-  "package": "Soft Starter, using GV4L115S + LC1D115A + LR9G115 + ATS130N2D80LT",
+  "package": "Soft Starter, using motor circuit breaker + line contactor + overload relay + soft starter",
   "quantityBasis": "Per motor feeder. Existing package has 3 motor feeders, so multiply physical I/O by 3.",
   "physicalIOListPerMotor": {
     "digitalInputs": [
@@ -11,7 +11,7 @@
         "Signal name": "Local start pushbutton",
         "Direction": "Input",
         "Type": "DI",
-        "Source device": "XB4BA3311",
+        "Source device": "Start pushbutton",
         "Mandatory": "Yes",
         "Basic notes": "Local start request. Accepted mainly in Local + Manual mode."
       },
@@ -20,7 +20,7 @@
         "Signal name": "Local stop pushbutton healthy",
         "Direction": "Input",
         "Type": "DI",
-        "Source device": "XB4BA4322",
+        "Source device": "Stop pushbutton",
         "Mandatory": "Yes",
         "Basic notes": "NC logic: 1 = healthy, 0 = stop pressed / circuit open. Stop should act in all modes."
       },
@@ -29,7 +29,7 @@
         "Signal name": "Circuit breaker ON / closed",
         "Direction": "Input",
         "Type": "DI",
-        "Source device": "GV4L115S + GV4AE11 OF",
+        "Source device": "Motor circuit breaker + Auxiliary contact block OF contact",
         "Mandatory": "Yes",
         "Basic notes": "Physical breaker closed status."
       },
@@ -38,7 +38,7 @@
         "Signal name": "Circuit breaker trip",
         "Direction": "Input",
         "Type": "DI",
-        "Source device": "GV4L115S + GV4AE11 SD",
+        "Source device": "Motor circuit breaker + Auxiliary contact block SD contact",
         "Mandatory": "Yes",
         "Basic notes": "Breaker trip/fault status."
       },
@@ -47,7 +47,7 @@
         "Signal name": "Remote mode selected",
         "Direction": "Input",
         "Type": "DI",
-        "Source device": "XB4BD25 Local/Remote selector",
+        "Source device": "Local/Remote selector switch",
         "Mandatory": "Yes",
         "Basic notes": "1 = Remote, 0 = Local."
       },
@@ -56,7 +56,7 @@
         "Signal name": "Auto mode selected",
         "Direction": "Input",
         "Type": "DI",
-        "Source device": "XB4BD25 Auto/Manual selector",
+        "Source device": "Auto/Manual selector switch",
         "Mandatory": "Yes",
         "Basic notes": "1 = Auto, 0 = Manual."
       },
@@ -65,7 +65,7 @@
         "Signal name": "Line contactor feedback",
         "Direction": "Input",
         "Type": "DI",
-        "Source device": "LC1D115A auxiliary contact",
+        "Source device": "Line contactor auxiliary contact",
         "Mandatory": "Yes",
         "Basic notes": "Confirms input line contactor status."
       },
@@ -74,7 +74,7 @@
         "Signal name": "Thermal overload trip",
         "Direction": "Input",
         "Type": "DI",
-        "Source device": "LR9G115 overload relay auxiliary contact",
+        "Source device": "Overload relay auxiliary contact",
         "Mandatory": "Yes",
         "Basic notes": "Motor overload trip."
       },
@@ -83,9 +83,9 @@
         "Signal name": "Softstarter common fault/status",
         "Direction": "Input",
         "Type": "DI",
-        "Source device": "ATS130 relay/digital output",
+        "Source device": "Soft starter relay/digital output",
         "Mandatory": "Yes",
-        "Basic notes": "Keep as common ATS fault/status, not detailed fault codes."
+        "Basic notes": "Keep as common soft starter fault/status, not detailed fault codes."
       }
     ],
     "digitalOutputs": [
@@ -94,7 +94,7 @@
         "Signal name": "Run command to softstarter",
         "Direction": "Output",
         "Type": "DO",
-        "Target device": "ATS130 control input",
+        "Target device": "Soft starter control input",
         "Mandatory": "Yes",
         "Basic notes": "Basic 2-wire run command for prototype."
       },
@@ -103,7 +103,7 @@
         "Signal name": "Line contactor command",
         "Direction": "Output",
         "Type": "DO",
-        "Target device": "LC1D115A coil",
+        "Target device": "Line contactor coil",
         "Mandatory": "Yes",
         "Basic notes": "Energize line contactor when permissive and start logic are valid."
       },
@@ -112,7 +112,7 @@
         "Signal name": "Run pilot light",
         "Direction": "Output",
         "Type": "DO",
-        "Target device": "XB4BVGM3T",
+        "Target device": "Run pilot light",
         "Mandatory": "Yes",
         "Basic notes": "ON when running/line contactor feedback is valid."
       },
@@ -121,7 +121,7 @@
         "Signal name": "Fault pilot light",
         "Direction": "Output",
         "Type": "DO",
-        "Target device": "XB4BVGM4T",
+        "Target device": "Fault pilot light",
         "Mandatory": "Yes",
         "Basic notes": "ON for any active motor fault."
       }
@@ -161,7 +161,7 @@
       "Signal name": "Start permissive",
       "Logic": "READY plus selected control-mode permissive",
       "Mandatory": "Yes",
-      "Notes": "Used before commanding line contactor and ATS run."
+      "Notes": "Used before commanding line contactor and soft starter run."
     },
     {
       "Signal tag": "MTR_x_GENERAL_FAULT",
@@ -216,7 +216,7 @@
       "Alarm message": "Softstarter fault",
       "Mandatory": "Yes",
       "Source": "ATS_FAULT",
-      "Basic trigger logic": "ATS common fault/status active."
+      "Basic trigger logic": "Soft starter common fault/status active."
     },
     {
       "Alarm tag": "MTR_x_FAIL_START_ALM",

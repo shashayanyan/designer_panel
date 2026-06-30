@@ -1,7 +1,5 @@
 import io
-import json
 import zipfile
-from datetime import datetime, timezone
 
 from ..generators.asset_number_gen import generate_asset_numbers
 from ..generators.bim_gen import generate_ifc_from_twin
@@ -85,24 +83,16 @@ class ZipService:
         if gen_drawings:
             files_included.append("Drawings/")
 
-        manifest = {
-            "config_id": twin.config_id,
-            "series": twin.series_id
-            + (f" ({twin.series_name})" if twin.series_name else ""),
-            "generated_at": datetime.now(timezone.utc).isoformat(),
-            "files_included": files_included,
-        }
-
         # 3. Create the ZIP archive
         zip_buffer = io.BytesIO()
         with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-            # Root manifest
-            zip_file.writestr("001_manifest.json", json.dumps(manifest, indent=2))
+            # Readme
+            zip_file.writestr("001_README.txt", readme_bytes)
+
             zip_file.writestr(
                 f"002_DigitalTwin_DNA_{twin.config_id}.json",
                 twin.model_dump_json(indent=2),
             )
-            zip_file.writestr("003_README.txt", readme_bytes)
 
             # Conditionally write generated files
             for filename, filebytes in excel_files.items():

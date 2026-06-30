@@ -1,0 +1,297 @@
+{
+  "documentTitle": "Direct On Line — IO, Alarms, and Events",
+  "revision": "Prototype basic list with added breaker status and mode selectors",
+  "date": "2026-06-29",
+  "package": "Direct On Line, using GV2L20 + LC1D25 + LRD21",
+  "quantityBasis": "Per motor feeder. Existing package has 3 motor feeders, so multiply physical I/O by 3.",
+  "physicalIOListPerMotor": {
+    "digitalInputs": [
+      {
+        "Signal tag": "MTR_x_START_PB",
+        "Signal name": "Local start pushbutton",
+        "Direction": "Input",
+        "Type": "DI",
+        "Source device": "XB4BA3311",
+        "Mandatory": "Yes",
+        "Basic notes": "Local start request. Accepted mainly in Local + Manual mode."
+      },
+      {
+        "Signal tag": "MTR_x_STOP_PB_OK",
+        "Signal name": "Local stop pushbutton healthy",
+        "Direction": "Input",
+        "Type": "DI",
+        "Source device": "XB4BA4322",
+        "Mandatory": "Yes",
+        "Basic notes": "NC logic: 1 = healthy, 0 = stop pressed / circuit open. Stop should act in all modes."
+      },
+      {
+        "Signal tag": "MTR_x_CB_ON",
+        "Signal name": "Circuit breaker ON / closed",
+        "Direction": "Input",
+        "Type": "DI",
+        "Source device": "GV2L20 + GVAD1010 instantaneous contact",
+        "Mandatory": "Yes",
+        "Basic notes": "Physical breaker status."
+      },
+      {
+        "Signal tag": "MTR_x_CB_TRIP",
+        "Signal name": "Circuit breaker trip",
+        "Direction": "Input",
+        "Type": "DI",
+        "Source device": "GV2L20 + GVAD1010 fault contact",
+        "Mandatory": "Yes",
+        "Basic notes": "Magnetic breaker trip/fault status."
+      },
+      {
+        "Signal tag": "MTR_x_REMOTE_MODE",
+        "Signal name": "Remote mode selected",
+        "Direction": "Input",
+        "Type": "DI",
+        "Source device": "XB4BD25 Local/Remote selector",
+        "Mandatory": "Yes",
+        "Basic notes": "1 = Remote, 0 = Local."
+      },
+      {
+        "Signal tag": "MTR_x_AUTO_MODE",
+        "Signal name": "Auto mode selected",
+        "Direction": "Input",
+        "Type": "DI",
+        "Source device": "XB4BD25 Auto/Manual selector",
+        "Mandatory": "Yes",
+        "Basic notes": "1 = Auto, 0 = Manual."
+      },
+      {
+        "Signal tag": "MTR_x_RUN_FB",
+        "Signal name": "Contactor closed / motor running feedback",
+        "Direction": "Input",
+        "Type": "DI",
+        "Source device": "LC1D25 built-in auxiliary contact",
+        "Mandatory": "Yes",
+        "Basic notes": "Basic running feedback."
+      },
+      {
+        "Signal tag": "MTR_x_OL_TRIP",
+        "Signal name": "Thermal overload trip",
+        "Direction": "Input",
+        "Type": "DI",
+        "Source device": "LRD21 overload relay auxiliary contact",
+        "Mandatory": "Yes",
+        "Basic notes": "Motor overload trip."
+      }
+    ],
+    "digitalOutputs": [
+      {
+        "Signal tag": "MTR_x_RUN_CMD",
+        "Signal name": "Contactor run command",
+        "Direction": "Output",
+        "Type": "DO",
+        "Target device": "LC1D25 coil",
+        "Mandatory": "Yes",
+        "Basic notes": "Energizes DOL contactor when permissive and start command are valid."
+      },
+      {
+        "Signal tag": "MTR_x_RUN_LAMP",
+        "Signal name": "Run pilot light",
+        "Direction": "Output",
+        "Type": "DO",
+        "Target device": "XB4BVGM3T",
+        "Mandatory": "Yes",
+        "Basic notes": "ON when RUN_FB = 1."
+      },
+      {
+        "Signal tag": "MTR_x_FAULT_LAMP",
+        "Signal name": "Fault pilot light",
+        "Direction": "Output",
+        "Type": "DO",
+        "Target device": "XB4BVGM4T",
+        "Mandatory": "Yes",
+        "Basic notes": "ON for any active motor fault."
+      }
+    ]
+  },
+  "derivedInternalStatusSignals": [
+    {
+      "Signal tag": "MTR_x_CB_OFF",
+      "Signal name": "Circuit breaker OFF",
+      "Logic": "NOT CB_ON AND NOT CB_TRIP",
+      "Mandatory": "Yes",
+      "Notes": "Derived status, not a physical DI."
+    },
+    {
+      "Signal tag": "MTR_x_LOCAL_MODE",
+      "Signal name": "Local mode selected",
+      "Logic": "NOT REMOTE_MODE",
+      "Mandatory": "Yes",
+      "Notes": "Derived status."
+    },
+    {
+      "Signal tag": "MTR_x_MANUAL_MODE",
+      "Signal name": "Manual mode selected",
+      "Logic": "NOT AUTO_MODE",
+      "Mandatory": "Yes",
+      "Notes": "Derived status."
+    },
+    {
+      "Signal tag": "MTR_x_READY",
+      "Signal name": "Motor ready",
+      "Logic": "CB_ON AND NOT CB_TRIP AND NOT OL_TRIP AND STOP_PB_OK",
+      "Mandatory": "Yes",
+      "Notes": "Basic ready/permissive indication."
+    },
+    {
+      "Signal tag": "MTR_x_START_PERMISSIVE",
+      "Signal name": "Start permissive",
+      "Logic": "READY plus selected control-mode permissive",
+      "Mandatory": "Yes",
+      "Notes": "Used by control logic before energizing contactor."
+    },
+    {
+      "Signal tag": "MTR_x_GENERAL_FAULT",
+      "Signal name": "Any motor fault",
+      "Logic": "OR of mandatory active alarms",
+      "Mandatory": "Yes",
+      "Notes": "Drives common fault light."
+    }
+  ],
+  "physicalIOCount": [
+    {
+      "Scope": "Per motor",
+      "DI": 8,
+      "DO": 3,
+      "AI": 0,
+      "AO": 0,
+      "Network": 0
+    },
+    {
+      "Scope": "3-motor panel",
+      "DI": 24,
+      "DO": 9,
+      "AI": 0,
+      "AO": 0,
+      "Network": 0
+    }
+  ],
+  "alarmList": [
+    {
+      "Alarm tag": "MTR_x_CB_TRIP_ALM",
+      "Alarm message": "Motor circuit breaker trip",
+      "Mandatory": "Yes",
+      "Source": "CB_TRIP",
+      "Basic trigger logic": "CB_TRIP = 1."
+    },
+    {
+      "Alarm tag": "MTR_x_CB_OFF_START_INHIBIT_ALM",
+      "Alarm message": "Motor start inhibited - circuit breaker OFF",
+      "Mandatory": "Yes",
+      "Source": "CB_ON, CB_TRIP, start request",
+      "Basic trigger logic": "Start requested while CB_ON = 0 and CB_TRIP = 0."
+    },
+    {
+      "Alarm tag": "MTR_x_OL_TRIP_ALM",
+      "Alarm message": "Motor overload trip",
+      "Mandatory": "Yes",
+      "Source": "OL_TRIP",
+      "Basic trigger logic": "OL_TRIP = 1."
+    },
+    {
+      "Alarm tag": "MTR_x_FAIL_START_ALM",
+      "Alarm message": "Motor failed to start",
+      "Mandatory": "Yes",
+      "Source": "RUN_CMD, RUN_FB",
+      "Basic trigger logic": "RUN_CMD = 1 but RUN_FB = 0 after start delay."
+    },
+    {
+      "Alarm tag": "MTR_x_UNEXPECTED_STOP_ALM",
+      "Alarm message": "Motor stopped unexpectedly",
+      "Mandatory": "Yes",
+      "Source": "RUN_CMD, RUN_FB",
+      "Basic trigger logic": "RUN_CMD = 1 and RUN_FB drops to 0 without stop request/fault reset."
+    }
+  ],
+  "eventList": [
+    {
+      "Event tag": "MTR_x_START_REQ_EVT",
+      "Event message": "Start requested",
+      "Mandatory": "Yes",
+      "Source / trigger": "Local PB, HMI command, or auto command."
+    },
+    {
+      "Event tag": "MTR_x_STOP_REQ_EVT",
+      "Event message": "Stop requested",
+      "Mandatory": "Yes",
+      "Source / trigger": "Stop PB, HMI command, or auto stop."
+    },
+    {
+      "Event tag": "MTR_x_CB_ON_EVT",
+      "Event message": "Circuit breaker switched ON",
+      "Mandatory": "Yes",
+      "Source / trigger": "CB_ON changes 0 → 1."
+    },
+    {
+      "Event tag": "MTR_x_CB_OFF_EVT",
+      "Event message": "Circuit breaker switched OFF",
+      "Mandatory": "Yes",
+      "Source / trigger": "CB_OFF changes 0 → 1."
+    },
+    {
+      "Event tag": "MTR_x_CB_TRIP_EVT",
+      "Event message": "Circuit breaker tripped",
+      "Mandatory": "Yes",
+      "Source / trigger": "CB_TRIP changes 0 → 1."
+    },
+    {
+      "Event tag": "MTR_x_CB_TRIP_CLEAR_EVT",
+      "Event message": "Circuit breaker trip cleared",
+      "Mandatory": "Yes",
+      "Source / trigger": "CB_TRIP changes 1 → 0."
+    },
+    {
+      "Event tag": "MTR_x_LOCAL_MODE_EVT",
+      "Event message": "Local mode selected",
+      "Mandatory": "Yes",
+      "Source / trigger": "REMOTE_MODE changes 1 → 0."
+    },
+    {
+      "Event tag": "MTR_x_REMOTE_MODE_EVT",
+      "Event message": "Remote mode selected",
+      "Mandatory": "Yes",
+      "Source / trigger": "REMOTE_MODE changes 0 → 1."
+    },
+    {
+      "Event tag": "MTR_x_MANUAL_MODE_EVT",
+      "Event message": "Manual mode selected",
+      "Mandatory": "Yes",
+      "Source / trigger": "AUTO_MODE changes 1 → 0."
+    },
+    {
+      "Event tag": "MTR_x_AUTO_MODE_EVT",
+      "Event message": "Auto mode selected",
+      "Mandatory": "Yes",
+      "Source / trigger": "AUTO_MODE changes 0 → 1."
+    },
+    {
+      "Event tag": "MTR_x_RUNNING_EVT",
+      "Event message": "Motor running",
+      "Mandatory": "Yes",
+      "Source / trigger": "RUN_FB changes 0 → 1."
+    },
+    {
+      "Event tag": "MTR_x_STOPPED_EVT",
+      "Event message": "Motor stopped",
+      "Mandatory": "Yes",
+      "Source / trigger": "RUN_FB changes 1 → 0."
+    },
+    {
+      "Event tag": "MTR_x_FAULT_ACTIVE_EVT",
+      "Event message": "Motor fault active",
+      "Mandatory": "Yes",
+      "Source / trigger": "Any mandatory alarm becomes active."
+    },
+    {
+      "Event tag": "MTR_x_FAULT_CLEARED_EVT",
+      "Event message": "Motor fault cleared",
+      "Mandatory": "Yes",
+      "Source / trigger": "All mandatory alarms clear."
+    }
+  ]
+}

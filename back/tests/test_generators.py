@@ -12,6 +12,7 @@ from app.schemas.configurator import (
     TwinAccessory,
     TwinComponent,
     TwinEnclosure,
+    TwinBomLine,
 )
 from docx import Document
 
@@ -119,3 +120,39 @@ def test_spec_text_generation_produces_valid_bytes():
     assert "MOCK-3X" in content
     assert "A. GENERAL" in content
     assert "I. DOCUMENTATION AND TESTING" in content
+
+
+def test_excel_generation_includes_auxiliary_hardware():
+    """
+    Ensure the `generate_excel_from_twin` includes extra auxiliary hardware
+    when a circuit breaker is in the BOM.
+    """
+    # Create a twin with a GV4L80S circuit breaker
+    twin_with_cb = mock_twin.model_copy()
+    twin_with_cb.bom_lines = [
+        TwinBomLine(
+            line_no=1,
+            item_category="Circuit Breaker",
+            part_number="GV4L80S",
+            qty=Decimal("1"),
+            uom="PC",
+            item="GV4L80S Circuit Breaker",
+        )
+    ]
+
+    excel_files = generate_excel_from_twin(twin_with_cb)
+    assets_flat = flatten_asset_ids(twin_with_cb.selected_assets)
+    asset_numbers = generate_asset_numbers(assets_flat)
+
+    assert f"{asset_numbers['BOM']}_BOM-Template.xlsx" in excel_files
+
+    wb = openpyxl.load_workbook(
+        io.BytesIO(excel_files[f"{asset_numbers['BOM']}_BOM-Template.xlsx"])
+    )
+    bom_sheet = wb.active
+
+    # Check if auxiliary was added.
+    # Row 1 is header. Row 2 is CB, Row 3 is Auxiliary.
+    assert bom_sheet["C2"].value == "GV4L80S Circuit Breaker"
+    assert bom_sheet["C3"].value == "GV4AE11"
+    assert bom_sheet["D3"].value == 2.0  # Qty

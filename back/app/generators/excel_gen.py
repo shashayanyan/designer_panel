@@ -1,5 +1,7 @@
 from io import BytesIO
 from typing import Dict
+import json
+import os
 
 import pandas as pd
 from openpyxl.styles import Alignment, Font, PatternFill
@@ -19,49 +21,49 @@ def generate_excel_from_twin(twin: DigitalTwinResponse) -> Dict[str, bytes]:
     assets_flat = flatten_asset_ids(twin.selected_assets)
     asset_numbers = generate_asset_numbers(assets_flat)
 
-    def df_to_excel_bytes(df: pd.DataFrame) -> bytes:
+    def format_worksheet(worksheet):
+        # 1. Header Styling (Blue background, White text)
+        header_fill = PatternFill(
+            start_color="2B579A", end_color="2B579A", fill_type="solid"
+        )
+        header_font = Font(bold=True, color="FFFFFF")
+        header_alignment = Alignment(
+            horizontal="center", vertical="center", wrap_text=True
+        )
+
+        for cell in worksheet[1]:  # Row 1 is the header
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = header_alignment
+
+        # 2. Auto-adapt Column Widths
+        for col_cells in worksheet.columns:
+            first_cell = col_cells[0]
+            col_letter = first_cell.column_letter
+
+            max_len = 0
+            for cell in col_cells:
+                if cell.value is not None:
+                    # Use newlines to calculate width if wrapped, otherwise just raw length
+                    cell_text = str(cell.value)
+                    lines = cell_text.split("\n")
+                    max_len = max(max_len, max(len(line) for line in lines))
+
+            # Add a padding margin (buffer) to the max length
+            adjusted_width = max_len + 3
+            worksheet.column_dimensions[col_letter].width = adjusted_width
+
+    def dfs_to_excel_bytes(dataframes: Dict[str, pd.DataFrame]) -> bytes:
         output = BytesIO()
         with pd.ExcelWriter(output, engine="openpyxl") as writer:
-            df.to_excel(writer, index=False)
-
-            # Extract workbook and active sheet to apply formatting
-            workbook = writer.book
-            if workbook.sheetnames:
-                worksheet = workbook[workbook.sheetnames[0]]
-
-                # 1. Header Styling (Blue background, White text)
-                header_fill = PatternFill(
-                    start_color="2B579A", end_color="2B579A", fill_type="solid"
-                )
-                header_font = Font(bold=True, color="FFFFFF")
-                header_alignment = Alignment(
-                    horizontal="center", vertical="center", wrap_text=True
-                )
-
-                for cell in worksheet[1]:  # Row 1 is the header
-                    cell.fill = header_fill
-                    cell.font = header_font
-                    cell.alignment = header_alignment
-
-                # 2. Auto-adapt Column Widths
-                for col_cells in worksheet.columns:
-                    first_cell = col_cells[0]
-                    col_letter = first_cell.column_letter
-
-                    max_len = 0
-                    for cell in col_cells:
-                        if cell.value is not None:
-                            # Use newlines to calculate width if wrapped, otherwise just raw length
-                            cell_text = str(cell.value)
-                            lines = cell_text.split("\n")
-                            max_len = max(max_len, max(len(line) for line in lines))
-
-                    # Add a padding margin (buffer) to the max length
-                    adjusted_width = max_len + 3
-                    worksheet.column_dimensions[col_letter].width = adjusted_width
-
+            for sheet_name, df in dataframes.items():
+                df.to_excel(writer, sheet_name=sheet_name, index=False)
+                format_worksheet(writer.sheets[sheet_name])
         output.seek(0)
         return output.read()
+
+    def df_to_excel_bytes(df: pd.DataFrame) -> bytes:
+        return dfs_to_excel_bytes({"Sheet1": df})
 
     # --- 1. Parameters ---
     if "Parameters" in assets_flat:
@@ -118,6 +120,19 @@ def generate_excel_from_twin(twin: DigitalTwinResponse) -> Dict[str, bytes]:
         row_index = 1
         bom_data = []
 
+        # Load hardware logic
+        json_path = os.path.join(
+            os.path.dirname(__file__),
+            "added_hardware",
+            "00_added_hardware_and_mode_logic.json",
+        )
+        try:
+            with open(json_path, "r") as f:
+                hardware_logic = json.load(f)
+            hardware_map = {item["Circuit breaker"]: item for item in hardware_logic}
+        except FileNotFoundError:
+            hardware_map = {}
+
         # Exclusively database defined BOM Lines driven logically from resolved configuration
         if twin.bom_lines:
             for line in twin.bom_lines:
@@ -135,6 +150,24 @@ def generate_excel_from_twin(twin: DigitalTwinResponse) -> Dict[str, bytes]:
                 )
                 row_index += 1
 
+                # Apply hardware addition logic
+                if line.part_number and line.part_number in hardware_map:
+                    hw = hardware_map[line.part_number]
+                    qty_per_cb = hw["Recommended qty per CB"]
+
+                    # Add auxiliary
+                    bom_data.append(
+                        {
+                            "Index": str(row_index),
+                            "Item Category": "Auxiliary",
+                            "Item": hw["OF auxiliary"],
+                            "Qty": float(line.qty) * qty_per_cb,
+                            "Part No.": hw["OF auxiliary"],
+                            "Key Selection Notes / Options": hw["Notes"],
+                        }
+                    )
+                    row_index += 1
+
         df_bom = pd.DataFrame(
             bom_data,
             columns=[
@@ -150,99 +183,164 @@ def generate_excel_from_twin(twin: DigitalTwinResponse) -> Dict[str, bytes]:
             df_to_excel_bytes(df_bom)
         )
 
-    # --- 3. IO-List ---
-    if "IO List" in assets_flat or "IO" in assets_flat:
-        io_data = []
-        io_data.append(
-            {
-                "Tag": "ESD-01",
-                "Description": "Emergency stop (panel)",
-                "Equipment": "Booster Panel",
-                "Signal Type": "DI",
-                "Interface": "Hardwired",
-                "Normal": "Closed",
-                "PLC Destination": "DI Module",
-                "Alarm?": "Y",
-            }
-        )
+    # First load the json file of the selected series, if any of the relevant assets are chosen
+    if (
+        "IO List" in assets_flat
+        or "IO" in assets_flat
+        or "Alarm List" in assets_flat
+        or "Alarms" in assets_flat
+        or "Events" in assets_flat
+        or "Event List" in assets_flat
+    ):
 
-        for i in range(1, twin.load_count + 1):
-            io_data.extend(
-                [
-                    {
-                        "Tag": f"RUNCMD-P{i}",
-                        "Description": f"Run command Pump {i}",
-                        "Equipment": f"Pump {i}",
-                        "Signal Type": "CMD",
-                        "Interface": "Modbus TCP",
-                        "Normal": "",
-                        "PLC Destination": f"Drive #{i} Control Word",
-                        "Alarm?": "N",
-                    },
-                    {
-                        "Tag": f"STATUS-P{i}",
-                        "Description": f"Drive status Pump {i}",
-                        "Equipment": f"Pump {i}",
-                        "Signal Type": "FB",
-                        "Interface": "Modbus TCP",
-                        "Normal": "",
-                        "PLC Destination": f"Drive #{i} Status Word",
-                        "Alarm?": "Y",
-                    },
-                    {
-                        "Tag": f"FAULT-P{i}",
-                        "Description": f"Drive fault code Pump {i}",
-                        "Equipment": f"Pump {i}",
-                        "Signal Type": "FB",
-                        "Interface": "Modbus TCP",
-                        "Normal": "",
-                        "PLC Destination": f"Drive #{i} Fault Code",
-                        "Alarm?": "Y",
-                    },
-                ]
+        series_appendix = "dol.json"
+        if twin.series_id == "DOL_ADV":
+            series_appendix = "dola.json"
+        elif twin.series_id == "SS":
+            series_appendix = "ss.json"
+        elif twin.series_id == "VSD" or twin.series_id == "VFD":
+            series_appendix = "vsd.json"
+
+        # Load hardware logic
+        json_path = os.path.join(
+            os.path.dirname(__file__), "io-alarms-events", series_appendix
+        )
+        try:
+            with open(json_path, "r") as f:
+                io_alarms_events = json.load(f)
+        except FileNotFoundError:
+            print(
+                f"Warning: {series_appendix} not found. IO/Alarms/Events may be incomplete."
             )
-        df_io = pd.DataFrame(io_data)
-        generated_files[f"{asset_numbers['IO']}_IO-List.xlsx"] = df_to_excel_bytes(
-            df_io
-        )
 
-    if "Network Plan" in assets_flat or "Network" in assets_flat:
-        network_data = [
-            {
-                "Tag": item.tag,
-                "Description": item.description,
-                "Signal Type": item.signal_type,
-                "Interface": item.interface,
-                "IP Address": item.ip_address or "N/A",
-            }
-            for item in twin.network_plan
-            if (item.interface or "").strip().lower() != "hardwired"
-        ]
-        df_network = pd.DataFrame(
-            network_data
-            if network_data
-            else [{"Status": "No network IO points resolved"}]
-        )
-        generated_files[f"{asset_numbers['Network']}_Network-IP-Plan.xlsx"] = (
-            df_to_excel_bytes(df_network)
-        )
+        # --- 3. IO-List ---
+        if "IO List" in assets_flat or "IO" in assets_flat:
+            physical_io_list_per_motor = io_alarms_events["physicalIOListPerMotor"]
+            io_dfs = {}
 
-    if "Alarm List" in assets_flat or "Alarms" in assets_flat:
-        alarm_data = [
-            {
-                "Code": item.code,
-                "Source Tag": item.source_tag,
-                "Condition": item.condition,
-                "Priority": item.priority,
-                "Message": item.operator_message,
-            }
-            for item in twin.alarm_list
-        ]
-        df_alarm = pd.DataFrame(
-            alarm_data if alarm_data else [{"Status": "No alarms resolved"}]
-        )
-        generated_files[f"{asset_numbers['Alarms']}_Alarm_List.xlsx"] = (
-            df_to_excel_bytes(df_alarm)
-        )
+            digital_inputs = physical_io_list_per_motor.get("digitalInputs", [])
+            if digital_inputs:
+                io_dfs["Digital Inputs"] = pd.DataFrame(
+                    [
+                        {
+                            "Tag": item["Signal tag"],
+                            "Name": item["Signal name"],
+                            "Direction": item["Direction"],
+                            "Type": item["Type"],
+                            "Source Device": item["Source device"],
+                            "Notes": item["Basic notes"],
+                        }
+                        for item in digital_inputs
+                    ]
+                )
+
+            digital_outputs = physical_io_list_per_motor.get("digitalOutputs", [])
+            if digital_outputs:
+                io_dfs["Digital Outputs"] = pd.DataFrame(
+                    [
+                        {
+                            "Tag": item["Signal tag"],
+                            "Name": item["Signal name"],
+                            "Direction": item["Direction"],
+                            "Type": item["Type"],
+                            "Target Device": item["Target device"],
+                            "Notes": item["Basic notes"],
+                        }
+                        for item in digital_outputs
+                    ]
+                )
+
+            analog_io = physical_io_list_per_motor.get("analogIO", [])
+            if analog_io:
+                io_dfs["Analog IO"] = pd.DataFrame(
+                    [
+                        {
+                            "Tag": item["Signal tag"],
+                            "Name": item["Signal name"],
+                            "Direction": item["Direction"],
+                            "Type": item["Type"],
+                            "Device": item["Source / target device"],
+                            "Notes": item["Basic notes"],
+                        }
+                        for item in analog_io
+                    ]
+                )
+
+            derived_signals = io_alarms_events.get("derivedInternalStatusSignals", [])
+            if derived_signals:
+                io_dfs["Derived Internal Status Signals"] = pd.DataFrame(
+                    [
+                        {
+                            "Tag": item["Signal tag"],
+                            "Name": item["Signal name"],
+                            "Logic": item["Logic"],
+                            "Notes": item["Notes"],
+                        }
+                        for item in derived_signals
+                    ]
+                )
+
+            if io_dfs:
+                generated_files[f"{asset_numbers['IO']}_IO-List.xlsx"] = (
+                    dfs_to_excel_bytes(io_dfs)
+                )
+
+        # -- 4. Alarm List ---
+        if "Alarm List" in assets_flat or "Alarms" in assets_flat:
+            alarms = io_alarms_events.get("alarmList", [])
+            if alarms:
+                alarms_data = [
+                    {
+                        "Tag": item["Alarm tag"],
+                        "Message": item["Alarm message"],
+                        "Source": item["Source"],
+                        "Basic Trigger Logic": item["Basic trigger logic"],
+                    }
+                    for item in alarms
+                ]
+                alarms_df = pd.DataFrame(alarms_data)
+                generated_files[f"{asset_numbers['Alarms']}_Alarm_List.xlsx"] = (
+                    df_to_excel_bytes(alarms_df)
+                )
+
+        if "Events" in assets_flat or "Event List" in assets_flat:
+            # TBD
+            series_appendix = "dol.json"
+            if twin.series_id == "DOL_ADV":
+                series_appendix = "dola.json"
+            elif twin.series_id == "SS":
+                series_appendix = "ss.json"
+            elif twin.series_id == "VSD" or twin.series_id == "VFD":
+                series_appendix = "vsd.json"
+
+            # Load hardware logic
+            json_path = os.path.join(
+                os.path.dirname(__file__), "io-alarms-events", series_appendix
+            )
+            try:
+                with open(json_path, "r") as f:
+                    events = json.load(f)
+                events_map = events["eventList"]
+            except FileNotFoundError:
+                events_map = {}
+
+            print(f"Resolved {len(events_map)} events for series {twin.series_id}")
+            print(f"Example event: {events_map[0] if events_map else 'N/A'}")
+
+            events_data = [
+                {
+                    "Tag": item["Event tag"],
+                    "Message": item["Event message"],
+                    "Source / Trigger": item["Source / trigger"],
+                }
+                for item in events_map
+            ]
+
+            events_df = pd.DataFrame(
+                events_data if events_data else [{"Status": "No events resolved"}]
+            )
+            generated_files[f"{asset_numbers['Events']}_Event_List.xlsx"] = (
+                df_to_excel_bytes(events_df)
+            )
 
     return generated_files

@@ -1,0 +1,130 @@
+[
+  {
+    "Circuit breaker": "GV2L03",
+    "Frame": "GV2",
+    "OF auxiliary": "GVAD1010",
+    "SD auxiliary": "GVAD1010",
+    "Recommended qty per CB": 1,
+    "Notes": "Combined ON + trip signalling block"
+  },
+  {
+    "Circuit breaker": "GV2L04",
+    "Frame": "GV2",
+    "OF auxiliary": "GVAD1010",
+    "SD auxiliary": "GVAD1010",
+    "Recommended qty per CB": 1,
+    "Notes": "Combined ON + trip signalling block"
+  },
+  {
+    "Circuit breaker": "GV2L06",
+    "Frame": "GV2",
+    "OF auxiliary": "GVAD1010",
+    "SD auxiliary": "GVAD1010",
+    "Recommended qty per CB": 1,
+    "Notes": "Combined ON + trip signalling block"
+  },
+  {
+    "Circuit breaker": "GV2L07",
+    "Frame": "GV2",
+    "OF auxiliary": "GVAD1010",
+    "SD auxiliary": "GVAD1010",
+    "Recommended qty per CB": 1,
+    "Notes": "Combined ON + trip signalling block"
+  },
+  {
+    "Circuit breaker": "GV2L08",
+    "Frame": "GV2",
+    "OF auxiliary": "GVAD1010",
+    "SD auxiliary": "GVAD1010",
+    "Recommended qty per CB": 1,
+    "Notes": "Combined ON + trip signalling block"
+  },
+  {
+    "Circuit breaker": "GV2L10",
+    "Frame": "GV2",
+    "OF auxiliary": "GVAD1010",
+    "SD auxiliary": "GVAD1010",
+    "Recommended qty per CB": 1,
+    "Notes": "Combined ON + trip signalling block"
+  },
+  {
+    "Circuit breaker": "GV2L14",
+    "Frame": "GV2",
+    "OF auxiliary": "GVAD1010",
+    "SD auxiliary": "GVAD1010",
+    "Recommended qty per CB": 1,
+    "Notes": "Combined ON + trip signalling block"
+  },
+  {
+    "Circuit breaker": "GV2L16",
+    "Frame": "GV2",
+    "OF auxiliary": "GVAD1010",
+    "SD auxiliary": "GVAD1010",
+    "Recommended qty per CB": 1,
+    "Notes": "Combined ON + trip signalling block"
+  },
+  {
+    "Circuit breaker": "GV2L20",
+    "Frame": "GV2",
+    "OF auxiliary": "GVAD1010",
+    "SD auxiliary": "GVAD1010",
+    "Recommended qty per CB": 1,
+    "Notes": "Combined ON + trip signalling block"
+  },
+  {
+    "Circuit breaker": "GV2L22",
+    "Frame": "GV2",
+    "OF auxiliary": "GVAD1010",
+    "SD auxiliary": "GVAD1010",
+    "Recommended qty per CB": 1,
+    "Notes": "Combined ON + trip signalling block"
+  },
+  {
+    "Circuit breaker": "GV3L32",
+    "Frame": "GV3",
+    "OF auxiliary": "GVAD1010",
+    "SD auxiliary": "GVAD1010",
+    "Recommended qty per CB": 1,
+    "Notes": "Combined ON + trip signalling block"
+  },
+  {
+    "Circuit breaker": "GV3L40",
+    "Frame": "GV3",
+    "OF auxiliary": "GVAD1010",
+    "SD auxiliary": "GVAD1010",
+    "Recommended qty per CB": 1,
+    "Notes": "Combined ON + trip signalling block"
+  },
+  {
+    "Circuit breaker": "GV3L50",
+    "Frame": "GV3",
+    "OF auxiliary": "GVAD1010",
+    "SD auxiliary": "GVAD1010",
+    "Recommended qty per CB": 1,
+    "Notes": "Combined ON + trip signalling block"
+  },
+  {
+    "Circuit breaker": "GV3L65",
+    "Frame": "GV3",
+    "OF auxiliary": "GVAD1010",
+    "SD auxiliary": "GVAD1010",
+    "Recommended qty per CB": 1,
+    "Notes": "Combined ON + trip signalling block"
+  },
+  {
+    "Circuit breaker": "GV4L80S",
+    "Frame": "GV4",
+    "OF auxiliary": "GV4AE11",
+    "SD auxiliary": "GV4AE11",
+    "Recommended qty per CB": 2,
+    "Notes": "One block for OF, one block for SD (per CB)"
+  },
+  {
+    "Circuit breaker": "GV4L115S",
+    "Frame": "GV4",
+    "OF auxiliary": "GV4AE11",
+    "SD auxiliary": "GV4AE11",
+    "Recommended qty per CB": 2,
+    "Notes": "One block for OF, one block for SD (per CB)"
+  }
+]

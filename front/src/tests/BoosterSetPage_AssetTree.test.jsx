@@ -48,13 +48,7 @@ describe("BoosterSetPage - Asset Tree Logic", () => {
     // Expand to verify children
     fireEvent.click(screen.getByLabelText(/Expand Data Sheet/i));
 
-    const children = [
-      "Parameters",
-      "BOM",
-      "IO List",
-      "Network Plan",
-      "Alarm List",
-    ];
+    const children = ["Parameters", "BOM", "IO List", "Alarm List"];
     children.forEach((label) => {
       expect(screen.getByLabelText(label).checked).toBe(true);
     });
@@ -85,14 +79,8 @@ describe("BoosterSetPage - Asset Tree Logic", () => {
     await waitFor(() => expect(parentInput.indeterminate).toBe(true), {
       timeout: 2000,
     });
-
     // Select all other children to reach "all selected" state
-    const otherChildren = [
-      "Parameters",
-      "IO List",
-      "Network Plan",
-      "Alarm List",
-    ];
+    const otherChildren = ["Parameters", "IO List", "Alarm List", "Event List"];
     await act(async () => {
       for (const label of otherChildren) {
         fireEvent.click(screen.getByLabelText(label));

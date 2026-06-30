@@ -14,7 +14,6 @@ const ASSET_TREE = [
       { id: "Parameters", label: "Parameters" },
       { id: "BOM", label: "BOM" },
       { id: "IO", label: "IO List" },
-      { id: "Network", label: "Network Plan" },
       { id: "Alarms", label: "Alarm List" },
       { id: "Events", label: "Event List" },
     ],

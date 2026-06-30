@@ -43,6 +43,7 @@ const getAssetById = (nodes, id) => {
 
 const MOTOR_START_TYPES = {
   DOL: "Direct On Line",
+  DOL_ADV: "Direct On Line Advanced Control",
   SS: "Soft Starter",
   VSD: "Variable Speed Drive",
 };
@@ -700,10 +701,16 @@ function BoosterSetPage() {
 
   const dynamicMotorStartOptions = useMemo(
     () =>
-      seriesList.map((s) => ({
-        value: s.series_id,
-        label: MOTOR_START_TYPES[s.series_id],
-      })),
+      [...seriesList]
+        .sort(
+          (a, b) =>
+            ["DOL", "DOL_ADV", "SS", "VSD"].indexOf(a.series_id) -
+            ["DOL", "DOL_ADV", "SS", "VSD"].indexOf(b.series_id),
+        )
+        .map((s) => ({
+          value: s.series_id,
+          label: MOTOR_START_TYPES[s.series_id],
+        })),
     [seriesList],
   );
 

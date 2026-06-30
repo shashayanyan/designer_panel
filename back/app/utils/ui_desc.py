@@ -43,6 +43,13 @@ def get_motor_start_text(
             FUNCTIONS,
             PROTECTIONS,
         )
+    elif motor_start == "DOL_ADV":
+        from .ui_desc_func_prot_txt.dola import (
+            DESCRIPTION,
+            TECHNICAL_CHARACTERISTICS,
+            FUNCTIONS,
+            PROTECTIONS,
+        )
     elif motor_start == "SS":
         if motor_power <= 15:
             from .ui_desc_func_prot_txt.ats01 import (

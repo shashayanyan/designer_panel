@@ -2,61 +2,61 @@
   "documentTitle": "Direct On Line Advanced — IO, Alarms, and Events",
   "revision": "Prototype basic list with added breaker status and mode selectors",
   "date": "2026-06-29",
-  "package": "Direct On Line Advanced, using GV2L20 + LC1D25 + LTMR08MBD",
+  "package": "Direct On Line Advanced, using magnetic motor circuit breaker + contactor + motor management relay",
   "quantityBasis": "Per motor feeder. Existing package has 3 motor feeders, so multiply physical I/O by 3.",
   "physicalIOListPerMotor": {
     "digitalInputs": [
       {
         "Signal tag": "MTR_x_START_PB",
         "Signal name": "Local start pushbutton",
-        "Direction": "Input to LTMR",
+        "Direction": "Input to motor management relay",
         "Type": "DI",
-        "Source device": "XB4BA3311",
+        "Source device": "Start pushbutton",
         "Mandatory": "Yes",
         "Basic notes": "Local start request."
       },
       {
         "Signal tag": "MTR_x_STOP_PB_OK",
         "Signal name": "Local stop pushbutton healthy",
-        "Direction": "Input to LTMR",
+        "Direction": "Input to motor management relay",
         "Type": "DI",
-        "Source device": "XB4BA4322",
+        "Source device": "Stop pushbutton",
         "Mandatory": "Yes",
         "Basic notes": "NC logic: 1 = healthy, 0 = stop pressed / circuit open."
       },
       {
         "Signal tag": "MTR_x_CB_ON",
         "Signal name": "Circuit breaker ON / closed",
-        "Direction": "Input to LTMR",
+        "Direction": "Input to motor management relay",
         "Type": "DI",
-        "Source device": "GV2L20 + GVAD1010 instantaneous contact",
+        "Source device": "Magnetic motor circuit breaker + Auxiliary contact block instantaneous contact",
         "Mandatory": "Yes",
         "Basic notes": "Physical breaker status."
       },
       {
         "Signal tag": "MTR_x_CB_TRIP",
         "Signal name": "Circuit breaker trip",
-        "Direction": "Input to LTMR",
+        "Direction": "Input to motor management relay",
         "Type": "DI",
-        "Source device": "GV2L20 + GVAD1010 fault contact",
+        "Source device": "Magnetic motor circuit breaker + Auxiliary contact block fault contact",
         "Mandatory": "Yes",
         "Basic notes": "Magnetic breaker trip/fault status."
       },
       {
         "Signal tag": "MTR_x_REMOTE_MODE",
         "Signal name": "Remote mode selected",
-        "Direction": "Input to LTMR",
+        "Direction": "Input to motor management relay",
         "Type": "DI",
-        "Source device": "XB4BD25 Local/Remote selector",
+        "Source device": "Local/Remote selector switch",
         "Mandatory": "Yes",
         "Basic notes": "1 = Remote, 0 = Local."
       },
       {
         "Signal tag": "MTR_x_AUTO_MODE",
         "Signal name": "Auto mode selected",
-        "Direction": "Input to LTMR",
+        "Direction": "Input to motor management relay",
         "Type": "DI",
-        "Source device": "XB4BD25 Auto/Manual selector",
+        "Source device": "Auto/Manual selector switch",
         "Mandatory": "Yes",
         "Basic notes": "1 = Auto, 0 = Manual."
       }
@@ -65,27 +65,27 @@
       {
         "Signal tag": "MTR_x_CONTACTOR_CMD",
         "Signal name": "Contactor run command",
-        "Direction": "Output from LTMR",
+        "Direction": "Output from motor management relay",
         "Type": "Relay DO",
-        "Target device": "LC1D25 coil",
+        "Target device": "Contactor coil",
         "Mandatory": "Yes",
-        "Basic notes": "LTMR controls the DOL contactor."
+        "Basic notes": "Motor management relay controls the DOL contactor."
       },
       {
         "Signal tag": "MTR_x_RUN_LAMP",
         "Signal name": "Run pilot light",
-        "Direction": "Output from LTMR or PLC",
+        "Direction": "Output from motor management relay or PLC",
         "Type": "Relay DO / DO",
-        "Target device": "XB4BVGM3T",
+        "Target device": "Run pilot light",
         "Mandatory": "Yes",
         "Basic notes": "ON when motor running."
       },
       {
         "Signal tag": "MTR_x_FAULT_LAMP",
         "Signal name": "Fault pilot light",
-        "Direction": "Output from LTMR or PLC",
+        "Direction": "Output from motor management relay or PLC",
         "Type": "Relay DO / DO",
-        "Target device": "XB4BVGM4T",
+        "Target device": "Fault pilot light",
         "Mandatory": "Yes",
         "Basic notes": "ON for any active motor fault."
       }
@@ -97,7 +97,7 @@
       "Signal name": "Circuit breaker OFF",
       "Logic": "NOT CB_ON AND NOT CB_TRIP",
       "Mandatory": "Yes",
-      "Notes": "Derived in LTMR/PLC/HMI."
+      "Notes": "Derived in motor management relay/PLC/HMI."
     },
     {
       "Signal tag": "MTR_x_LOCAL_MODE",
@@ -118,7 +118,7 @@
       "Signal name": "Start permissive",
       "Logic": "CB_ON AND NOT CB_TRIP AND NOT TRIP AND STOP_PB_OK plus mode logic",
       "Mandatory": "Yes",
-      "Notes": "Used before issuing start to LTMR/contactor."
+      "Notes": "Used before issuing start to motor management relay/contactor."
     },
     {
       "Signal tag": "MTR_x_GENERAL_FAULT",
@@ -147,14 +147,14 @@
       "Alarm tag": "MTR_x_LTMR_TRIP_ALM",
       "Alarm message": "Motor management trip",
       "Mandatory": "Yes",
-      "Source": "LTMR trip bit",
-      "Basic trigger logic": "LTMR trip active."
+      "Source": "Motor management relay trip bit",
+      "Basic trigger logic": "Motor management relay trip active."
     },
     {
       "Alarm tag": "MTR_x_CB_TRIP_ALM",
       "Alarm message": "Motor circuit breaker trip",
       "Mandatory": "Yes",
-      "Source": "CB_TRIP via LTMR input / Modbus",
+      "Source": "CB_TRIP via motor management relay input / communication",
       "Basic trigger logic": "CB_TRIP = 1."
     },
     {
@@ -168,22 +168,22 @@
       "Alarm tag": "MTR_x_FAIL_START_ALM",
       "Alarm message": "Motor failed to start",
       "Mandatory": "Yes",
-      "Source": "LTMR command/status",
-      "Basic trigger logic": "Start command active but LTMR running status does not become active after start delay."
+      "Source": "Motor management relay command/status",
+      "Basic trigger logic": "Start command active but motor management relay running status does not become active after start delay."
     },
     {
       "Alarm tag": "MTR_x_UNEXPECTED_STOP_ALM",
       "Alarm message": "Motor stopped unexpectedly",
       "Mandatory": "Yes",
-      "Source": "LTMR running status",
+      "Source": "Motor management relay running status",
       "Basic trigger logic": "Run command still required but running status drops without stop request."
     },
     {
       "Alarm tag": "MTR_x_COMM_LOSS_ALM",
-      "Alarm message": "LTMR communication lost",
+      "Alarm message": "Motor management relay communication lost",
       "Mandatory": "Yes",
-      "Source": "Modbus health",
-      "Basic trigger logic": "No valid LTMR communication after timeout."
+      "Source": "Communication health",
+      "Basic trigger logic": "No valid motor management relay communication after timeout."
     }
   ],
   "eventList": [
@@ -257,13 +257,13 @@
       "Event tag": "MTR_x_RUNNING_EVT",
       "Event message": "Motor running",
       "Mandatory": "Yes",
-      "Source / trigger": "LTMR running status changes 0 → 1."
+      "Source / trigger": "Motor management relay running status changes 0 → 1."
     },
     {
       "Event tag": "MTR_x_STOPPED_EVT",
       "Event message": "Motor stopped",
       "Mandatory": "Yes",
-      "Source / trigger": "LTMR running status changes 1 → 0."
+      "Source / trigger": "Motor management relay running status changes 1 → 0."
     },
     {
       "Event tag": "MTR_x_FAULT_ACTIVE_EVT",

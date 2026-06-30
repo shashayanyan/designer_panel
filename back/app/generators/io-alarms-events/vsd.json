@@ -2,7 +2,7 @@
   "documentTitle": "Variable Speed Drive — IO, Alarms, and Events",
   "revision": "Prototype basic list with added breaker status and mode selectors",
   "date": "2026-06-29",
-  "package": "Variable Speed Drive, using GV2L20 + LC1D25 + ATV630U75N4",
+  "package": "Variable Speed Drive, using magnetic motor circuit breaker + line contactor + variable speed drive",
   "quantityBasis": "Per motor feeder. Existing package has 3 motor feeders, so multiply physical I/O by 3.",
   "physicalIOListPerMotor": {
     "digitalInputs": [
@@ -11,7 +11,7 @@
         "Signal name": "Local start pushbutton",
         "Direction": "Input",
         "Type": "DI",
-        "Source device": "XB4BA3311",
+        "Source device": "Start pushbutton",
         "Mandatory": "Yes",
         "Basic notes": "Local start request. Accepted mainly in Local + Manual mode."
       },
@@ -20,7 +20,7 @@
         "Signal name": "Local stop pushbutton healthy",
         "Direction": "Input",
         "Type": "DI",
-        "Source device": "XB4BA4322",
+        "Source device": "Stop pushbutton",
         "Mandatory": "Yes",
         "Basic notes": "NC logic: 1 = healthy, 0 = stop pressed / circuit open. Stop should act in all modes."
       },
@@ -29,7 +29,7 @@
         "Signal name": "Circuit breaker ON / closed",
         "Direction": "Input",
         "Type": "DI",
-        "Source device": "GV2L20 + GVAD1010 instantaneous contact",
+        "Source device": "Magnetic motor circuit breaker + Auxiliary contact block instantaneous contact",
         "Mandatory": "Yes",
         "Basic notes": "Physical breaker status."
       },
@@ -38,7 +38,7 @@
         "Signal name": "Circuit breaker trip",
         "Direction": "Input",
         "Type": "DI",
-        "Source device": "GV2L20 + GVAD1010 fault contact",
+        "Source device": "Magnetic motor circuit breaker + Auxiliary contact block fault contact",
         "Mandatory": "Yes",
         "Basic notes": "Magnetic breaker trip/fault status."
       },
@@ -47,7 +47,7 @@
         "Signal name": "Remote mode selected",
         "Direction": "Input",
         "Type": "DI",
-        "Source device": "XB4BD25 Local/Remote selector",
+        "Source device": "Local/Remote selector switch",
         "Mandatory": "Yes",
         "Basic notes": "1 = Remote, 0 = Local."
       },
@@ -56,7 +56,7 @@
         "Signal name": "Auto mode selected",
         "Direction": "Input",
         "Type": "DI",
-        "Source device": "XB4BD25 Auto/Manual selector",
+        "Source device": "Auto/Manual selector switch",
         "Mandatory": "Yes",
         "Basic notes": "1 = Auto, 0 = Manual."
       },
@@ -65,7 +65,7 @@
         "Signal name": "Line contactor feedback",
         "Direction": "Input",
         "Type": "DI",
-        "Source device": "LC1D25 auxiliary contact",
+        "Source device": "Line contactor auxiliary contact",
         "Mandatory": "Yes",
         "Basic notes": "Confirms input line contactor status."
       },
@@ -74,7 +74,7 @@
         "Signal name": "Drive running feedback",
         "Direction": "Input",
         "Type": "DI",
-        "Source device": "ATV630 relay output configured as Run",
+        "Source device": "Variable speed drive relay output configured as Run",
         "Mandatory": "Yes",
         "Basic notes": "Basic run status from drive relay."
       },
@@ -83,7 +83,7 @@
         "Signal name": "Drive fault",
         "Direction": "Input",
         "Type": "DI",
-        "Source device": "ATV630 fault relay output",
+        "Source device": "Variable speed drive fault relay output",
         "Mandatory": "Yes",
         "Basic notes": "Common drive fault/trip."
       }
@@ -94,7 +94,7 @@
         "Signal name": "Run command to drive",
         "Direction": "Output",
         "Type": "DO",
-        "Target device": "ATV630 digital input",
+        "Target device": "Variable speed drive digital input",
         "Mandatory": "Yes",
         "Basic notes": "Basic 2-wire run command for prototype."
       },
@@ -103,7 +103,7 @@
         "Signal name": "Line contactor command",
         "Direction": "Output",
         "Type": "DO",
-        "Target device": "LC1D25 coil",
+        "Target device": "Line contactor coil",
         "Mandatory": "Yes",
         "Basic notes": "Energize line contactor when permissive is valid."
       },
@@ -112,7 +112,7 @@
         "Signal name": "Run pilot light",
         "Direction": "Output",
         "Type": "DO",
-        "Target device": "XB4BVGM3T",
+        "Target device": "Run pilot light",
         "Mandatory": "Yes",
         "Basic notes": "ON when VFD run feedback is active."
       },
@@ -121,7 +121,7 @@
         "Signal name": "Fault pilot light",
         "Direction": "Output",
         "Type": "DO",
-        "Target device": "XB4BVGM4T",
+        "Target device": "Fault pilot light",
         "Mandatory": "Yes",
         "Basic notes": "ON for any active motor fault."
       }
@@ -132,7 +132,7 @@
         "Signal name": "Speed/frequency feedback",
         "Direction": "Input",
         "Type": "AI",
-        "Source / target device": "ATV630 analog output or communication",
+        "Source / target device": "Variable speed drive analog output or communication",
         "Mandatory": "Optional",
         "Basic notes": "Not required for first prototype if VFD_RUN_FB and VFD_FAULT are available."
       }

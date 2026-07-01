@@ -156,7 +156,7 @@ describe("BoosterSetPage - Edge Cases and SVG Logic", () => {
     await fillForm();
 
     // Select Multi Line Diagram
-    fireEvent.click(screen.getByLabelText("Multi Line Diagram"));
+    fireEvent.click(screen.getByLabelText("Electrical Multi Line Diagram"));
 
     const downloadBtn = screen.getByRole("button", {
       name: /Download Package/i,

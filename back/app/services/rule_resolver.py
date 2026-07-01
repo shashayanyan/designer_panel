@@ -417,14 +417,26 @@ class ConfigurationEngine:
         if request.plc_included:
             bom_lines.append(
                 TwinBomLine(
-                    line_no=9998,
+                    line_no=9997,
                     item_category="PLC",
-                    part_number="TM3AI4",
-                    description="Programmable Logic Controller",
+                    part_number="TM241CE40R",
+                    description="Programmable Logic Controller, Modicon M241 class or equivalent",
                     qty=Decimal("1"),
                     uom="EA",
                     item="PLC Module",
-                    key_selection_notes="TM3AI4 or TM241CE40R or equivalent, depending on availability and supplier. Ensure compatibility with the system architecture.",
+                    key_selection_notes="Suggested reference: Schneider Electric TM241CE40R. Final selection by designer.",
+                )
+            )
+            bom_lines.append(
+                TwinBomLine(
+                    line_no=9998,
+                    item_category="Analog Input Module",
+                    part_number="TM3AI4",
+                    description="Analog input expansion module, 4 channels, compatible with selected PLC",
+                    qty=Decimal("1"),
+                    uom="EA",
+                    item="PLC IO Module",
+                    key_selection_notes="Suggested reference: Schneider Electric TM3AI4. Final selection by designer.",
                 )
             )
 
@@ -433,7 +445,7 @@ class ConfigurationEngine:
                 TwinBomLine(
                     line_no=9999,
                     item_category="SCADA",
-                    part_number="------",
+                    part_number="- TBD -",
                     description="SCADA System Integration",
                     qty=Decimal("1"),
                     uom="EA",

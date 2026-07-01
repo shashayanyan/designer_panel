@@ -70,10 +70,10 @@ def test_generate_package_returns_valid_zip():
 
         # Assert files exist exactly as architected
         json_path = f"002_DigitalTwin_DNA_{config_id}.json"
-        excel_param_path = f"{asset_numbers['Parameters']}_Parameters.xlsx"
-        excel_bom_path = f"{asset_numbers['BOM']}_BOM-Template.xlsx"
-        word_path = f"{asset_numbers['spec-docx']}_EngineeringSpec_{config_id}.docx"
-        spec_text_path = f"{asset_numbers['spec-txt']}_SpecTextBlock.txt"
+        excel_param_path = f"{asset_numbers['Parameters']}_System_Parameters.xlsx"
+        excel_bom_path = f"{asset_numbers['BOM']}_Bill_of_Materials.xlsx"
+        word_path = f"{asset_numbers['spec-docx']}_Engineering_Spec_{config_id}.docx"
+        spec_text_path = f"{asset_numbers['spec-txt']}_Specification_Text_Block.txt"
 
         assert json_path in file_list
         assert excel_param_path in file_list

@@ -67,6 +67,13 @@ def get_starter_kind(twin) -> str:
     component_text = get_component_text(twin)
 
     text = f"{series_id} {series_name} {component_text}"
+    if (
+        series_id in ["DOL_ADV", "DOLADV", "DOL_ADVANCED"]
+        or "DIRECT ON LINE ADVANCED" in text
+        or "DIRECT-ON-LINE ADVANCED" in text
+        or ("DOL" in text and "ADVANCED" in text)
+    ):
+        return "dol_adv"
 
     if series_id == "DOL" or "DIRECT ON LINE" in text or "DIRECT-ON-LINE" in text:
         return "dol"
@@ -91,6 +98,9 @@ def get_starter_kind(twin) -> str:
 def get_starter_display_name(twin) -> str:
     kind = get_starter_kind(twin)
 
+    if kind == "dol_adv":
+        return "Direct-on-Line Starter with Advanced Motor Management"
+
     if kind == "dol":
         return "Direct-on-Line Starter"
 
@@ -98,7 +108,7 @@ def get_starter_display_name(twin) -> str:
         return "Soft Starter"
 
     if kind == "vfd":
-        return "Variable Speed Drive"
+        return "Variable Speed Drive (VSD)"
 
     return "Motor Starter"
 
@@ -126,7 +136,7 @@ def get_communication_subject(ctx) -> str:
     starter_kind = ctx["starter_kind"]
     device_type = ctx["device_type"]
 
-    if starter_kind == "dol":
+    if starter_kind in ["dol", "dol_adv"]:
         return "The booster panel control/interface devices"
 
     if starter_kind in ["ats01", "ats130"]:
@@ -219,6 +229,17 @@ def get_starter_templates(twin: DigitalTwinResponse) -> Dict[str, List[str]]:
             "philosophy": vsd_control_philosophy,
         }
 
+    if starter_kind == "dol_adv":
+        from .templates.specs.dola_clauses import (
+            dol_advanced_control_philosophy,
+            dol_advanced_motor_feeders,
+        )
+
+        return {
+            "feeders": dol_advanced_motor_feeders,
+            "philosophy": dol_advanced_control_philosophy,
+        }
+
     from .templates.specs.dol_clauses import (
         dol_control_philosophy,
         dol_motor_feeders,
@@ -246,7 +267,7 @@ def get_safe_control_philosophy_clauses(
 
     if starter_kind == "vfd":
         return [
-            "Demand detection and PID pressure control shall be implemented by the external controller, site control system, or drive-native functions where configured.",
+            "Demand detection and PID pressure control shall be implemented by the external controller, site control system, or VSD-native functions where configured.",
             "The panel shall provide the required interfaces for pump start/stop, speed reference where applicable, run feedback, fault feedback, and permissives.",
             "Pump staging, de-staging, and alternation shall be implemented by the external controller or site control system where required.",
             "Failure handling shall be implemented through available status, fault, and permissive signals from the selected devices.",
@@ -260,12 +281,20 @@ def get_safe_control_philosophy_clauses(
             "Failure handling shall be implemented through available status, fault, and permissive signals from the selected devices.",
         ]
 
+    if starter_kind == "dol_adv":
+        return [
+            "Demand detection and pressure-based staging shall be implemented by the external controller or site control system where required.",
+            "The panel shall provide the required interfaces for DOL starter start/stop control, run feedback, fault feedback, motor-management trip indication, reset where applicable, diagnostics, and permissives.",
+            "Pump staging, de-staging, anti-short-cycle timing, and alternation shall be implemented by the external controller or site control system where required.",
+            "Failure handling shall be implemented through available status, fault, diagnostic, and permissive signals from the selected DOL starter assemblies with advanced motor management.",
+        ]
+
     if starter_kind == "dol":
         return [
             "Demand detection and pressure-based staging shall be implemented by the external controller or site control system where required.",
-            "The panel shall provide the required interfaces for DOL feeder start/stop control, run feedback, fault feedback, overload trip indication, reset where applicable, and permissives.",
+            "The panel shall provide the required interfaces for DOL starter start/stop control, run feedback, fault feedback, overload trip indication, reset where applicable, and permissives.",
             "Pump staging, de-staging, anti-short-cycle timing, and alternation shall be implemented by the external controller or site control system where required.",
-            "Failure handling shall be implemented through available status, fault, and permissive signals from the selected feeder assemblies.",
+            "Failure handling shall be implemented through available status, fault, and permissive signals from the selected DOL starter assemblies.",
         ]
 
     return [
@@ -338,6 +367,10 @@ def generate_spec_text_from_twin(twin: DigitalTwinResponse) -> bytes:
         lines.append(
             "3. Coordination, short-circuit protection, thermal protection, and starting duty shall be verified for the selected soft starter and motor characteristics."
         )
+    elif starter_kind == "dol_adv":
+        lines.append(
+            "3. Coordination, short-circuit protection, electronic motor protection, communication interfaces where applicable, and utilization category shall be verified for the selected DOL starter assembly with advanced motor management and motor characteristics."
+        )
     elif starter_kind == "dol":
         lines.append(
             "3. Coordination, short-circuit protection, overload protection, and utilization category shall be verified for the selected DOL starter assembly and motor characteristics."
@@ -365,9 +398,13 @@ def generate_spec_text_from_twin(twin: DigitalTwinResponse) -> bytes:
             lines.append(
                 f"{next_idx}. Each {device_type} shall support hardwired I/O for start/stop, speed reference, run feedback, fault feedback, and monitoring."
             )
+        elif starter_kind == "dol_adv":
+            lines.append(
+                f"{next_idx}. Each DOL starter with advanced motor management shall provide hardwired interfaces for start command, stop command or run permissive, run feedback, fault feedback, motor-management trip indication, reset where applicable, diagnostics, and monitoring."
+            )
         elif starter_kind == "dol":
             lines.append(
-                f"{next_idx}. Each DOL feeder shall provide hardwired interfaces for start command, stop command or run permissive, run feedback, fault feedback, overload trip indication, reset where applicable, and monitoring."
+                f"{next_idx}. Each DOL starter shall provide hardwired interfaces for start command, stop command or run permissive, run feedback, fault feedback, overload trip indication, reset where applicable, and monitoring."
             )
         else:
             lines.append(
@@ -379,6 +416,10 @@ def generate_spec_text_from_twin(twin: DigitalTwinResponse) -> bytes:
         if starter_kind == "vfd":
             lines.append(
                 f"{next_idx}. {comm_subject} shall support {comm_label} communications for start/stop, speed reference, status, diagnostics, and monitoring."
+            )
+        elif starter_kind == "dol_adv":
+            lines.append(
+                f"{next_idx}. {comm_subject} shall provide {comm_label}-capable interfaces for pump start/stop commands, run feedback, ready status, fault status, motor-management diagnostics, reset where applicable, and monitoring, where included in the selected architecture."
             )
         elif starter_kind == "dol":
             lines.append(
@@ -575,13 +616,22 @@ def generate_spec_text_from_twin(twin: DigitalTwinResponse) -> bytes:
         "wiring",
         "labeling",
         "protection device settings",
-        "DOL feeder operation" if starter_kind == "dol" else f"{device_type} operation",
+        (
+            "DOL starter operation"
+            if starter_kind in ["dol", "dol_adv"]
+            else f"{device_type} operation"
+        ),
         "local controls",
         "fault indication",
     ]
 
     if has_plc:
         fat_items.append("automatic booster control sequences")
+
+    if starter_kind == "dol_adv":
+        fat_items.append(
+            "advanced motor-management protection and diagnostic functions"
+        )
 
     if comm_mode != "hardwired":
         fat_items.append(f"{comm_label} communication/interface tests")
@@ -594,7 +644,11 @@ def generate_spec_text_from_twin(twin: DigitalTwinResponse) -> bytes:
     sat_items = [
         "field wiring",
         "motor rotation",
-        "DOL feeder operation" if starter_kind == "dol" else f"{device_type} operation",
+        (
+            "DOL starter operation"
+            if starter_kind in ["dol", "dol_adv"]
+            else f"{device_type} operation"
+        ),
         "protection trips",
         "local/remote control interface",
     ]
@@ -609,6 +663,9 @@ def generate_spec_text_from_twin(twin: DigitalTwinResponse) -> bytes:
 
     if starter_kind == "vfd":
         sat_items.extend(["pressure transmitter scaling", "pressure control stability"])
+
+    if starter_kind == "dol_adv":
+        sat_items.append("advanced motor-management alarm and trip verification")
 
     lines.append("3. SAT shall verify " + ", ".join(sat_items) + ".")
 

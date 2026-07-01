@@ -66,13 +66,13 @@ def test_excel_generation_produces_valid_bytes_and_sheets():
     assert len(excel_files) > 0
 
     # Assert expected filenames
-    assert f"{asset_numbers['Parameters']}_Parameters.xlsx" in excel_files
-    assert f"{asset_numbers['BOM']}_BOM-Template.xlsx" in excel_files
-    assert f"{asset_numbers['IO']}_IO-List.xlsx" in excel_files
+    assert f"{asset_numbers['Parameters']}_System_Parameters.xlsx" in excel_files
+    assert f"{asset_numbers['BOM']}_Bill_of_Materials.xlsx" in excel_files
+    assert f"{asset_numbers['IO']}_List_of_Inputs_Outputs.xlsx" in excel_files
 
     # Assert parameter mapping worked
     wb = openpyxl.load_workbook(
-        io.BytesIO(excel_files[f"{asset_numbers['Parameters']}_Parameters.xlsx"])
+        io.BytesIO(excel_files[f"{asset_numbers['Parameters']}_System_Parameters.xlsx"])
     )
     params_sheet = wb.active  # Since there is only one sheet now
     # Check that the config ID was rendered on the 6th row
@@ -144,10 +144,10 @@ def test_excel_generation_includes_auxiliary_hardware():
     assets_flat = flatten_asset_ids(twin_with_cb.selected_assets)
     asset_numbers = generate_asset_numbers(assets_flat)
 
-    assert f"{asset_numbers['BOM']}_BOM-Template.xlsx" in excel_files
+    assert f"{asset_numbers['BOM']}_Bill_of_Materials.xlsx" in excel_files
 
     wb = openpyxl.load_workbook(
-        io.BytesIO(excel_files[f"{asset_numbers['BOM']}_BOM-Template.xlsx"])
+        io.BytesIO(excel_files[f"{asset_numbers['BOM']}_Bill_of_Materials.xlsx"])
     )
     bom_sheet = wb.active
 

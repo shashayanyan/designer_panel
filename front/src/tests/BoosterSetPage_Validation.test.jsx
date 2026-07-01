@@ -122,7 +122,9 @@ describe("BoosterSetPage - Validation and Resets", () => {
     const pumpsSelect = screen.getByLabelText(/Number of Pumps/i);
     fireEvent.change(pumpsSelect, { target: { value: "3" } });
 
-    const assetCheckbox = screen.getByLabelText("Multi Line Diagram");
+    const assetCheckbox = screen.getByLabelText(
+      "Electrical Multi Line Diagram",
+    );
     fireEvent.click(assetCheckbox);
     expect(assetCheckbox.checked).toBe(true);
 
@@ -131,7 +133,9 @@ describe("BoosterSetPage - Validation and Resets", () => {
 
     await waitFor(() => {
       expect(screen.getByLabelText(/Number of Pumps/i).value).toBe("");
-      expect(screen.getByLabelText("Multi Line Diagram").checked).toBe(false);
+      expect(
+        screen.getByLabelText("Electrical Multi Line Diagram").checked,
+      ).toBe(false);
     });
   });
 

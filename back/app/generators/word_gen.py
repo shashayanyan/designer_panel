@@ -146,6 +146,12 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
             "Pressure-based pump staging/de-staging with automatic alternation using "
             "soft starter start/stop control where provided by the selected controller"
         )
+    elif starter_kind == "dol_adv":
+        process_objective = "Maintain discharge pressure within the required operating band across variable demand"
+        control_mode = (
+            "Pressure-based pump staging/de-staging with automatic alternation using "
+            "DOL start/stop control with advanced motor management where provided by the selected controller"
+        )
     elif starter_kind == "dol":
         process_objective = "Maintain discharge pressure within the required operating band across variable demand"
         control_mode = (
@@ -244,9 +250,11 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
     )
 
     if starter_kind == "vfd":
-        feeder_label = "VFD feeders"
+        feeder_label = "VSD feeders"
     elif starter_kind in ["ats01", "ats130"]:
         feeder_label = "soft starter feeders"
+    elif starter_kind == "dol_adv":
+        feeder_label = "DOL starter feeders with advanced motor management"
     elif starter_kind == "dol":
         feeder_label = "DOL starter feeders"
     else:
@@ -363,9 +371,13 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
             doc.add_paragraph(
                 f"Each {device_type} shall support hardwired I/O for start/stop, speed reference, run feedback, fault feedback, and monitoring."
             )
+        elif starter_kind == "dol_adv":
+            doc.add_paragraph(
+                "Each DOL starter with advanced motor management shall provide hardwired interfaces for start command, stop command or run permissive, run feedback, fault feedback, motor-management trip indication, reset where applicable, diagnostics, and monitoring."
+            )
         elif starter_kind == "dol":
             doc.add_paragraph(
-                "Each DOL feeder shall provide hardwired interfaces for start command, stop command or run permissive, run feedback, fault feedback, overload trip indication, reset where applicable, and monitoring."
+                "Each DOL starter shall provide hardwired interfaces for start command, stop command or run permissive, run feedback, fault feedback, overload trip indication, reset where applicable, and monitoring."
             )
         else:
             doc.add_paragraph(
@@ -377,6 +389,10 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
         if starter_kind == "vfd":
             doc.add_paragraph(
                 f"{comm_subject} shall support {comm_label} communications for start/stop, speed reference, status, diagnostics, and monitoring."
+            )
+        elif starter_kind == "dol_adv":
+            doc.add_paragraph(
+                f"{comm_subject} shall provide {comm_label}-capable interfaces for pump start/stop commands, run feedback, ready status, fault status, motor-management diagnostics, reset where applicable, and monitoring, where included in the selected architecture."
             )
         elif starter_kind == "dol":
             doc.add_paragraph(
@@ -455,9 +471,11 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
 
     # 6. Control Philosophy
     if starter_kind == "vfd":
-        doc.add_heading("6. Control Philosophy - VFD Booster Set", level=1)
+        doc.add_heading("6. Control Philosophy - VSD Booster Set", level=1)
     elif starter_kind in ["ats01", "ats130"]:
         doc.add_heading("6. Control Philosophy - Soft Starter Booster Set", level=1)
+    elif starter_kind == "dol_adv":
+        doc.add_heading("6. Control Philosophy - DOL Advanced Booster Set", level=1)
     elif starter_kind == "dol":
         doc.add_heading("6. Control Philosophy - DOL Booster Set", level=1)
     else:
@@ -547,13 +565,22 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
         "wiring",
         "labeling",
         "protection device settings",
-        "DOL feeder operation" if starter_kind == "dol" else f"{device_type} operation",
+        (
+            "DOL starter operation"
+            if starter_kind in ["dol", "dol_adv"]
+            else f"{device_type} operation"
+        ),
         "local controls",
         "fault indication",
     ]
 
     if has_plc:
         fat_items.append("automatic booster control sequences")
+
+    if starter_kind == "dol_adv":
+        fat_items.append(
+            "advanced motor-management protection and diagnostic functions"
+        )
 
     if comm_mode != "hardwired":
         fat_items.append(f"{comm_label} communication/interface tests")
@@ -566,7 +593,11 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
     sat_items = [
         "field wiring",
         "motor rotation",
-        "DOL feeder operation" if starter_kind == "dol" else f"{device_type} operation",
+        (
+            "DOL starter operation"
+            if starter_kind in ["dol", "dol_adv"]
+            else f"{device_type} operation"
+        ),
         "protection trips",
         "local/remote control interface",
     ]
@@ -581,6 +612,9 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
 
     if supports_speed_reference:
         sat_items.extend(["pressure transmitter scaling", "pressure control stability"])
+
+    if starter_kind == "dol_adv":
+        sat_items.append("advanced motor-management alarm and trip verification")
 
     doc.add_paragraph("SAT shall verify " + ", ".join(sat_items) + ".")
 

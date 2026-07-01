@@ -11,14 +11,14 @@ const ASSET_TREE = [
     id: "Data Sheet",
     label: "Data Sheet",
     children: [
-      { id: "Parameters", label: "Parameters" },
-      { id: "BOM", label: "BOM" },
-      { id: "IO", label: "IO List" },
-      { id: "Alarms", label: "Alarm List" },
-      { id: "Events", label: "Event List" },
+      { id: "Parameters", label: "System Parameters" },
+      { id: "BOM", label: "BOM - Bill of Materials" },
+      { id: "IO", label: "List of Inputs/Outputs" },
+      { id: "Alarms", label: "List of Alarms" },
+      { id: "Events", label: "List of Events" },
     ],
   },
-  { id: "Multi Line Diagram", label: "Multi Line Diagram" },
+  { id: "Multi Line Diagram", label: "Electrical Multi Line Diagram" },
   {
     id: "Drawings",
     label: "Drawings",
@@ -27,8 +27,8 @@ const ASSET_TREE = [
       { id: "Components", label: "Components Drawings", disabled: true },
     ],
   },
-  { id: "Specification", label: "Specification" },
-  { id: "BIM Object", label: "BIM Object" },
+  { id: "Specification", label: "Specification Text" },
+  { id: "BIM Object", label: "BIM Object (*.ifc)" },
 ];
 
 const getAssetById = (nodes, id) => {
@@ -719,9 +719,12 @@ function BoosterSetPage() {
     const filtered = starterOptionsList.filter(
       (s) => s.series_id === config.motorStart,
     );
-    const uniquePowers = [
-      ...new Set(filtered.map((s) => s.rated_load_power_kw)),
-    ];
+    let uniquePowers = [...new Set(filtered.map((s) => s.rated_load_power_kw))];
+
+    if (config.motorStart === "DOL" || config.motorStart === "DOL_ADV") {
+      uniquePowers = uniquePowers.filter((p) => p <= 22);
+    }
+
     return uniquePowers.sort((a, b) => a - b).map((p) => String(p));
   }, [config.motorStart, starterOptionsList]);
 
@@ -1176,7 +1179,7 @@ function BoosterSetPage() {
       };
       // put images only if they are selected, with calculated index
       if (selectedAssets["Multi Line Diagram"]) {
-        let assetIndex = 4;
+        let assetIndex = 3;
         if (selectedAssets["Data Sheet"]) {
           // shift by the number of data sheets selected
           assetIndex += Object.values(
@@ -1186,20 +1189,20 @@ function BoosterSetPage() {
 
         if (rawSvgData)
           zip.file(
-            `${numberIn3Digits(assetIndex)}_MultiLineDiagram.svg`,
+            `${numberIn3Digits(assetIndex)}_Multi_Line_Diagram.svg`,
             rawSvgData,
           );
         assetIndex++;
         addDataUrlToZip(
           zip,
-          `${numberIn3Digits(assetIndex)}_MultiLineDiagram.png`,
+          `${numberIn3Digits(assetIndex)}_Multi_Line_Diagram.png`,
           b64diagram,
         );
         assetIndex++;
         //if (refArchResult.rawSvgData) zip.file("013_ReferenceArchitecture.svg", refArchResult.rawSvgData);
         addDataUrlToZip(
           zip,
-          `${numberIn3Digits(assetIndex)}_ReferenceArchitecture.png`,
+          `${numberIn3Digits(assetIndex)}_Reference_Architecture.png`,
           refArchResult.dataURL,
         );
       }

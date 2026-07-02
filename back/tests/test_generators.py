@@ -31,6 +31,7 @@ mock_twin = DigitalTwinResponse(
         ik_rating="IK10",
         door_type="plain door",
     ),
+    enclosure_count=1,
     components=[
         TwinComponent(part_number="LC1D50", qty=Decimal("3"), item_category="Contactor")
     ],

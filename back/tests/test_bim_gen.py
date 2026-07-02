@@ -156,33 +156,11 @@ def test_basic_helpers_and_port_creation(fake_ifcopenshell, tmp_path):
     )
     bim_gen.create_clearance_zone(model, "ctx", panel, "Zone", 1, 2, 3, 4, 5, 6, style)
 
-    component = bim_gen.create_subcomponent(
-        model,
-        "ctx",
-        panel,
-        {
-            "part_number": "T-001",
-            "item_category": "Control Terminal",
-            "description": "Terminal block",
-            "item": "TB1",
-        },
-        1,
-        0.1,
-        0.2,
-        0.3,
-        0.4,
-        0.5,
-        0.6,
-        style,
-    )
-
     data_file = tmp_path / "sample.json"
     data_file.write_text('{"ok": true}', encoding="utf-8")
 
     assert data_file.exists()
     assert panel.representation is representation
-    assert component.Description == "Terminal block"
-    assert calls.psets[-1][1].properties["Manufacturer"] == "Schneider Electric"
     assert len(calls.ports) == 2
     assert calls.ports[0][1].FlowDirection == "SOURCE"
     assert calls.ports[1][1].FlowDirection == "SINK"

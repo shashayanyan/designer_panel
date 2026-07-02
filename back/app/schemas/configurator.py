@@ -149,6 +149,7 @@ class DigitalTwinResponse(BaseModel):
     motor_power_kw: Decimal
     load_count: int
     enclosure: TwinEnclosure
+    enclosure_count: int
     components: List[TwinComponent]
     accessories: List[TwinAccessory]
     drawing_template_id: Optional[str] = None

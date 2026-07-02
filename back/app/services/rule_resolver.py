@@ -311,6 +311,7 @@ class ConfigurationEngine:
             motor_power_kw=request.motor_power_kw,
             load_count=request.load_count,
             enclosure=enclosure_data,
+            enclosure_count=1,  # Default to 1, can be adjusted based on BOM lines if needed
             components=components,
             accessories=accessories,
             drawing_template_id=dt_id,
@@ -351,6 +352,9 @@ class ConfigurationEngine:
                 if enc and enc.catalog_ref == enclosure_option.catalog_ref:
                     item_text = f"Enclosure {enc.mounting_type}"
                     notes_text = enc.description
+                    response.enclosure_count = int(
+                        line.qty
+                    )  # Capture the enclosure count for the response
                 else:
                     continue
             elif source_type_clean in ["component", "component_catalog"]:
@@ -362,7 +366,7 @@ class ConfigurationEngine:
                 if comp:
                     # if fan/grill, check condition first to see if it matches the enclosure
                     if line.item_category.lower() in ["fan", "grille"]:
-                        if "outdoor" in line.condition.lower():
+                        if line.condition and "outdoor" in line.condition.lower():
                             if ("pla" in enclosure_option.catalog_ref.lower()) or (
                                 "plm" in enclosure_option.catalog_ref.lower()
                             ):

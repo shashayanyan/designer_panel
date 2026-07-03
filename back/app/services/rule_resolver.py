@@ -1,6 +1,8 @@
 import ast
+import json
 import logging
 import operator
+import os
 from decimal import Decimal
 
 from fastapi import HTTPException
@@ -11,9 +13,12 @@ from ..schemas.configurator import (
     DigitalTwinRequest,
     DigitalTwinResponse,
     TwinAccessory,
+    TwinAlarm,
     TwinBomLine,
     TwinComponent,
     TwinEnclosure,
+    TwinEvent,
+    TwinIO,
 )
 
 
@@ -70,6 +75,80 @@ class MathSafeParser:
                 f"Formula evaluation failed for string '{formula_text}': {e}. Variables context: {self.variables}. Returning quantity 0."
             )
             return Decimal("0")
+
+
+def load_app_data(series_id: str):
+    """Loads I/O, Alarm, and Event lists based on series_id."""
+    # Map series_id to filename
+    file_map = {
+        "DOL": "dol.json",
+        "DOLA": "dola.json",
+        "SS": "ss.json",
+        "VSD": "vsd.json",
+    }
+    filename = file_map.get(series_id)
+    if not filename:
+        return None, None, None
+
+    # Construct path
+    base_path = os.path.join(
+        os.path.dirname(__file__), "..", "generators", "io-alarms-events"
+    )
+    file_path = os.path.join(base_path, filename)
+
+    try:
+        with open(file_path, "r") as f:
+            data = json.load(f)
+    except FileNotFoundError:
+        logging.error(f"Data file not found: {file_path}")
+        return None, None, None
+
+    # Extract lists
+    io_list = []
+    # Digital Inputs
+    for di in data.get("physicalIOListPerMotor", {}).get("digitalInputs", []):
+        io_list.append(
+            TwinIO(
+                tag=di.get("Signal tag", ""),
+                description=di.get("Signal name", ""),
+                signal_type="DI",
+                interface=di.get("Source device", ""),
+            )
+        )
+    # Digital Outputs
+    for do in data.get("physicalIOListPerMotor", {}).get("digitalOutputs", []):
+        io_list.append(
+            TwinIO(
+                tag=do.get("Signal tag", ""),
+                description=do.get("Signal name", ""),
+                signal_type="DO",
+                interface=do.get("Target device", ""),
+            )
+        )
+
+    alarm_list = []
+    for alm in data.get("alarmList", []):
+        alarm_list.append(
+            TwinAlarm(
+                code=alm.get("Alarm tag", ""),
+                source_tag=alm.get("Source", ""),
+                condition=alm.get("Basic trigger logic", ""),
+                priority="High" if alm.get("Mandatory") == "Yes" else "Low",
+                operator_message=alm.get("Alarm message", ""),
+            )
+        )
+
+    event_list = []
+    for evt in data.get("eventList", []):
+        event_list.append(
+            TwinEvent(
+                code=evt.get("Event tag", ""),
+                description=evt.get("Event message", ""),
+                source=evt.get("Source / trigger", ""),
+            )
+        )
+
+    return io_list, alarm_list, event_list
 
 
 class ConfigurationEngine:
@@ -301,6 +380,9 @@ class ConfigurationEngine:
                 print(f"Skipping rule {rule.accessory_rule_id} due to eval error: {e}")
                 pass
 
+        # Load App-specific Data
+        io_list, alarm_list, event_list = load_app_data(request.series_id)
+
         # 7. Assemble Unified Response (Digital Twin)
         response = DigitalTwinResponse(
             config_id=cid,
@@ -325,6 +407,9 @@ class ConfigurationEngine:
             multi_line_diagram_b64=request.multi_line_diagram_b64,
             reference_architecture_b64=request.reference_architecture_b64,
             environment=request.environment,
+            io_list=io_list or [],
+            alarm_list=alarm_list or [],
+            event_list=event_list or [],
         )
 
         # 7b. Fetch mapped BOM Lines from table

@@ -134,12 +134,10 @@ class TwinAlarm(BaseModel):
     operator_message: str
 
 
-class TwinOption(BaseModel):
-    category: str
-    name: str
-    is_base: bool
-    spec_text: Optional[str] = None
-    engineering_notes: Optional[str] = None
+class TwinEvent(BaseModel):
+    code: str
+    description: str
+    source: str
 
 
 class DigitalTwinResponse(BaseModel):
@@ -166,9 +164,9 @@ class DigitalTwinResponse(BaseModel):
 
     # New Application Data Sheets
     bom_lines: List[TwinBomLine] = Field(default_factory=list)
-    network_plan: List[TwinIO] = Field(default_factory=list)
+    io_list: List[TwinIO] = Field(default_factory=list)
     alarm_list: List[TwinAlarm] = Field(default_factory=list)
-    option_matrix: List[TwinOption] = Field(default_factory=list)
+    event_list: List[TwinEvent] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
 

@@ -125,3 +125,38 @@ def test_ss_core_device_resolution():
     # Verify part number matches our test data (TEST_SS_CORE)
     core_device = next(c for c in components if c["item_category"] == "Core Device")
     assert core_device["part_number"] == "TEST_SS_CORE"
+
+
+def test_app_data_lists_populated():
+    """
+    Verify that I/O list, Alarm list, and Event list are populated
+    in the Digital Twin response for a standard DOL configuration.
+    """
+    request_payload = {
+        "series_id": "DOL",
+        "motor_power_kw": 10.0,
+        "load_count": 2,
+        "ats_included": False,
+    }
+
+    response = client.post("/api/v1/engine/configure", json=request_payload)
+    assert response.status_code == 200
+    data = response.json()
+
+    # Check that the new lists are populated
+    assert len(data.get("io_list", [])) > 0
+    assert len(data.get("alarm_list", [])) > 0
+    assert len(data.get("event_list", [])) > 0
+
+    # Verify structure of one item in each list
+    io_item = data["io_list"][0]
+    assert "tag" in io_item
+    assert "description" in io_item
+
+    alarm_item = data["alarm_list"][0]
+    assert "code" in alarm_item
+    assert "operator_message" in alarm_item
+
+    event_item = data["event_list"][0]
+    assert "code" in event_item
+    assert "description" in event_item

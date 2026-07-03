@@ -45,8 +45,11 @@ describe("BoosterSetPage - Asset Tree Logic", () => {
     fireEvent.click(parentCheckbox);
     expect(parentCheckbox.checked).toBe(true);
 
-    // Expand to verify children
-    fireEvent.click(screen.getByLabelText(/Expand Data Sheet/i));
+    // Expand to verify children if not already expanded
+    const expandBtn1 = screen.queryByLabelText(/Expand Data Sheet/i);
+    if (expandBtn1) {
+      fireEvent.click(expandBtn1);
+    }
 
     const children = [
       "System Parameters",
@@ -62,8 +65,11 @@ describe("BoosterSetPage - Asset Tree Logic", () => {
   it("sets parent to indeterminate when some children are selected", async () => {
     await renderComponent();
 
-    // Expand group
-    fireEvent.click(screen.getByLabelText(/Expand Data Sheet/i));
+    // Expand group if not already expanded
+    const expandBtn2 = screen.queryByLabelText(/Expand Data Sheet/i);
+    if (expandBtn2) {
+      fireEvent.click(expandBtn2);
+    }
 
     const parentCheckbox = screen.getByLabelText("Data Sheet");
     const childCheckbox = screen.getByLabelText("BOM - Bill of Materials");

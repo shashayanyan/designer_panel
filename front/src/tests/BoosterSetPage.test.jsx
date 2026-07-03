@@ -169,8 +169,11 @@ describe("BoosterSetPage", () => {
     });
 
     // 2. Select an asset
-    // First expand the group
-    fireEvent.click(screen.getByLabelText(/Expand Data Sheet/i));
+    // First expand the group if not already expanded
+    const expandBtn = screen.queryByLabelText(/Expand Data Sheet/i);
+    if (expandBtn) {
+      fireEvent.click(expandBtn);
+    }
     // Then click the child
     fireEvent.click(screen.getByLabelText(/BOM/i));
 

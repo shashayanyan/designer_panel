@@ -534,116 +534,123 @@
 /* ─── Row 1 Layout ─── */
 .booster__row-1 {
   width: 100%;
+  margin-bottom: var(--space-sm);
 }
 .booster__row-1 .glass-card {
   padding: var(--space-md) var(--space-xl);
 }
 
-/* ─── Row 2 Layout ─── */
+/* ─── Row 2 Layout (Configuration) ─── */
 .booster__row-2 {
-  display: grid;
-  grid-template-columns: 360px 1fr;
-  gap: var(--space-lg);
   width: 100%;
-  align-items: stretch;
+  margin-bottom: var(--space-lg);
 }
 .booster__row-2 .glass-card {
   padding: var(--space-md) var(--space-xl);
-  display: flex;
-  flex-direction: column;
-  height: 100%;
 }
-.booster__row-2 .booster__fields {
-  flex: 1;
+.booster__config-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-md);
+  align-items: end;
+}
+.booster__field--checkbox {
+  display: flex;
+  align-items: center;
+  height: 42px;
+}
+.booster__checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  user-select: none;
+}
+.booster__checkbox-input {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--color-primary);
 }
 
-/* ─── Row 3 Layout ─── */
-.booster__row-3 {
+/* ─── 3-Column Layout ─── */
+.booster__body {
   display: grid;
-  grid-template-columns: 360px 1fr;
+  grid-template-columns: 2fr 3fr 5fr;
   gap: var(--space-lg);
   width: 100%;
-  align-items: stretch;
+  height: 750px;
+  min-height: 0;
 }
-.booster__row-3 .glass-card {
-  padding: var(--space-md) var(--space-xl);
+
+.booster__sidebar {
   display: flex;
   flex-direction: column;
+  gap: var(--space-lg);
+  min-width: 0;
   height: 100%;
 }
-.booster__row-3 .booster__checklist {
+
+.booster__assets {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
-.booster__diagrams-row-3 {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+.booster__checklist {
+  height: auto;
+  overflow-y: auto;
+  padding-right: var(--space-xs);
+}
+
+.booster__tech-desc-sidebar-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.booster__text-accordion {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: var(--space-xs);
+}
+
+.booster__diagrams-container {
+  display: flex;
+  flex-direction: column;
   gap: var(--space-lg);
   height: 100%;
+  min-height: 0;
 }
 
-/* ─── Diagrams Canvases inside Row 3 ─── */
-.booster__diagram-canvas-row3 {
+.booster__diagram {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: var(--space-md);
+}
+
+.booster__diagram-canvas {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 280px;
+  min-height: 0;
   width: 100%;
   overflow: hidden;
 }
 
-.booster__diagram-canvas-row3 svg {
-  width: 100%;
+.booster__diagram-canvas svg {
+  max-height: 100%;
+  max-width: 100%;
+  width: auto;
   height: auto;
-  max-height: 270px;
-}
-
-/* ─── Technical Description Cards Grid (2x2 Grid) ─── */
-.booster__tech-desc {
-  display: flex;
-  flex-direction: column;
-}
-
-.booster__tech-desc-grid-2x2 {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-lg);
-  margin-top: var(--space-md);
-  flex: 1;
-}
-
-.booster__tech-card {
-  padding: var(--space-md);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-  background: var(--bg-primary);
-  border: 1px solid var(--border-glass);
-  min-height: 140px;
-}
-
-.booster__tech-card-title {
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  border-bottom: 1px solid var(--border-glass);
-  padding-bottom: var(--space-xs);
-  margin: 0;
-}
-
-.booster__tech-card-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.booster__tech-card-content p {
-  margin: 0;
-  font-size: 0.82rem;
-  line-height: 1.5;
-  color: var(--text-secondary);
-  white-space: pre-line;
 }
 
 /* ─── Skeleton Placeholder Loader ─── */
@@ -653,6 +660,7 @@
   gap: 0.5rem;
   width: 100%;
   margin-top: var(--space-sm);
+  padding: var(--space-md);
 }
 
 .skeleton-line {
@@ -676,20 +684,8 @@
 }
 
 @media (max-width: 1200px) {
-  .booster__row-2,
-  .booster__row-3 {
+  .booster__body {
     grid-template-columns: 1fr;
+    height: auto;
   }
 }
-
-@media (max-width: 860px) {
-  .booster__tech-desc-grid-2x2 {
-    grid-template-columns: 1fr;
-  }
-  .booster__diagrams-row-3 {
-    grid-template-columns: 1fr;
-  }
-}
-
-
-

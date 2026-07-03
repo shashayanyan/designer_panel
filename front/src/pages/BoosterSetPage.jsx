@@ -538,21 +538,30 @@ function BoosterSetPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const enclosureRequestId = useRef(0);
 
-  const [motorStartText, setMotorStartText] = useState(null);
-  const [isLoadingText, setIsLoadingText] = useState(false);
+  const [staticText, setStaticText] = useState(null);
+  const [techCharText, setTechCharText] = useState(null);
+  const [isLoadingStatic, setIsLoadingStatic] = useState(false);
+  const [isLoadingTech, setIsLoadingTech] = useState(false);
   const textRequestId = useRef(0);
   const [openMotorTextSections, setOpenMotorTextSections] = useState({
-    description: false,
+    description: true,
     technicalCharacteristics: false,
     functions: false,
     protections: false,
   });
 
   const [expandedNodes, setExpandedNodes] = useState(() => {
-    const buildExpandedState = (nodes) =>
-      Object.fromEntries(
-        nodes.map((node) => [node.id, node.children?.length ? false : true]),
-      );
+    const buildExpandedState = (nodes) => {
+      const state = {};
+      const traverse = (list) => {
+        list.forEach((node) => {
+          state[node.id] = true;
+          if (node.children) traverse(node.children);
+        });
+      };
+      traverse(nodes);
+      return state;
+    };
 
     return buildExpandedState(ASSET_TREE);
   });
@@ -650,48 +659,80 @@ function BoosterSetPage() {
     fetchEnclosureOptions();
   }, [config.pumps, config.motorStart, config.motorPower]);
 
+  const lastStaticFetch = useRef({ motorStart: "", isAbove15: false });
+
   useEffect(() => {
+    if (!config.motorStart) {
+      setStaticText(null);
+      setTechCharText(null);
+      return;
+    }
+
     const requestId = ++textRequestId.current;
 
     const fetchMotorStartText = async () => {
-      if (
-        !config.pumps ||
-        !config.motorStart ||
-        !config.motorPower ||
-        !config.enclosure
-      ) {
-        setMotorStartText(null);
-        return;
+      const currentIsAbove15 = config.motorPower ? parseFloat(config.motorPower) > 15 : false;
+      const needsStaticFetch = 
+        !staticText ||
+        lastStaticFetch.current.motorStart !== config.motorStart ||
+        (config.motorStart === "SS" && lastStaticFetch.current.isAbove15 !== currentIsAbove15);
+
+      const needsTechFetch = !!(config.motorPower && config.enclosure);
+
+      if (needsStaticFetch) {
+        setIsLoadingStatic(true);
+      }
+      if (needsTechFetch) {
+        setIsLoadingTech(true);
       }
 
-      setIsLoadingText(true);
       try {
         const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
         const token = localStorage.getItem("dashboard_token");
         const headers = {};
         if (token) headers["Authorization"] = `Bearer ${token}`;
 
+        const pCount = config.pumps || "2";
+        const mStart = config.motorStart;
+        
+        let mPower = "15.0";
+        if (config.motorPower) {
+          mPower = config.motorPower;
+        } else if (config.motorStart === "SS") {
+          mPower = "11.0"; // default to below 15kW
+        }
+        
+        const encRef = config.enclosure || "ENC-001";
+
         const res = await fetch(
-          `${apiUrl}/api/v1/motor-start-text/${config.pumps}/${config.motorStart}/${config.motorPower}/${config.enclosure}`,
+          `${apiUrl}/api/v1/motor-start-text/${pCount}/${mStart}/${mPower}/${encRef}`,
           { headers, credentials: "include" },
         );
 
         if (res.ok) {
           const data = await res.json();
           if (requestId === textRequestId.current) {
-            setMotorStartText(data);
+            if (needsStaticFetch) {
+              setStaticText({
+                description: data.description,
+                functions: data.functions,
+                protections: data.protections,
+              });
+              lastStaticFetch.current = { motorStart: mStart, isAbove15: currentIsAbove15 };
+            }
+            if (needsTechFetch) {
+              setTechCharText(data.technical_characteristics);
+            } else {
+              setTechCharText(null);
+            }
           }
-        } else if (requestId === textRequestId.current) {
-          setMotorStartText(null);
         }
       } catch (error) {
-        if (requestId === textRequestId.current) {
-          console.error("Failed to fetch motor start text", error);
-          setMotorStartText(null);
-        }
+        console.error("Failed to fetch motor start text", error);
       } finally {
         if (requestId === textRequestId.current) {
-          setIsLoadingText(false);
+          setIsLoadingStatic(false);
+          setIsLoadingTech(false);
         }
       }
     };
@@ -895,7 +936,6 @@ function BoosterSetPage() {
     setEnclosureList(null);
     setSelectedAssets(buildAssetState(ASSET_TREE));
   };
-
   const AssetNode = ({ node, value, parentId }) => {
     const parentRef = useRef(null);
     const hasChildren = !!node.children?.length;
@@ -961,7 +1001,7 @@ function BoosterSetPage() {
               onChange={() => toggleParentNode(node.id)}
               className="booster__checkbox"
             />
-            <span className="booster__check-label">{node.label}</span>
+            <span className="booster__check-label" style={{ fontWeight: '600' }}>{node.label}</span>
           </label>
         </div>
 
@@ -1250,22 +1290,22 @@ function BoosterSetPage() {
     {
       key: "description",
       title: "Description",
-      content: motorStartText?.description,
+      content: staticText?.description,
     },
     {
       key: "technicalCharacteristics",
       title: "Technical Characteristics",
-      content: motorStartText?.technical_characteristics,
+      content: techCharText,
     },
     {
       key: "functions",
       title: "Functions",
-      content: motorStartText?.functions,
+      content: staticText?.functions,
     },
     {
       key: "protections",
       title: "Protections",
-      content: motorStartText?.protections,
+      content: staticText?.protections,
     },
   ];
 
@@ -1302,7 +1342,7 @@ function BoosterSetPage() {
           <div className="booster__metadata-header">
             <h2 className="booster__section-title">Project Metadata</h2>
             <p className="booster__metadata-subtitle">
-              Capture the project context before configuring the booster set.
+              Capture project context.
             </p>
           </div>
           <div className="booster__metadata-grid">
@@ -1321,12 +1361,12 @@ function BoosterSetPage() {
                   <textarea
                     id={`metadata-${field.key}`}
                     className="booster__text-input booster__textarea"
-                    placeholder="Add notes, assumptions, or project context"
+                    placeholder="Add notes..."
                     value={projectMetadata[field.key]}
                     onChange={(e) =>
                       handleMetadataChange(field.key, e.target.value)
                     }
-                    rows={4}
+                    rows={3}
                   />
                 ) : (
                   <input
@@ -1346,117 +1386,98 @@ function BoosterSetPage() {
         </section>
       </div>
 
-      {/* Row 2: Config (Left) & Technical Description (Right - 2x2 Grid) */}
-      <div className="booster__row-2 fade-in">
-        <section className="booster__config glass-card">
-          <h2 className="booster__section-title">Configuration</h2>
-          <div className="booster__fields">
-            {Object.entries(CURRENT_CONFIG_OPTIONS).map(
-              ([key, { label, options }]) => (
-                <div className="booster__field" key={key}>
-                  <label className="booster__label" htmlFor={`config-${key}`}>
-                    {label}
-                  </label>
-                  <select
-                    id={`config-${key}`}
-                    className="booster__select"
-                    value={config[key]}
-                    onChange={(e) => handleConfigChange(key, e.target.value)}
-                    disabled={options.length === 0}
-                  >
-                    <option value="" disabled>
-                      {options.length === 0 ? "Pending..." : "Select…"}
-                    </option>
-                    {options.map((opt) => {
-                      if (typeof opt === "string") {
+      {/* 3-Column Dashboard Body */}
+      <div className="booster__body fade-in">
+        {/* Left Column Controls Sidebar (300px wide) */}
+        <aside className="booster__sidebar">
+
+          {/* Configuration Selection */}
+          <section className="booster__config glass-card">
+            <h2 className="booster__section-title">Configuration</h2>
+            <div className="booster__fields">
+              {Object.entries(CURRENT_CONFIG_OPTIONS).map(
+                ([key, { label, options }]) => (
+                  <div className="booster__field" key={key}>
+                    <label className="booster__label" htmlFor={`config-${key}`}>
+                      {label}
+                    </label>
+                    <select
+                      id={`config-${key}`}
+                      className="booster__select"
+                      value={config[key]}
+                      onChange={(e) => handleConfigChange(key, e.target.value)}
+                      disabled={options.length === 0}
+                    >
+                      <option value="" disabled>
+                        {options.length === 0 ? "Pending..." : "Select…"}
+                      </option>
+                      {options.map((opt) => {
+                        if (typeof opt === "string") {
+                          return (
+                            <option key={opt} value={opt}>
+                              {opt}
+                              {key === "motorPower" ? "kW" : ""}
+                            </option>
+                          );
+                        }
                         return (
-                          <option key={opt} value={opt}>
-                            {opt}
-                            {key === "motorPower" ? "kW" : ""}
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
                           </option>
                         );
-                      }
-                      return (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      );
-                    })}
-                  </select>
-                </div>
-              ),
-            )}
-          </div>
-          <button
-            className="btn-reset"
-            style={{ marginTop: "var(--space-md)", width: "100%" }}
-            onClick={handleReset}
-          >
-            Reset
-          </button>
-        </section>
-
-        <section className="booster__tech-desc glass-card">
-          <h2 className="booster__section-title">Technical Description</h2>
-          <div className="booster__tech-desc-grid-2x2">
-            {motorStartTextSections.map((section) => (
-              <div className="booster__tech-card glass-card" key={section.key}>
-                <h3 className="booster__tech-card-title">{section.title}</h3>
-                <div className="booster__tech-card-content">
-                  {motorStartText && !isLoadingText ? (
-                    <p>{section.content}</p>
-                  ) : (
-                    <div className="skeleton-placeholder">
-                      <div className="skeleton-line" />
-                      <div className="skeleton-line" />
-                      <div className="skeleton-line" />
-                      <div className="skeleton-line" />
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      </div>
-
-      {/* Row 3: Asset Selection (Left) & Diagrams side-by-side (Right) */}
-      <div className="booster__row-3 fade-in">
-        <section className="booster__assets glass-card">
-          <h2 className="booster__section-title">Assets</h2>
-          <div className="booster__asset-buttons">
-            <button className="btn-secondary" onClick={selectAllAssets}>
-              Select All
+                      })}
+                    </select>
+                  </div>
+                ),
+              )}
+            </div>
+            <button
+              className="btn-reset"
+              style={{ marginTop: "var(--space-md)", width: "100%" }}
+              onClick={handleReset}
+            >
+              Reset
             </button>
-            <button className="btn-secondary" onClick={clearAllAssets}>
-              Clear All
-            </button>
-          </div>
-          <div className="booster__checklist">
-            {ASSET_TREE.map((node) => (
-              <AssetNode
-                key={node.id}
-                node={node}
-                value={selectedAssets[node.id]}
-              />
-            ))}
-          </div>
-          <button
-            className="btn-primary booster__download-btn"
-            disabled={!allFieldsFilled || isGenerating}
-            onClick={handleDownload}
-          >
-            {isGenerating
-              ? "⌛ Generating Package..."
-              : "📦 Download Package"}
-          </button>
-        </section>
+          </section>
 
-        <div className="booster__diagrams-row-3">
+          {/* Asset Selection */}
+          <section className="booster__assets glass-card">
+            <h2 className="booster__section-title">Assets</h2>
+            <div className="booster__asset-buttons">
+              <button className="btn-secondary" onClick={selectAllAssets} style={{ padding: '0.4rem 0.8rem' }}>
+                Select All
+              </button>
+              <button className="btn-secondary" onClick={clearAllAssets} style={{ padding: '0.4rem 0.8rem' }}>
+                Clear All
+              </button>
+            </div>
+            <div className="booster__checklist">
+              {ASSET_TREE.map((node) => (
+                <AssetNode
+                  key={node.id}
+                  node={node}
+                  value={selectedAssets[node.id]}
+                />
+              ))}
+            </div>
+            <button
+              className="btn-primary booster__download-btn"
+              disabled={!allFieldsFilled || isGenerating}
+              onClick={handleDownload}
+            >
+              {isGenerating
+                ? "⌛ Generating Package..."
+                : "📦 Download Package"}
+            </button>
+          </section>
+        </aside>
+
+        {/* Middle Column: Multi-Line Diagram & Reference Architecture stacked vertically */}
+        <div className="booster__diagrams-container">
           {/* Diagram 1: Multi-Line Diagram */}
           <section className="booster__diagram glass-card">
             <h2 className="booster__section-title">Multi-Line Diagram</h2>
-            <div className="booster__diagram-canvas-row3">
+            <div className="booster__diagram-canvas">
               <svg
                 ref={multiLineRef}
                 viewBox="0 0 900 550"
@@ -1682,7 +1703,7 @@ function BoosterSetPage() {
           {/* Diagram 2: Reference Architecture */}
           <section className="booster__diagram glass-card">
             <h2 className="booster__section-title">Reference Architecture</h2>
-            <div className="booster__diagram-canvas-row3">
+            <div className="booster__diagram-canvas">
               <svg
                 ref={refArchRef}
                 viewBox="0 0 900 600"
@@ -1910,6 +1931,59 @@ function BoosterSetPage() {
             </div>
           </section>
         </div>
+
+        {/* Right Column Technical Description Accordion Sidebar */}
+        <aside className="booster__sidebar">
+          <section className="booster__tech-desc-sidebar-card glass-card" style={{ padding: 'var(--space-md) var(--space-xl)', margin: 0 }}>
+            <h2 className="booster__section-title">Technical Description</h2>
+            <div className="booster__text-accordion">
+              {motorStartTextSections.map((section) => {
+                const isOpen = openMotorTextSections[section.key];
+
+                return (
+                  <div className="booster__text-section" key={section.key}>
+                    <button
+                      type="button"
+                      className="booster__text-section-btn"
+                      onClick={() => toggleMotorTextSection(section.key)}
+                      aria-expanded={isOpen}
+                    >
+                      <span>{section.title}</span>
+                      {isOpen ? (
+                        <ChevronDown size={16} />
+                      ) : (
+                        <ChevronRight size={16} />
+                      )}
+                    </button>
+                    {isOpen && (
+                      <div className="booster__text-section-panel">
+                        {(section.key === "technicalCharacteristics" ? (
+                          !config.motorStart ||
+                          isLoadingTech ||
+                          !techCharText ||
+                          !config.motorPower ||
+                          !config.enclosure
+                        ) : (
+                          !config.motorStart ||
+                          isLoadingStatic ||
+                          !staticText
+                        )) ? (
+                          <div className="skeleton-placeholder" style={{ padding: 0 }}>
+                            <div className="skeleton-line" />
+                            <div className="skeleton-line" />
+                            <div className="skeleton-line" />
+                          </div>
+                        ) : (
+                          <p>{section.content}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        </aside>
       </div>
     </div>
   );

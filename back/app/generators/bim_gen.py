@@ -29,7 +29,6 @@ def mm_to_m(v_mm):
 
 
 def load_data(path="002_DigitalTwin_DNA_CFG-V019-4X.json"):
-    print(f"[DEBUG] Attempting to load JSON file from: {path}")
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
@@ -61,7 +60,6 @@ def create_color_style(model, name, r, g, b, transparency=0.0):
 
 
 def create_multi_bay_enclosure(model, context, bay_width, depth, height, count):
-    """Generates distinct side-by-side bays combined into a single shape representation."""
     vertices = []
     faces = []
 
@@ -69,7 +67,6 @@ def create_multi_bay_enclosure(model, context, bay_width, depth, height, count):
         x0 = i * bay_width
         x1 = (i + 1) * bay_width
 
-        # Each bay is appended as its own discrete mesh item in the representation list
         bay_vertices = [
             (x0, 0, 0),
             (x1, 0, 0),
@@ -81,7 +78,6 @@ def create_multi_bay_enclosure(model, context, bay_width, depth, height, count):
             (x0, depth, height),
         ]
 
-        # Because each bay is an isolated list, the vertex indices always start at 0
         bay_faces = [
             (0, 1, 2, 3),
             (4, 5, 6, 7),
@@ -218,7 +214,6 @@ def create_door_button(model, context, panel, name, x, y, z, color_style):
 # ------------------------------------------------------------
 def generate_ifc_from_twin(twin_data: dict, visualize_ports: bool = False) -> bytes:
     try:
-        print("[DEBUG] Initializing IFC4 Model...")
         data = twin_data
         model = ifcopenshell.api.project.create_file(version="IFC4")
         project = ifcopenshell.api.root.create_entity(
@@ -226,7 +221,6 @@ def generate_ifc_from_twin(twin_data: dict, visualize_ports: bool = False) -> by
         )
         ifcopenshell.api.unit.assign_unit(model)
 
-        print("[DEBUG] Creating Contexts and Spatial Structure...")
         model_context = ifcopenshell.api.context.add_context(
             model, context_type="Model"
         )
@@ -264,7 +258,6 @@ def generate_ifc_from_twin(twin_data: dict, visualize_ports: bool = False) -> by
             model, products=[space], relating_object=storey
         )
 
-        print("[DEBUG] Generating Color Styles...")
         gray_style = create_color_style(model, "Panel_Gray", 0.6, 0.6, 0.62)
         warning_red_style = create_color_style(model, "Warning_Red", 0.9, 0.1, 0.1)
         status_green_style = create_color_style(model, "Status_Green", 0.1, 0.8, 0.2)
@@ -272,7 +265,6 @@ def generate_ifc_from_twin(twin_data: dict, visualize_ports: bool = False) -> by
             model, "Clearance_Door", 0.2, 0.5, 0.8, transparency=0.85
         )
 
-        print("[DEBUG] Instantiating Panel Entity...")
         config_id = data.get("config_id", "Unknown_Panel")
         panel_type = ifcopenshell.api.root.create_entity(
             model,
@@ -299,7 +291,6 @@ def generate_ifc_from_twin(twin_data: dict, visualize_ports: bool = False) -> by
             model, product=panel, matrix=matrix
         )
 
-        print("[DEBUG] Parsing Spatial Dimensions...")
         enclosure = data.get("enclosure", {})
         dim_string = (
             enclosure.get("dimensions_mm", "1000x800x300")
@@ -312,9 +303,7 @@ def generate_ifc_from_twin(twin_data: dict, visualize_ports: bool = False) -> by
             try:
                 h_mm, w_mm, d_mm = float(dims[0]), float(dims[1]), float(dims[2])
             except ValueError:
-                print(
-                    f"[DEBUG] WARNING: Could not parse dimensions '{dim_string}'. Falling back to defaults."
-                )
+                pass
 
         enclosure_count = int(data.get("enclosure_count", 1))
         bay_width = mm_to_m(w_mm)
@@ -322,11 +311,6 @@ def generate_ifc_from_twin(twin_data: dict, visualize_ports: bool = False) -> by
         height = mm_to_m(h_mm)
         total_width = bay_width * enclosure_count
 
-        print(
-            f"[DEBUG] Calculated Geometry: Count={enclosure_count}, Total Width={total_width}m, Height={height}m, Depth={depth}m"
-        )
-
-        print("[DEBUG] Generating Multi-Bay Representation...")
         rep = create_multi_bay_enclosure(
             model, body_context, bay_width, depth, height, enclosure_count
         )
@@ -335,7 +319,6 @@ def generate_ifc_from_twin(twin_data: dict, visualize_ports: bool = False) -> by
             model, item=rep.Items[0], style=gray_style
         )
 
-        print("[DEBUG] Encoding Pset Metadata...")
         components = data.get("components", [])
         core_part = next(
             (
@@ -386,6 +369,17 @@ def generate_ifc_from_twin(twin_data: dict, visualize_ports: bool = False) -> by
             },
         )
 
+        add_pset(
+            model,
+            panel_type,
+            "DT_Pset_Electrical",
+            {
+                "MotorPower_kW": float(data.get("motor_power_kw", 0)),
+                "LoadCount": int(data.get("load_count", 0)),
+                "CommunicationProtocol": data.get("communication", "None"),
+            },
+        )
+
         components_str = " | ".join(
             [
                 f"{c.get('qty','1')}x {c.get('part_number','')} ({c.get('item_category','')})"
@@ -411,7 +405,6 @@ def generate_ifc_from_twin(twin_data: dict, visualize_ports: bool = False) -> by
             },
         )
 
-        print("[DEBUG] Placing Ports...")
         create_port(
             model,
             body_context,
@@ -456,8 +449,11 @@ def generate_ifc_from_twin(twin_data: dict, visualize_ports: bool = False) -> by
                 color_style=warning_red_style,
             )
 
-        print("[DEBUG] Placing Door Accessories (if applicable)...")
         if visualize_ports and load_count > 0:
+            # FIX 1: Dynamically calculate top Z-coordinate to prevent floating buttons on smaller panels.
+            # Caps at 1.6m ergonomic height, or adjusts downwards based on panel height.
+            top_btn_z = min(1.60, height - 0.1)
+
             for i in range(1, load_count + 1):
                 btn_x = total_width * (i / (load_count + 1))
                 create_door_button(
@@ -467,7 +463,7 @@ def generate_ifc_from_twin(twin_data: dict, visualize_ports: bool = False) -> by
                     f"Trip_Light_{i}",
                     btn_x,
                     depth,
-                    1.60,
+                    top_btn_z,
                     warning_red_style,
                 )
                 create_door_button(
@@ -477,7 +473,7 @@ def generate_ifc_from_twin(twin_data: dict, visualize_ports: bool = False) -> by
                     f"Run_Light_{i}",
                     btn_x,
                     depth,
-                    1.55,
+                    top_btn_z - 0.05,
                     status_green_style,
                 )
                 create_door_button(
@@ -487,7 +483,7 @@ def generate_ifc_from_twin(twin_data: dict, visualize_ports: bool = False) -> by
                     f"Stop_PB_{i}",
                     btn_x,
                     depth,
-                    1.45,
+                    top_btn_z - 0.15,
                     warning_red_style,
                 )
                 create_door_button(
@@ -497,13 +493,14 @@ def generate_ifc_from_twin(twin_data: dict, visualize_ports: bool = False) -> by
                     f"Start_PB_{i}",
                     btn_x,
                     depth,
-                    1.40,
+                    top_btn_z - 0.20,
                     status_green_style,
                 )
 
-        print("[DEBUG] Generating Clearances...")
         if visualize_ports:
-            working_depth = 1.0
+            # FIX 2: Dynamic working depth for visual aesthetics on smaller panels.
+            working_depth = max(0.6, min(1.0, depth * 2.5))
+
             create_clearance_zone(
                 model,
                 body_context,
@@ -518,7 +515,6 @@ def generate_ifc_from_twin(twin_data: dict, visualize_ports: bool = False) -> by
                 color_style=door_clearance_style,
             )
 
-        print("[DEBUG] Encoding Model to Bytes...")
         return model.to_string().encode("utf-8")
 
     except Exception:
@@ -528,7 +524,6 @@ def generate_ifc_from_twin(twin_data: dict, visualize_ports: bool = False) -> by
 
 
 def main():
-    print("[DEBUG] Script Started.")
     parser = argparse.ArgumentParser(
         description="Generate an IFC BIM object from a Digital Twin JSON."
     )
@@ -540,12 +535,9 @@ def main():
     )
     args = parser.parse_args()
 
-    json_path = "002_DigitalTwin_DNA_CFG-V019-4X.json"
+    json_path = "002_DigitalTwin_DNA_CFG-V014-3X.json"
     try:
         data = load_data(json_path)
-        print(
-            f"[DEBUG] JSON Loaded Successfully. Config ID: {data.get('config_id', 'None')}"
-        )
     except FileNotFoundError:
         print(
             f"[ERROR] {json_path} not found. Ensure the file is in the same directory."
@@ -565,7 +557,6 @@ def main():
         )
         return
 
-    print("[DEBUG] Preparing to write bytes to file...")
     config_id = data.get("config_id", "Unknown_Panel")
     base_name = args.output_name if args.output_name else config_id
     suffix = "_Visual" if args.visualize_ports else "_Logical"

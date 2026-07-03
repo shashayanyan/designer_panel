@@ -11,11 +11,9 @@ from ..schemas.configurator import (
     DigitalTwinRequest,
     DigitalTwinResponse,
     TwinAccessory,
-    TwinAlarm,
     TwinBomLine,
     TwinComponent,
     TwinEnclosure,
-    TwinIO,
 )
 
 
@@ -458,98 +456,6 @@ class ConfigurationEngine:
                 )
             )
         response.bom_lines = self._bom_lines_sorted_by_line_no(bom_lines)
-
-        # 8. Resolve Application-Specific Templates (IO, Alarms, Options)
-        app_id = "APP-WATER-BOOSTER"  # Fixed for this specific application page
-
-        # 8a. IO Templates -> Network Plan
-        io_templates = (
-            self.db.query(models.ApplicationIOTemplate)
-            .filter(models.ApplicationIOTemplate.application_id == app_id)
-            .all()
-        )
-
-        network_plan = []
-        for iot in io_templates:
-            # Filter by communication mode if required
-            if (
-                iot.required_communication_mode
-                and iot.required_communication_mode != request.communication
-            ):
-                continue
-
-            if iot.is_per_load:
-                for i in range(1, request.load_count + 1):
-                    tag = (iot.tag_template or "").replace("{i}", str(i))
-                    desc = (iot.description or "").replace("{i}", str(i))
-                    # Simple IP assignment logic if communication is ModbusTCP
-                    ip = None
-                    if (
-                        request.communication == "ModbusTCP"
-                        and iot.interface == "Modbus TCP"
-                    ):
-                        ip = f"192.168.1.{10 + i}"  # Simple sequential assignment starting .11
-
-                    network_plan.append(
-                        TwinIO(
-                            tag=tag,
-                            description=desc,
-                            signal_type=iot.signal_type,
-                            interface=iot.interface,
-                            ip_address=ip,
-                        )
-                    )
-            else:
-                network_plan.append(
-                    TwinIO(
-                        tag=iot.tag_template,
-                        description=iot.description,
-                        signal_type=iot.signal_type,
-                        interface=iot.interface,
-                        ip_address=(
-                            "192.168.1.10"
-                            if request.communication == "ModbusTCP"
-                            and iot.interface == "Modbus TCP"
-                            else None
-                        ),
-                    )
-                )
-        response.network_plan = network_plan
-
-        # 8b. Alarm Templates -> Alarm List
-        alarm_templates = (
-            self.db.query(models.ApplicationAlarmTemplate)
-            .filter(models.ApplicationAlarmTemplate.application_id == app_id)
-            .all()
-        )
-
-        alarm_list = []
-        for alt in alarm_templates:
-            if alt.is_per_load:
-                for i in range(1, request.load_count + 1):
-                    code = (alt.alarm_code_template or "").replace("{i}", str(i))
-                    source = (alt.tag_source_template or "").replace("{i}", str(i))
-                    msg = (alt.operator_message or "").replace("{i}", str(i))
-                    alarm_list.append(
-                        TwinAlarm(
-                            code=code,
-                            source_tag=source,
-                            condition=alt.condition,
-                            priority=alt.priority,
-                            operator_message=msg,
-                        )
-                    )
-            else:
-                alarm_list.append(
-                    TwinAlarm(
-                        code=alt.alarm_code_template,
-                        source_tag=alt.tag_source_template,
-                        condition=alt.condition,
-                        priority=alt.priority,
-                        operator_message=alt.operator_message,
-                    )
-                )
-        response.alarm_list = alarm_list
 
         # 9. Add project metadata to the response
         response.project_name = request.project_name

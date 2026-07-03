@@ -120,6 +120,7 @@ describe("BoosterSetPage - Edge Cases and SVG Logic", () => {
     fireEvent.change(screen.getByLabelText(/PLC/i), {
       target: { value: "No" },
     });
+    fireEvent.click(screen.getByLabelText(/I have read and agree to the/i));
   };
 
   it("handles failure of the generate-package API", async () => {

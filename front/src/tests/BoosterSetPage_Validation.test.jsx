@@ -113,6 +113,9 @@ describe("BoosterSetPage - Validation and Resets", () => {
       target: { value: "No" },
     });
 
+    // Check Terms checkbox to enable download
+    fireEvent.click(screen.getByLabelText(/I have read and agree to the/i));
+
     expect(downloadBtn).not.toBeDisabled();
   });
 

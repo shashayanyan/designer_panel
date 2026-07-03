@@ -545,10 +545,11 @@ function BoosterSetPage() {
   const textRequestId = useRef(0);
   const [openMotorTextSections, setOpenMotorTextSections] = useState({
     description: true,
-    technicalCharacteristics: false,
-    functions: false,
-    protections: false,
+    technicalCharacteristics: true,
+    functions: true,
+    protections: true,
   });
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const [expandedNodes, setExpandedNodes] = useState(() => {
     const buildExpandedState = (nodes) => {
@@ -935,7 +936,9 @@ function BoosterSetPage() {
     });
     setEnclosureList(null);
     setSelectedAssets(buildAssetState(ASSET_TREE));
+    setAcceptedTerms(false);
   };
+
   const AssetNode = ({ node, value, parentId }) => {
     const parentRef = useRef(null);
     const hasChildren = !!node.children?.length;
@@ -956,22 +959,30 @@ function BoosterSetPage() {
               ? "booster__asset-row booster__asset-row--leaf booster__page--disabled"
               : "booster__asset-row booster__asset-row--leaf"
           }
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}
         >
-          <span className="booster__asset-spacer" aria-hidden="true" />
-          <label className="booster__check-item booster__check-item--top">
-            <input
-              type="checkbox"
-              checked={value}
-              disabled={node.disabled}
-              onChange={() =>
-                parentId
-                  ? toggleChildNode(parentId, node.id)
-                  : toggleLeafNode(node.id)
-              }
-              className="booster__checkbox"
-            />
-            <span className="booster__check-label">{node.label}</span>
-          </label>
+          <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+            <span className="booster__asset-spacer" aria-hidden="true" />
+            <label className="booster__check-item booster__check-item--top">
+              <input
+                type="checkbox"
+                checked={value}
+                disabled={node.disabled}
+                onChange={() =>
+                  parentId
+                    ? toggleChildNode(parentId, node.id)
+                    : toggleLeafNode(node.id)
+                }
+                className="booster__checkbox"
+              />
+              <span className="booster__check-label">{node.label}</span>
+            </label>
+          </div>
+          {node.id === "BIM Object" && value && (
+            <div style={{ paddingLeft: '2.3rem', fontSize: '0.78rem', color: 'var(--danger)', fontWeight: '500', marginTop: '2px' }}>
+              Refer to README for instructions for IFC file
+            </div>
+          )}
         </div>
       );
     }
@@ -1460,13 +1471,30 @@ function BoosterSetPage() {
                 />
               ))}
             </div>
+            {/* Terms of Use Checkbox */}
+            <div className="booster__terms-agreement" style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', padding: '12px 4px 4px 4px' }}>
+              <input
+                type="checkbox"
+                id="terms-agreement-checkbox"
+                checked={acceptedTerms}
+                onChange={(e) => setAcceptedTerms(e.target.checked)}
+                className="booster__checkbox"
+                style={{ width: '16px', height: '16px', cursor: 'pointer', marginTop: '2px' }}
+              />
+              <label htmlFor="terms-agreement-checkbox" style={{ fontSize: '0.82rem', cursor: 'pointer', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                I have read and agree to the{" "}
+                <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'underline', color: 'var(--accent)', fontWeight: '600' }}>
+                  Terms of Use
+                </a>
+              </label>
+            </div>
             <button
               className="btn-primary booster__download-btn"
-              disabled={!allFieldsFilled || isGenerating}
+              disabled={!allFieldsFilled || isGenerating || !acceptedTerms}
               onClick={handleDownload}
             >
               {isGenerating
-                ? "⌛ Generating Package..."
+                ? "⌛ Generating..."
                 : "📦 Download Package"}
             </button>
           </section>

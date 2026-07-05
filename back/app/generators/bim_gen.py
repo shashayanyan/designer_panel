@@ -212,6 +212,9 @@ def create_door_button(model, context, panel, name, x, y, z, color_style):
 # ------------------------------------------------------------
 # Main Execution Logic
 # ------------------------------------------------------------
+# ------------------------------------------------------------
+# Main Execution Logic
+# ------------------------------------------------------------
 def generate_ifc_from_twin(twin_data: dict, visualize_ports: bool = False) -> bytes:
     try:
         data = twin_data
@@ -339,10 +342,10 @@ def generate_ifc_from_twin(twin_data: dict, visualize_ports: bool = False) -> by
             {
                 "Manufacturer": "Schneider Electric",
                 "ModelLabel": data.get("config_id", ""),
-                "ModelReference": data.get("series_id", ""),
-                "ArticleNumber": enclosure.get("catalog_ref", ""),
-                "Description": data.get("series_name", "Control Panel"),
-                "ManufacturerUrl": derived_url,
+                "ModelReference": "Booster Set Application",  # Updated to reflect system type
+                "ArticleNumber": "Configured Assembly",  # Prevents ordering an empty box
+                "Description": "Booster Set Control Panel",  # Explicitly states the function
+                "ManufacturerUrl": derived_url,  # Safe to keep as a reference to the core drive
             },
         )
 
@@ -405,34 +408,25 @@ def generate_ifc_from_twin(twin_data: dict, visualize_ports: bool = False) -> by
             },
         )
 
+        # ==============================================================================
+        # PORTS & ACCESSORIES (BAY-CENTRIC PLACEMENT)
+        # ==============================================================================
+
+        # 1. Incoming Power & Network (Anchored to the center of Bay 1)
+        bay_1_center = bay_width * 0.5
+
         create_port(
             model,
             body_context,
             panel,
             "Incoming_Power",
             "SINK",
-            x=total_width * 0.2,
+            x=bay_1_center,
             y=depth * 0.5,
             z=height,
             visualize=visualize_ports,
             color_style=warning_red_style,
         )
-
-        load_count = int(data.get("load_count", 0))
-        for i in range(1, load_count + 1):
-            x_pos = total_width * (i / (load_count + 1))
-            create_port(
-                model,
-                body_context,
-                panel,
-                f"Motor_{i}_Outgoing",
-                "SOURCE",
-                x=x_pos,
-                y=depth * 0.5,
-                z=0.0,
-                visualize=visualize_ports,
-                color_style=warning_red_style,
-            )
 
         comm_protocol = data.get("communication")
         if comm_protocol and comm_protocol.lower() != "none":
@@ -442,20 +436,44 @@ def generate_ifc_from_twin(twin_data: dict, visualize_ports: bool = False) -> by
                 panel,
                 f"Comm_{comm_protocol}",
                 "SOURCEANDSINK",
-                x=total_width * 0.8,
+                x=bay_1_center,
                 y=depth * 0.5,
                 z=height,
                 visualize=visualize_ports,
                 color_style=warning_red_style,
             )
 
-        if visualize_ports and load_count > 0:
-            # FIX 1: Dynamically calculate top Z-coordinate to prevent floating buttons on smaller panels.
-            # Caps at 1.6m ergonomic height, or adjusts downwards based on panel height.
-            top_btn_z = min(1.60, height - 0.1)
+        # 2. Outgoing Motor Ports & Door Buttons (Adaptive Placement)
+        load_count = int(data.get("load_count", 0))
 
-            for i in range(1, load_count + 1):
+        for i in range(1, load_count + 1):
+
+            # If we have a large multi-bay lineup (more enclosures than loads),
+            # place each load dead-center in its own dedicated bay (starting from Bay 2).
+            if enclosure_count > 1 and enclosure_count > load_count:
+                bay_index = i
+                btn_x = (bay_index + 0.5) * bay_width
+
+            # If it is a single enclosure housing multiple loads,
+            # distribute the buttons evenly across the width of the door.
+            else:
                 btn_x = total_width * (i / (load_count + 1))
+
+            create_port(
+                model,
+                body_context,
+                panel,
+                f"Motor_{i}_Outgoing",
+                "SOURCE",
+                x=btn_x,
+                y=depth * 0.5,
+                z=0.0,
+                visualize=visualize_ports,
+                color_style=warning_red_style,
+            )
+
+            if visualize_ports:
+                top_btn_z = min(1.60, height - 0.1)
                 create_door_button(
                     model,
                     body_context,
@@ -497,10 +515,9 @@ def generate_ifc_from_twin(twin_data: dict, visualize_ports: bool = False) -> by
                     status_green_style,
                 )
 
+        # 3. Front Clearance (Spanning the entire assembly)
         if visualize_ports:
-            # FIX 2: Dynamic working depth for visual aesthetics on smaller panels.
             working_depth = max(0.6, min(1.0, depth * 2.5))
-
             create_clearance_zone(
                 model,
                 body_context,

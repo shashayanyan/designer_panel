@@ -45,8 +45,7 @@ def generate_asset_numbers(selected_assets: list[str]) -> dict[str, str]:
         base_index += 2
 
     if "BIM Object" in selected_assets:
-        asset_numbers["BIM-logical"] = get_asset_number(base_index)
-        asset_numbers["BIM-visual"] = get_asset_number(base_index + 1)
-        base_index += 2
+        asset_numbers["BIM-visual"] = get_asset_number(base_index)
+        base_index += 1
 
     return asset_numbers

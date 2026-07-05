@@ -39,11 +39,6 @@ class ZipService:
         word_bytes = generate_word_from_twin(twin) if gen_word else None
 
         twin_dict = twin.model_dump()
-        bim_logical = (
-            generate_ifc_from_twin(twin_dict, visualize_ports=False)
-            if gen_bim
-            else None
-        )
         bim_visual = (
             generate_ifc_from_twin(twin_dict, visualize_ports=True) if gen_bim else None
         )
@@ -77,11 +72,6 @@ class ZipService:
                     f"{asset_numbers['spec-docx']}_Engineering_Spec_{twin.config_id}.docx",
                     word_bytes,
                 )
-            if bim_logical:
-                zip_file.writestr(
-                    f"BIM/{asset_numbers['BIM-logical']}_Logical_{twin.config_id}.ifc",
-                    bim_logical,
-                )
             if bim_visual:
                 zip_file.writestr(
                     f"BIM/{asset_numbers['BIM-visual']}_Visual_{twin.config_id}.ifc",
@@ -100,6 +90,9 @@ class ZipService:
                             "line contactor",
                             "overload",
                             "variable speed drive",
+                            "fan",
+                            "grille",
+                            "incomer breaker",
                         ]:
                             for folder in folders:
                                 # S3 key convention: folder/partnumber_folder.dxf

@@ -11,7 +11,7 @@ function LandingPage() {
       <div className="landing__ambient" />
 
       <div className="landing__content fade-in">
-        <div className="landing__badge">Motor Control Asset Library</div>
+        <div className="landing__badge">Application Design Library</div>
         <h1 className="landing__title">
           Automate Your <br></br>{" "}
           <span className="landing__highlight">Design Process</span>

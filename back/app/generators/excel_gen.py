@@ -111,7 +111,7 @@ def generate_excel_from_twin(twin: DigitalTwinResponse) -> Dict[str, bytes]:
             {"Field": "Incomer Count", "Value": "1"},
         ]
         df_params = pd.DataFrame(parameters_data)
-        generated_files[f"{asset_numbers['Parameters']}_Parameters.xlsx"] = (
+        generated_files[f"{asset_numbers['Parameters']}_System_Parameters.xlsx"] = (
             df_to_excel_bytes(df_params)
         )
 
@@ -179,7 +179,7 @@ def generate_excel_from_twin(twin: DigitalTwinResponse) -> Dict[str, bytes]:
                 "Key Selection Notes / Options",
             ],
         )
-        generated_files[f"{asset_numbers['BOM']}_BOM-Template.xlsx"] = (
+        generated_files[f"{asset_numbers['BOM']}_Bill_of_Materials.xlsx"] = (
             df_to_excel_bytes(df_bom)
         )
 
@@ -281,9 +281,9 @@ def generate_excel_from_twin(twin: DigitalTwinResponse) -> Dict[str, bytes]:
                 )
 
             if io_dfs:
-                generated_files[f"{asset_numbers['IO']}_IO-List.xlsx"] = (
-                    dfs_to_excel_bytes(io_dfs)
-                )
+                generated_files[
+                    f"{asset_numbers['IO']}_List_of_Inputs_Outputs.xlsx"
+                ] = dfs_to_excel_bytes(io_dfs)
 
         # -- 4. Alarm List ---
         if "Alarm List" in assets_flat or "Alarms" in assets_flat:
@@ -299,7 +299,7 @@ def generate_excel_from_twin(twin: DigitalTwinResponse) -> Dict[str, bytes]:
                     for item in alarms
                 ]
                 alarms_df = pd.DataFrame(alarms_data)
-                generated_files[f"{asset_numbers['Alarms']}_Alarm_List.xlsx"] = (
+                generated_files[f"{asset_numbers['Alarms']}_List_of_Alarms.xlsx"] = (
                     df_to_excel_bytes(alarms_df)
                 )
 
@@ -336,7 +336,7 @@ def generate_excel_from_twin(twin: DigitalTwinResponse) -> Dict[str, bytes]:
             events_df = pd.DataFrame(
                 events_data if events_data else [{"Status": "No events resolved"}]
             )
-            generated_files[f"{asset_numbers['Events']}_Event_List.xlsx"] = (
+            generated_files[f"{asset_numbers['Events']}_List_of_Events.xlsx"] = (
                 df_to_excel_bytes(events_df)
             )
 

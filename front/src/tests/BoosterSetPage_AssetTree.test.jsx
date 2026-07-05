@@ -45,10 +45,18 @@ describe("BoosterSetPage - Asset Tree Logic", () => {
     fireEvent.click(parentCheckbox);
     expect(parentCheckbox.checked).toBe(true);
 
-    // Expand to verify children
-    fireEvent.click(screen.getByLabelText(/Expand Data Sheet/i));
+    // Expand to verify children if not already expanded
+    const expandBtn1 = screen.queryByLabelText(/Expand Data Sheet/i);
+    if (expandBtn1) {
+      fireEvent.click(expandBtn1);
+    }
 
-    const children = ["Parameters", "BOM", "IO List", "Alarm List"];
+    const children = [
+      "System Parameters",
+      "BOM - Bill of Materials",
+      "List of Inputs/Outputs",
+      "List of Alarms",
+    ];
     children.forEach((label) => {
       expect(screen.getByLabelText(label).checked).toBe(true);
     });
@@ -57,11 +65,14 @@ describe("BoosterSetPage - Asset Tree Logic", () => {
   it("sets parent to indeterminate when some children are selected", async () => {
     await renderComponent();
 
-    // Expand group
-    fireEvent.click(screen.getByLabelText(/Expand Data Sheet/i));
+    // Expand group if not already expanded
+    const expandBtn2 = screen.queryByLabelText(/Expand Data Sheet/i);
+    if (expandBtn2) {
+      fireEvent.click(expandBtn2);
+    }
 
     const parentCheckbox = screen.getByLabelText("Data Sheet");
-    const childCheckbox = screen.getByLabelText("BOM");
+    const childCheckbox = screen.getByLabelText("BOM - Bill of Materials");
 
     // Initially none selected
     expect(parentCheckbox.checked).toBe(false);
@@ -80,7 +91,12 @@ describe("BoosterSetPage - Asset Tree Logic", () => {
       timeout: 2000,
     });
     // Select all other children to reach "all selected" state
-    const otherChildren = ["Parameters", "IO List", "Alarm List", "Event List"];
+    const otherChildren = [
+      "System Parameters",
+      "List of Inputs/Outputs",
+      "List of Alarms",
+      "List of Events",
+    ];
     await act(async () => {
       for (const label of otherChildren) {
         fireEvent.click(screen.getByLabelText(label));
@@ -109,12 +125,16 @@ describe("BoosterSetPage - Asset Tree Logic", () => {
     fireEvent.click(selectAllBtn);
 
     expect(screen.getByLabelText("Data Sheet").checked).toBe(true);
-    expect(screen.getByLabelText("Multi Line Diagram").checked).toBe(true);
+    expect(screen.getByLabelText("Electrical Multi Line Diagram").checked).toBe(
+      true,
+    );
 
     // Clear All
     fireEvent.click(clearAllBtn);
 
     expect(screen.getByLabelText("Data Sheet").checked).toBe(false);
-    expect(screen.getByLabelText("Multi Line Diagram").checked).toBe(false);
+    expect(screen.getByLabelText("Electrical Multi Line Diagram").checked).toBe(
+      false,
+    );
   });
 });

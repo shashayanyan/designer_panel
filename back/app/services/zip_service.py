@@ -32,7 +32,6 @@ class ZipService:
         gen_excel = has_asset("Data Sheet")
         gen_word = has_asset("Specification")
         gen_bim = has_asset("BIM Object")
-        gen_diagram = has_asset("Multi Line Diagram")
         gen_drawings = has_asset("Drawings")
         gen_components = has_asset("Components")
 
@@ -40,11 +39,6 @@ class ZipService:
         word_bytes = generate_word_from_twin(twin) if gen_word else None
 
         twin_dict = twin.model_dump()
-        bim_logical = (
-            generate_ifc_from_twin(twin_dict, visualize_ports=False)
-            if gen_bim
-            else None
-        )
         bim_visual = (
             generate_ifc_from_twin(twin_dict, visualize_ports=True) if gen_bim else None
         )
@@ -54,36 +48,7 @@ class ZipService:
             generate_spec_text_from_twin(twin) if has_asset("Specification") else None
         )
 
-        # 2. Build the Manifest dynamically
-        files_included = [
-            f"002_DigitalTwin_DNA_{twin.config_id}.json",
-            "003_README.txt",
-        ]
-        if excel_files:
-            files_included.extend(list(excel_files.keys()))
-        if gen_diagram:
-            files_included.append(f"{asset_numbers['MLD-svg']}_MultiLineDiagram.svg")
-            files_included.append(f"{asset_numbers['MLD-png']}_MultiLineDiagram.png")
-            files_included.append(
-                f"{asset_numbers['RefArch']}_ReferenceArchitecture.pdf"
-            )
-        if word_bytes:
-            files_included.append(
-                f"{asset_numbers['spec-docx']}_EngineeringSpec_{twin.config_id}.docx"
-            )
-            files_included.append(f"{asset_numbers['spec-txt']}_SpecTextBlock.txt")
-        if bim_logical:
-            files_included.append(
-                f"BIM/{asset_numbers['BIM-logical']}_Logical_{twin.config_id}.ifc"
-            )
-        if bim_visual:
-            files_included.append(
-                f"BIM/{asset_numbers['BIM-visual']}_Visual_{twin.config_id}.ifc"
-            )
-        if gen_drawings:
-            files_included.append("Drawings/")
-
-        # 3. Create the ZIP archive
+        # 2. Create the ZIP archive
         zip_buffer = io.BytesIO()
         with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
             # Readme
@@ -99,17 +64,13 @@ class ZipService:
                 zip_file.writestr(filename, filebytes)
             if spec_text_bytes:
                 zip_file.writestr(
-                    f"{asset_numbers['spec-txt']}_SpecTextBlock.txt", spec_text_bytes
+                    f"{asset_numbers['spec-txt']}_Specification_Text_Block.txt",
+                    spec_text_bytes,
                 )
             if word_bytes:
                 zip_file.writestr(
-                    f"{asset_numbers['spec-docx']}_EngineeringSpec_{twin.config_id}.docx",
+                    f"{asset_numbers['spec-docx']}_Engineering_Spec_{twin.config_id}.docx",
                     word_bytes,
-                )
-            if bim_logical:
-                zip_file.writestr(
-                    f"BIM/{asset_numbers['BIM-logical']}_Logical_{twin.config_id}.ifc",
-                    bim_logical,
                 )
             if bim_visual:
                 zip_file.writestr(
@@ -120,7 +81,7 @@ class ZipService:
             # Drawings logic: write directly to root ZIP
             if gen_drawings:
                 if gen_components:
-                    folders = ["top", "right", "front", "back", "iso"]
+                    folders = ["right", "front"]
                     for line in twin.bom_lines:
                         # Filter for components only
                         if line.item_category.lower() in [
@@ -129,6 +90,9 @@ class ZipService:
                             "line contactor",
                             "overload",
                             "variable speed drive",
+                            "fan",
+                            "grille",
+                            "incomer breaker",
                         ]:
                             for folder in folders:
                                 # S3 key convention: folder/partnumber_folder.dxf

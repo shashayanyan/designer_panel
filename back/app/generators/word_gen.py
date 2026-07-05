@@ -114,17 +114,8 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
         f"{control_summary} | {comm_summary}"
     )
 
-    # 1. Purpose and How to Use
-    doc.add_heading("1. Purpose and How to Use", level=1)
-    doc.add_paragraph(
-        "This document is a copy/paste-ready specification appendix intended for Design Firms to include in Concept/FEED and Basic Design packages. It defines a repeatable solution approach for a water booster application and enables early-stage prescription of the complete motor control solution (enclosures, protection, motor starters, control, communications, and testing)."
-    )
-    doc.add_paragraph(
-        "This appendix is technology- and outcome-oriented, but references Schneider Electric solution families where applicable. Final product references (exact part numbers) shall be confirmed during detailed design by the System Integrator / Panel Builder according to local catalog, short-circuit levels, environmental conditions, and end-user standards."
-    )
-
     # 2. Application Data Sheet
-    doc.add_heading("2. Application Data Sheet", level=1)
+    doc.add_heading("1. Application Data Sheet", level=1)
     table = doc.add_table(rows=7, cols=2)
     table.style = "Table Grid"
 
@@ -145,6 +136,12 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
         control_mode = (
             "Pressure-based pump staging/de-staging with automatic alternation using "
             "soft starter start/stop control where provided by the selected controller"
+        )
+    elif starter_kind == "dol_adv":
+        process_objective = "Maintain discharge pressure within the required operating band across variable demand"
+        control_mode = (
+            "Pressure-based pump staging/de-staging with automatic alternation using "
+            "DOL start/stop control with advanced motor management where provided by the selected controller"
         )
     elif starter_kind == "dol":
         process_objective = "Maintain discharge pressure within the required operating band across variable demand"
@@ -187,6 +184,78 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
     add_row(4, "Control mode", control_mode)
     add_row(5, "Enclosure", f"{ip_rating} {mounting.lower()} control panel")
     add_row(6, "Communications", comm_row)
+
+    # 2.1 Technical Description
+    if twin.series_id == "DOL":
+        from ..utils.ui_desc_func_prot_txt.dol import (
+            DESCRIPTION,
+            TECHNICAL_CHARACTERISTICS,
+            FUNCTIONS,
+            PROTECTIONS,
+        )
+    elif twin.series_id == "DOL_ADV":
+        from ..utils.ui_desc_func_prot_txt.dola import (
+            DESCRIPTION,
+            TECHNICAL_CHARACTERISTICS,
+            FUNCTIONS,
+            PROTECTIONS,
+        )
+    elif twin.series_id == "SS":
+        if float(twin.motor_power_kw) <= 15:
+            from ..utils.ui_desc_func_prot_txt.ats01 import (
+                DESCRIPTION,
+                TECHNICAL_CHARACTERISTICS,
+                FUNCTIONS,
+                PROTECTIONS,
+            )
+        else:
+            from ..utils.ui_desc_func_prot_txt.ats130 import (
+                DESCRIPTION,
+                TECHNICAL_CHARACTERISTICS,
+                FUNCTIONS,
+                PROTECTIONS,
+            )
+    elif twin.series_id == "VSD":
+        from ..utils.ui_desc_func_prot_txt.vsd import (
+            DESCRIPTION,
+            TECHNICAL_CHARACTERISTICS,
+            FUNCTIONS,
+            PROTECTIONS,
+        )
+    else:
+        from ..utils.ui_desc_func_prot_txt.ats01 import (
+            DESCRIPTION,
+            TECHNICAL_CHARACTERISTICS,
+            FUNCTIONS,
+            PROTECTIONS,
+        )
+
+    from ..utils.ui_desc import extract_enclosure_range
+
+    mounting_type = twin.enclosure.mounting_type if twin.enclosure else "wall-mounted"
+    catalog_ref = twin.enclosure.catalog_ref if twin.enclosure else "dummy"
+    enclosure_range = extract_enclosure_range(catalog_ref)
+    material = (
+        "Polyester"
+        if ("PLA" in catalog_ref.upper() or "PLM" in catalog_ref.upper())
+        else "Steel"
+    )
+
+    tech_chars = TECHNICAL_CHARACTERISTICS
+    tech_chars = tech_chars.replace("{{PUMP_COUNT}}", str(twin.load_count))
+    tech_chars = tech_chars.replace("{{MOUNTING_TYPE}}", mounting_type)
+    tech_chars = tech_chars.replace("{{MATERIAL}}", material.lower())
+    tech_chars = tech_chars.replace("{{RANGE}}", enclosure_range)
+
+    doc.add_heading("2. Technical Description", level=1)
+    doc.add_heading("Description", level=2)
+    doc.add_paragraph(DESCRIPTION)
+    doc.add_heading("Technical Characteristics", level=2)
+    doc.add_paragraph(tech_chars)
+    doc.add_heading("Functions", level=2)
+    doc.add_paragraph(FUNCTIONS)
+    doc.add_heading("Protections", level=2)
+    doc.add_paragraph(PROTECTIONS)
 
     # 3. Multi-Line Diagram & Reference Architecture
     doc.add_heading("3. Multi-Line Diagram & Reference Architecture", level=1)
@@ -234,8 +303,112 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
             "[PLACEHOLDER: Generated reference architecture diagram will be inserted here when requested via UI payload.]"
         )
 
+    # 3.1 Bill of Materials
+    import os
+    import json
+    row_index = 1
+    bom_data = []
+    json_path = os.path.join(
+        os.path.dirname(__file__),
+        "added_hardware",
+        "00_added_hardware_and_mode_logic.json",
+    )
+    try:
+        with open(json_path, "r") as f:
+            hardware_logic = json.load(f)
+        hardware_map = {item["Circuit breaker"]: item for item in hardware_logic}
+    except FileNotFoundError:
+        hardware_map = {}
+
+    if twin.bom_lines:
+        for line in twin.bom_lines:
+            bom_data.append(
+                {
+                    "Index": str(row_index),
+                    "Item Category": line.item_category,
+                    "Item": line.item,
+                    "Qty": float(line.qty),
+                    "Part No.": line.part_number,
+                    "Key Selection Notes / Options": (
+                        line.key_selection_notes or "-"
+                    ),
+                }
+            )
+            row_index += 1
+
+            # Apply hardware addition logic
+            if line.part_number and line.part_number in hardware_map:
+                hw = hardware_map[line.part_number]
+                qty_per_cb = hw["Recommended qty per CB"]
+
+                # Add auxiliary
+                bom_data.append(
+                    {
+                        "Index": str(row_index),
+                        "Item Category": "Auxiliary",
+                        "Item": hw["OF auxiliary"],
+                        "Qty": float(line.qty) * qty_per_cb,
+                        "Part No.": hw["OF auxiliary"],
+                        "Key Selection Notes / Options": hw["Notes"],
+                    }
+                )
+                row_index += 1
+
+    doc.add_heading("4. Bill of Materials", level=1)
+    doc.add_paragraph("The table below lists the components configured for this booster set control panel:")
+
+    bom_table = doc.add_table(rows=1 + len(bom_data), cols=6)
+    bom_table.style = "Table Grid"
+    bom_table.allow_autofit = False
+
+    # Set column widths
+    from docx.shared import Pt
+    col_widths = [Inches(0.5), Inches(1.1), Inches(1.5), Inches(0.5), Inches(1.3), Inches(1.6)]
+    for idx, width in enumerate(col_widths):
+        bom_table.columns[idx].width = width
+    for row in bom_table.rows:
+        for idx, width in enumerate(col_widths):
+            row.cells[idx].width = width
+
+    headers = ["Index", "Item Category", "Item", "Qty", "Part No.", "Key Selection Notes / Options"]
+    for i, h in enumerate(headers):
+        cell = bom_table.rows[0].cells[i]
+        cell.text = h
+        # Make headers bold and size 9.5
+        for paragraph in cell.paragraphs:
+            for run in paragraph.runs:
+                run.font.bold = True
+                run.font.size = Pt(9.5)
+
+    for r_idx, item in enumerate(bom_data):
+        row = bom_table.rows[1 + r_idx]
+        
+        # Populate text
+        row.cells[0].text = str(item["Index"])
+        row.cells[1].text = str(item["Item Category"])
+        row.cells[2].text = str(item["Item"])
+        row.cells[3].text = str(item["Qty"])
+        row.cells[4].text = str(item["Part No."])
+        row.cells[5].text = str(item["Key Selection Notes / Options"])
+
+        # Format font size for Item Category (1), Item (2), and Key Selection Notes / Options (5) to Pt(8.5)
+        small_cols = [1, 2, 4, 5]
+        for col_idx in small_cols:
+            cell = row.cells[col_idx]
+            for paragraph in cell.paragraphs:
+                for run in paragraph.runs:
+                    run.font.size = Pt(8.5)
+                    
+        # Other columns Pt(9.5)
+        other_cols = [0, 3, 4]
+        for col_idx in other_cols:
+            cell = row.cells[col_idx]
+            for paragraph in cell.paragraphs:
+                for run in paragraph.runs:
+                    run.font.size = Pt(9.5)
+
     # 4. Panel Scope and Deliverables
-    doc.add_heading("4. Panel Scope and Deliverables", level=1)
+    doc.add_heading("5. Panel Scope and Deliverables", level=1)
     doc.add_paragraph("The booster control panel assembly shall include, as a minimum:")
 
     doc.add_paragraph(
@@ -244,9 +417,11 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
     )
 
     if starter_kind == "vfd":
-        feeder_label = "VFD feeders"
+        feeder_label = "VSD feeders"
     elif starter_kind in ["ats01", "ats130"]:
         feeder_label = "soft starter feeders"
+    elif starter_kind == "dol_adv":
+        feeder_label = "DOL starter feeders with advanced motor management"
     elif starter_kind == "dol":
         feeder_label = "DOL starter feeders"
     else:
@@ -329,10 +504,10 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
         style="List Bullet",
     )
 
-    # 5. Technical Requirements
-    doc.add_heading("5. Technical Requirements", level=1)
+    # 6. Technical Requirements
+    doc.add_heading("6. Technical Requirements", level=1)
 
-    doc.add_heading("5.1 Enclosure and Assembly", level=2)
+    doc.add_heading("6.1 Enclosure and Assembly", level=2)
     doc.add_paragraph(
         f"The control panel enclosure shall be {mounting.lower()} with minimum ingress protection rating {ip_rating} and suitable for indoor technical room installation unless stated otherwise."
     )
@@ -341,7 +516,7 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
     for line in enc_lines:
         doc.add_paragraph(line)
 
-    doc.add_heading("5.2 Feeders", level=2)
+    doc.add_heading("6.2 Feeders", level=2)
     doc.add_paragraph(
         f"The panel shall include {twin.load_count} motor feeder sections, one per pump."
     )
@@ -363,9 +538,13 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
             doc.add_paragraph(
                 f"Each {device_type} shall support hardwired I/O for start/stop, speed reference, run feedback, fault feedback, and monitoring."
             )
+        elif starter_kind == "dol_adv":
+            doc.add_paragraph(
+                "Each DOL starter with advanced motor management shall provide hardwired interfaces for start command, stop command or run permissive, run feedback, fault feedback, motor-management trip indication, reset where applicable, diagnostics, and monitoring."
+            )
         elif starter_kind == "dol":
             doc.add_paragraph(
-                "Each DOL feeder shall provide hardwired interfaces for start command, stop command or run permissive, run feedback, fault feedback, overload trip indication, reset where applicable, and monitoring."
+                "Each DOL starter shall provide hardwired interfaces for start command, stop command or run permissive, run feedback, fault feedback, overload trip indication, reset where applicable, and monitoring."
             )
         else:
             doc.add_paragraph(
@@ -378,6 +557,10 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
             doc.add_paragraph(
                 f"{comm_subject} shall support {comm_label} communications for start/stop, speed reference, status, diagnostics, and monitoring."
             )
+        elif starter_kind == "dol_adv":
+            doc.add_paragraph(
+                f"{comm_subject} shall provide {comm_label}-capable interfaces for pump start/stop commands, run feedback, ready status, fault status, motor-management diagnostics, reset where applicable, and monitoring, where included in the selected architecture."
+            )
         elif starter_kind == "dol":
             doc.add_paragraph(
                 f"{comm_subject} shall provide {comm_label}-capable interfaces for pump start/stop commands, run feedback, ready status, fault status, reset where applicable, and diagnostics, where included in the selected architecture."
@@ -387,7 +570,7 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
                 f"{comm_subject} shall support {comm_label} communications for command, status, diagnostics, and monitoring where supported by the selected device."
             )
 
-    doc.add_heading("5.3 Control Power and Auxiliaries", level=2)
+    doc.add_heading("6.3 Control Power and Auxiliaries", level=2)
 
     control_power_loads = [
         "control relays",
@@ -453,15 +636,17 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
         "Pressure transmitter quantity, redundancy, scaling, and failover behavior shall be implemented according to the selected I/O configuration and project requirements."
     )
 
-    # 6. Control Philosophy
+    # 7. Control Philosophy
     if starter_kind == "vfd":
-        doc.add_heading("6. Control Philosophy - VFD Booster Set", level=1)
+        doc.add_heading("7. Control Philosophy - VSD Booster Set", level=1)
     elif starter_kind in ["ats01", "ats130"]:
-        doc.add_heading("6. Control Philosophy - Soft Starter Booster Set", level=1)
+        doc.add_heading("7. Control Philosophy - Soft Starter Booster Set", level=1)
+    elif starter_kind == "dol_adv":
+        doc.add_heading("7. Control Philosophy - DOL Advanced Booster Set", level=1)
     elif starter_kind == "dol":
-        doc.add_heading("6. Control Philosophy - DOL Booster Set", level=1)
+        doc.add_heading("7. Control Philosophy - DOL Booster Set", level=1)
     else:
-        doc.add_heading("6. Control Philosophy - Booster Set", level=1)
+        doc.add_heading("7. Control Philosophy - Booster Set", level=1)
 
     philosophy_clauses = get_safe_control_philosophy_clauses(ctx, templates)
     for clause in philosophy_clauses:
@@ -481,7 +666,7 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
         )
 
     if comm_mode == "hardwired":
-        doc.add_heading("7. Communications - Hardwired", level=1)
+        doc.add_heading("8. Communications - Hardwired", level=1)
         controller_text = (
             "PLC" if has_plc else "external controller or site control system"
         )
@@ -497,7 +682,7 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
         )
 
     elif comm_mode == "modbus":
-        doc.add_heading(f"7. Communications - {comm_label}", level=1)
+        doc.add_heading(f"8. Communications - {comm_label}", level=1)
 
         if has_plc:
             doc.add_paragraph(
@@ -513,7 +698,7 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
         )
 
     elif comm_mode == "profinet":
-        doc.add_heading(f"7. Communications - {comm_label}", level=1)
+        doc.add_heading(f"8. Communications - {comm_label}", level=1)
 
         if has_plc:
             doc.add_paragraph(
@@ -529,7 +714,7 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
         )
 
     else:
-        doc.add_heading(f"7. Communications - {comm_label}", level=1)
+        doc.add_heading(f"8. Communications - {comm_label}", level=1)
         doc.add_paragraph(
             f"The selected communication interface shall support command, status, diagnostics, and monitoring over {comm_label} where included in the selected architecture."
         )
@@ -540,20 +725,29 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
     if comm_mode != "hardwired":
         doc.add_paragraph(loss_comm_clause)
 
-    # 8. FAT/SAT
-    doc.add_heading("8. FAT/SAT - Minimum Acceptance Tests", level=1)
+    # 9. FAT/SAT
+    doc.add_heading("9. FAT/SAT - Minimum Acceptance Tests", level=1)
 
     fat_items = [
         "wiring",
         "labeling",
         "protection device settings",
-        "DOL feeder operation" if starter_kind == "dol" else f"{device_type} operation",
+        (
+            "DOL starter operation"
+            if starter_kind in ["dol", "dol_adv"]
+            else f"{device_type} operation"
+        ),
         "local controls",
         "fault indication",
     ]
 
     if has_plc:
         fat_items.append("automatic booster control sequences")
+
+    if starter_kind == "dol_adv":
+        fat_items.append(
+            "advanced motor-management protection and diagnostic functions"
+        )
 
     if comm_mode != "hardwired":
         fat_items.append(f"{comm_label} communication/interface tests")
@@ -566,7 +760,11 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
     sat_items = [
         "field wiring",
         "motor rotation",
-        "DOL feeder operation" if starter_kind == "dol" else f"{device_type} operation",
+        (
+            "DOL starter operation"
+            if starter_kind in ["dol", "dol_adv"]
+            else f"{device_type} operation"
+        ),
         "protection trips",
         "local/remote control interface",
     ]
@@ -581,6 +779,9 @@ def generate_word_from_twin(twin: DigitalTwinResponse) -> bytes:
 
     if supports_speed_reference:
         sat_items.extend(["pressure transmitter scaling", "pressure control stability"])
+
+    if starter_kind == "dol_adv":
+        sat_items.append("advanced motor-management alarm and trip verification")
 
     doc.add_paragraph("SAT shall verify " + ", ".join(sat_items) + ".")
 

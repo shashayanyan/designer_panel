@@ -36,15 +36,14 @@ describe("WaterPage", () => {
     expect(mockedNavigate).toHaveBeenCalledWith("/water/booster-set");
   });
 
-  it("does not navigate when clicking a disabled card", () => {
+  it("navigates back to home when back button is clicked", () => {
     render(
       <BrowserRouter>
         <WaterPage />
       </BrowserRouter>,
     );
-    const disabledCard = screen.getByText(/Single Pump/i).closest("button");
-    expect(disabledCard).toBeDisabled();
-    fireEvent.click(disabledCard);
-    expect(mockedNavigate).not.toHaveBeenCalledWith("/water/single-pump");
+    const backButton = screen.getByRole("button", { name: /← Back to Home/i });
+    fireEvent.click(backButton);
+    expect(mockedNavigate).toHaveBeenCalledWith("/");
   });
 });

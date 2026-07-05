@@ -55,7 +55,7 @@ This is the initial focus of the app for now. The goal is to have a responsive a
 |   4      |                       |
 | assets   |                       |
 ------------------------------------
-- Section 1, header, has the title "Motor Control Asset Library" and a brief description of the app. It also has a button "Back to Home" which redirects the user to the landing page.
+- Section 1, header, has the title "Application Design Library" and a brief description of the app. It also has a button "Back to Home" which redirects the user to the landing page.
 - a figma prototype for this page is available [here](https://www.figma.com/make/BKivENvY8oK7KgoKNUErdY/Motor-Control-Asset-Library-Prototype?p=f)
 - Section 2, Configuration, has these fields with the respective options:
     - Number of Incomers : 1, 2

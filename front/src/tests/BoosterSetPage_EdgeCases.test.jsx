@@ -120,6 +120,7 @@ describe("BoosterSetPage - Edge Cases and SVG Logic", () => {
     fireEvent.change(screen.getByLabelText(/PLC/i), {
       target: { value: "No" },
     });
+    fireEvent.click(screen.getByLabelText(/I have read and agree to the/i));
   };
 
   it("handles failure of the generate-package API", async () => {
@@ -156,7 +157,7 @@ describe("BoosterSetPage - Edge Cases and SVG Logic", () => {
     await fillForm();
 
     // Select Multi Line Diagram
-    fireEvent.click(screen.getByLabelText("Multi Line Diagram"));
+    fireEvent.click(screen.getByLabelText("Electrical Multi Line Diagram"));
 
     const downloadBtn = screen.getByRole("button", {
       name: /Download Package/i,

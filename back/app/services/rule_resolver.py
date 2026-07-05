@@ -1,6 +1,8 @@
 import ast
+import json
 import logging
 import operator
+import os
 from decimal import Decimal
 
 from fastapi import HTTPException
@@ -15,6 +17,7 @@ from ..schemas.configurator import (
     TwinBomLine,
     TwinComponent,
     TwinEnclosure,
+    TwinEvent,
     TwinIO,
 )
 
@@ -72,6 +75,80 @@ class MathSafeParser:
                 f"Formula evaluation failed for string '{formula_text}': {e}. Variables context: {self.variables}. Returning quantity 0."
             )
             return Decimal("0")
+
+
+def load_app_data(series_id: str):
+    """Loads I/O, Alarm, and Event lists based on series_id."""
+    # Map series_id to filename
+    file_map = {
+        "DOL": "dol.json",
+        "DOLA": "dola.json",
+        "SS": "ss.json",
+        "VSD": "vsd.json",
+    }
+    filename = file_map.get(series_id)
+    if not filename:
+        return None, None, None
+
+    # Construct path
+    base_path = os.path.join(
+        os.path.dirname(__file__), "..", "generators", "io-alarms-events"
+    )
+    file_path = os.path.join(base_path, filename)
+
+    try:
+        with open(file_path, "r") as f:
+            data = json.load(f)
+    except FileNotFoundError:
+        logging.error(f"Data file not found: {file_path}")
+        return None, None, None
+
+    # Extract lists
+    io_list = []
+    # Digital Inputs
+    for di in data.get("physicalIOListPerMotor", {}).get("digitalInputs", []):
+        io_list.append(
+            TwinIO(
+                tag=di.get("Signal tag", ""),
+                description=di.get("Signal name", ""),
+                signal_type="DI",
+                interface=di.get("Source device", ""),
+            )
+        )
+    # Digital Outputs
+    for do in data.get("physicalIOListPerMotor", {}).get("digitalOutputs", []):
+        io_list.append(
+            TwinIO(
+                tag=do.get("Signal tag", ""),
+                description=do.get("Signal name", ""),
+                signal_type="DO",
+                interface=do.get("Target device", ""),
+            )
+        )
+
+    alarm_list = []
+    for alm in data.get("alarmList", []):
+        alarm_list.append(
+            TwinAlarm(
+                code=alm.get("Alarm tag", ""),
+                source_tag=alm.get("Source", ""),
+                condition=alm.get("Basic trigger logic", ""),
+                priority="High" if alm.get("Mandatory") == "Yes" else "Low",
+                operator_message=alm.get("Alarm message", ""),
+            )
+        )
+
+    event_list = []
+    for evt in data.get("eventList", []):
+        event_list.append(
+            TwinEvent(
+                code=evt.get("Event tag", ""),
+                description=evt.get("Event message", ""),
+                source=evt.get("Source / trigger", ""),
+            )
+        )
+
+    return io_list, alarm_list, event_list
 
 
 class ConfigurationEngine:
@@ -303,6 +380,9 @@ class ConfigurationEngine:
                 print(f"Skipping rule {rule.accessory_rule_id} due to eval error: {e}")
                 pass
 
+        # Load App-specific Data
+        io_list, alarm_list, event_list = load_app_data(request.series_id)
+
         # 7. Assemble Unified Response (Digital Twin)
         response = DigitalTwinResponse(
             config_id=cid,
@@ -311,6 +391,7 @@ class ConfigurationEngine:
             motor_power_kw=request.motor_power_kw,
             load_count=request.load_count,
             enclosure=enclosure_data,
+            enclosure_count=1,  # Default to 1, can be adjusted based on BOM lines if needed
             components=components,
             accessories=accessories,
             drawing_template_id=dt_id,
@@ -326,6 +407,9 @@ class ConfigurationEngine:
             multi_line_diagram_b64=request.multi_line_diagram_b64,
             reference_architecture_b64=request.reference_architecture_b64,
             environment=request.environment,
+            io_list=io_list or [],
+            alarm_list=alarm_list or [],
+            event_list=event_list or [],
         )
 
         # 7b. Fetch mapped BOM Lines from table
@@ -351,6 +435,9 @@ class ConfigurationEngine:
                 if enc and enc.catalog_ref == enclosure_option.catalog_ref:
                     item_text = f"Enclosure {enc.mounting_type}"
                     notes_text = enc.description
+                    response.enclosure_count = int(
+                        line.qty
+                    )  # Capture the enclosure count for the response
                 else:
                     continue
             elif source_type_clean in ["component", "component_catalog"]:
@@ -362,7 +449,7 @@ class ConfigurationEngine:
                 if comp:
                     # if fan/grill, check condition first to see if it matches the enclosure
                     if line.item_category.lower() in ["fan", "grille"]:
-                        if "outdoor" in line.condition.lower():
+                        if line.condition and "outdoor" in line.condition.lower():
                             if ("pla" in enclosure_option.catalog_ref.lower()) or (
                                 "plm" in enclosure_option.catalog_ref.lower()
                             ):
@@ -417,14 +504,26 @@ class ConfigurationEngine:
         if request.plc_included:
             bom_lines.append(
                 TwinBomLine(
-                    line_no=9998,
+                    line_no=9997,
                     item_category="PLC",
-                    part_number="TM3AI4",
-                    description="Programmable Logic Controller",
+                    part_number="TM241CE40R",
+                    description="Programmable Logic Controller, Modicon M241 class or equivalent",
                     qty=Decimal("1"),
                     uom="EA",
                     item="PLC Module",
-                    key_selection_notes="TM3AI4 or TM241CE40R or equivalent, depending on availability and supplier. Ensure compatibility with the system architecture.",
+                    key_selection_notes="Suggested reference: Schneider Electric TM241CE40R. Final selection by designer.",
+                )
+            )
+            bom_lines.append(
+                TwinBomLine(
+                    line_no=9998,
+                    item_category="Analog Input Module",
+                    part_number="TM3AI4",
+                    description="Analog input expansion module, 4 channels, compatible with selected PLC",
+                    qty=Decimal("1"),
+                    uom="EA",
+                    item="PLC IO Module",
+                    key_selection_notes="Suggested reference: Schneider Electric TM3AI4. Final selection by designer.",
                 )
             )
 
@@ -433,7 +532,7 @@ class ConfigurationEngine:
                 TwinBomLine(
                     line_no=9999,
                     item_category="SCADA",
-                    part_number="------",
+                    part_number="- TBD -",
                     description="SCADA System Integration",
                     qty=Decimal("1"),
                     uom="EA",
@@ -442,98 +541,6 @@ class ConfigurationEngine:
                 )
             )
         response.bom_lines = self._bom_lines_sorted_by_line_no(bom_lines)
-
-        # 8. Resolve Application-Specific Templates (IO, Alarms, Options)
-        app_id = "APP-WATER-BOOSTER"  # Fixed for this specific application page
-
-        # 8a. IO Templates -> Network Plan
-        io_templates = (
-            self.db.query(models.ApplicationIOTemplate)
-            .filter(models.ApplicationIOTemplate.application_id == app_id)
-            .all()
-        )
-
-        network_plan = []
-        for iot in io_templates:
-            # Filter by communication mode if required
-            if (
-                iot.required_communication_mode
-                and iot.required_communication_mode != request.communication
-            ):
-                continue
-
-            if iot.is_per_load:
-                for i in range(1, request.load_count + 1):
-                    tag = (iot.tag_template or "").replace("{i}", str(i))
-                    desc = (iot.description or "").replace("{i}", str(i))
-                    # Simple IP assignment logic if communication is ModbusTCP
-                    ip = None
-                    if (
-                        request.communication == "ModbusTCP"
-                        and iot.interface == "Modbus TCP"
-                    ):
-                        ip = f"192.168.1.{10 + i}"  # Simple sequential assignment starting .11
-
-                    network_plan.append(
-                        TwinIO(
-                            tag=tag,
-                            description=desc,
-                            signal_type=iot.signal_type,
-                            interface=iot.interface,
-                            ip_address=ip,
-                        )
-                    )
-            else:
-                network_plan.append(
-                    TwinIO(
-                        tag=iot.tag_template,
-                        description=iot.description,
-                        signal_type=iot.signal_type,
-                        interface=iot.interface,
-                        ip_address=(
-                            "192.168.1.10"
-                            if request.communication == "ModbusTCP"
-                            and iot.interface == "Modbus TCP"
-                            else None
-                        ),
-                    )
-                )
-        response.network_plan = network_plan
-
-        # 8b. Alarm Templates -> Alarm List
-        alarm_templates = (
-            self.db.query(models.ApplicationAlarmTemplate)
-            .filter(models.ApplicationAlarmTemplate.application_id == app_id)
-            .all()
-        )
-
-        alarm_list = []
-        for alt in alarm_templates:
-            if alt.is_per_load:
-                for i in range(1, request.load_count + 1):
-                    code = (alt.alarm_code_template or "").replace("{i}", str(i))
-                    source = (alt.tag_source_template or "").replace("{i}", str(i))
-                    msg = (alt.operator_message or "").replace("{i}", str(i))
-                    alarm_list.append(
-                        TwinAlarm(
-                            code=code,
-                            source_tag=source,
-                            condition=alt.condition,
-                            priority=alt.priority,
-                            operator_message=msg,
-                        )
-                    )
-            else:
-                alarm_list.append(
-                    TwinAlarm(
-                        code=alt.alarm_code_template,
-                        source_tag=alt.tag_source_template,
-                        condition=alt.condition,
-                        priority=alt.priority,
-                        operator_message=alt.operator_message,
-                    )
-                )
-        response.alarm_list = alarm_list
 
         # 9. Add project metadata to the response
         response.project_name = request.project_name

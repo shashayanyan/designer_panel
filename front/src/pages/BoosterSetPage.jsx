@@ -11,24 +11,24 @@ const ASSET_TREE = [
     id: "Data Sheet",
     label: "Data Sheet",
     children: [
-      { id: "Parameters", label: "Parameters" },
-      { id: "BOM", label: "BOM" },
-      { id: "IO", label: "IO List" },
-      { id: "Alarms", label: "Alarm List" },
-      { id: "Events", label: "Event List" },
+      { id: "Parameters", label: "System Parameters" },
+      { id: "BOM", label: "BOM - Bill of Materials" },
+      { id: "IO", label: "List of Inputs/Outputs" },
+      { id: "Alarms", label: "List of Alarms" },
+      { id: "Events", label: "List of Events" },
     ],
   },
-  { id: "Multi Line Diagram", label: "Multi Line Diagram" },
+  { id: "Multi Line Diagram", label: "Electrical Multi Line Diagram" },
   {
     id: "Drawings",
     label: "Drawings",
     children: [
       { id: "Panel", label: "Panel Layout", disabled: true },
-      { id: "Components", label: "Components Drawings", disabled: true },
+      { id: "Components", label: "Components Drawings" },
     ],
   },
-  { id: "Specification", label: "Specification" },
-  { id: "BIM Object", label: "BIM Object" },
+  { id: "Specification", label: "Specification Text" },
+  { id: "BIM Object", label: "BIM Object (*.ifc)" },
 ];
 
 const getAssetById = (nodes, id) => {
@@ -324,11 +324,58 @@ const StarterBlock = ({ x, y, type }) => {
   } else if (type === "") {
     symbol = null;
   } else {
+    // DOL (Contactor KM1 + Thermal Overload KK1)
     symbol = (
-      <g>
-        <rect x="-11" y="16" width="6" height="8" fill="currentColor" />
-        <rect x="-3" y="16" width="6" height="8" fill="currentColor" />
-        <rect x="5" y="16" width="6" height="8" fill="currentColor" />
+      <g stroke="currentColor" strokeWidth="1">
+        {/* Contactor (KM1) - Upper Section */}
+        {/* Incoming straight lines */}
+        <line x1="-10" y1="0" x2="-10" y2="6" />
+        <line x1="0" y1="0" x2="0" y2="6" />
+        <line x1="10" y1="0" x2="10" y2="6" />
+
+        {/* Switch Diagonals (No horizontal ganging bar) */}
+        <line x1="-10" y1="6" x2="-5" y2="16" />
+        <line x1="0" y1="6" x2="5" y2="16" />
+        <line x1="10" y1="6" x2="15" y2="16" />
+
+        {/* Lines down to Thermal Overload */}
+        <line x1="-10" y1="16" x2="-10" y2="24" />
+        <line x1="0" y1="16" x2="0" y2="24" />
+        <line x1="10" y1="16" x2="10" y2="24" />
+
+        {/* Thermal Overload (KK1) - Lower Section */}
+        <rect x="-14" y="24" width="28" height="10" fill="none" />
+
+        {/* Heating element blocks */}
+        <rect
+          x="-12"
+          y="26"
+          width="4"
+          height="6"
+          fill="currentColor"
+          stroke="none"
+        />
+        <rect
+          x="-2"
+          y="26"
+          width="4"
+          height="6"
+          fill="currentColor"
+          stroke="none"
+        />
+        <rect
+          x="8"
+          y="26"
+          width="4"
+          height="6"
+          fill="currentColor"
+          stroke="none"
+        />
+
+        {/* Lines out to the motor */}
+        <line x1="-10" y1="34" x2="-10" y2="40" />
+        <line x1="0" y1="34" x2="0" y2="40" />
+        <line x1="10" y1="34" x2="10" y2="40" />
       </g>
     );
   }
@@ -538,21 +585,31 @@ function BoosterSetPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const enclosureRequestId = useRef(0);
 
-  const [motorStartText, setMotorStartText] = useState(null);
-  const [isLoadingText, setIsLoadingText] = useState(false);
+  const [staticText, setStaticText] = useState(null);
+  const [techCharText, setTechCharText] = useState(null);
+  const [isLoadingStatic, setIsLoadingStatic] = useState(false);
+  const [isLoadingTech, setIsLoadingTech] = useState(false);
   const textRequestId = useRef(0);
   const [openMotorTextSections, setOpenMotorTextSections] = useState({
-    description: false,
-    technicalCharacteristics: false,
-    functions: false,
-    protections: false,
+    description: true,
+    technicalCharacteristics: true,
+    functions: true,
+    protections: true,
   });
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const [expandedNodes, setExpandedNodes] = useState(() => {
-    const buildExpandedState = (nodes) =>
-      Object.fromEntries(
-        nodes.map((node) => [node.id, node.children?.length ? false : true]),
-      );
+    const buildExpandedState = (nodes) => {
+      const state = {};
+      const traverse = (list) => {
+        list.forEach((node) => {
+          state[node.id] = true;
+          if (node.children) traverse(node.children);
+        });
+      };
+      traverse(nodes);
+      return state;
+    };
 
     return buildExpandedState(ASSET_TREE);
   });
@@ -650,48 +707,86 @@ function BoosterSetPage() {
     fetchEnclosureOptions();
   }, [config.pumps, config.motorStart, config.motorPower]);
 
+  const lastStaticFetch = useRef({ motorStart: "", isAbove15: false });
+
   useEffect(() => {
+    if (!config.motorStart) {
+      setStaticText(null);
+      setTechCharText(null);
+      return;
+    }
+
     const requestId = ++textRequestId.current;
 
     const fetchMotorStartText = async () => {
-      if (
-        !config.pumps ||
-        !config.motorStart ||
-        !config.motorPower ||
-        !config.enclosure
-      ) {
-        setMotorStartText(null);
-        return;
+      const currentIsAbove15 = config.motorPower
+        ? parseFloat(config.motorPower) > 15
+        : false;
+      const needsStaticFetch =
+        !staticText ||
+        lastStaticFetch.current.motorStart !== config.motorStart ||
+        (config.motorStart === "SS" &&
+          lastStaticFetch.current.isAbove15 !== currentIsAbove15);
+
+      const needsTechFetch = !!(config.motorPower && config.enclosure);
+
+      if (needsStaticFetch) {
+        setIsLoadingStatic(true);
+      }
+      if (needsTechFetch) {
+        setIsLoadingTech(true);
       }
 
-      setIsLoadingText(true);
       try {
         const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
         const token = localStorage.getItem("dashboard_token");
         const headers = {};
         if (token) headers["Authorization"] = `Bearer ${token}`;
 
+        const pCount = config.pumps || "2";
+        const mStart = config.motorStart;
+
+        let mPower = "15.0";
+        if (config.motorPower) {
+          mPower = config.motorPower;
+        } else if (config.motorStart === "SS") {
+          mPower = "11.0"; // default to below 15kW
+        }
+
+        const encRef = config.enclosure || "ENC-001";
+
         const res = await fetch(
-          `${apiUrl}/api/v1/motor-start-text/${config.pumps}/${config.motorStart}/${config.motorPower}/${config.enclosure}`,
+          `${apiUrl}/api/v1/motor-start-text/${pCount}/${mStart}/${mPower}/${encRef}`,
           { headers, credentials: "include" },
         );
 
         if (res.ok) {
           const data = await res.json();
           if (requestId === textRequestId.current) {
-            setMotorStartText(data);
+            if (needsStaticFetch) {
+              setStaticText({
+                description: data.description,
+                functions: data.functions,
+                protections: data.protections,
+              });
+              lastStaticFetch.current = {
+                motorStart: mStart,
+                isAbove15: currentIsAbove15,
+              };
+            }
+            if (needsTechFetch) {
+              setTechCharText(data.technical_characteristics);
+            } else {
+              setTechCharText(null);
+            }
           }
-        } else if (requestId === textRequestId.current) {
-          setMotorStartText(null);
         }
       } catch (error) {
-        if (requestId === textRequestId.current) {
-          console.error("Failed to fetch motor start text", error);
-          setMotorStartText(null);
-        }
+        console.error("Failed to fetch motor start text", error);
       } finally {
         if (requestId === textRequestId.current) {
-          setIsLoadingText(false);
+          setIsLoadingStatic(false);
+          setIsLoadingTech(false);
         }
       }
     };
@@ -719,9 +814,12 @@ function BoosterSetPage() {
     const filtered = starterOptionsList.filter(
       (s) => s.series_id === config.motorStart,
     );
-    const uniquePowers = [
-      ...new Set(filtered.map((s) => s.rated_load_power_kw)),
-    ];
+    let uniquePowers = [...new Set(filtered.map((s) => s.rated_load_power_kw))];
+
+    if (config.motorStart === "DOL" || config.motorStart === "DOL_ADV") {
+      uniquePowers = uniquePowers.filter((p) => p <= 22);
+    }
+
     return uniquePowers.sort((a, b) => a - b).map((p) => String(p));
   }, [config.motorStart, starterOptionsList]);
 
@@ -891,6 +989,7 @@ function BoosterSetPage() {
     });
     setEnclosureList(null);
     setSelectedAssets(buildAssetState(ASSET_TREE));
+    setAcceptedTerms(false);
   };
 
   const AssetNode = ({ node, value, parentId }) => {
@@ -913,22 +1012,42 @@ function BoosterSetPage() {
               ? "booster__asset-row booster__asset-row--leaf booster__page--disabled"
               : "booster__asset-row booster__asset-row--leaf"
           }
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-start",
+          }}
         >
-          <span className="booster__asset-spacer" aria-hidden="true" />
-          <label className="booster__check-item booster__check-item--top">
-            <input
-              type="checkbox"
-              checked={value}
-              disabled={node.disabled}
-              onChange={() =>
-                parentId
-                  ? toggleChildNode(parentId, node.id)
-                  : toggleLeafNode(node.id)
-              }
-              className="booster__checkbox"
-            />
-            <span className="booster__check-label">{node.label}</span>
-          </label>
+          <div style={{ display: "flex", alignItems: "center", width: "100%" }}>
+            <span className="booster__asset-spacer" aria-hidden="true" />
+            <label className="booster__check-item booster__check-item--top">
+              <input
+                type="checkbox"
+                checked={value}
+                disabled={node.disabled}
+                onChange={() =>
+                  parentId
+                    ? toggleChildNode(parentId, node.id)
+                    : toggleLeafNode(node.id)
+                }
+                className="booster__checkbox"
+              />
+              <span className="booster__check-label">{node.label}</span>
+            </label>
+          </div>
+          {node.id === "BIM Object" && value && (
+            <div
+              style={{
+                paddingLeft: "2.3rem",
+                fontSize: "0.78rem",
+                color: "var(--danger)",
+                fontWeight: "500",
+                marginTop: "2px",
+              }}
+            >
+              Refer to README.txt for more on the IFC file
+            </div>
+          )}
         </div>
       );
     }
@@ -958,7 +1077,12 @@ function BoosterSetPage() {
               onChange={() => toggleParentNode(node.id)}
               className="booster__checkbox"
             />
-            <span className="booster__check-label">{node.label}</span>
+            <span
+              className="booster__check-label"
+              style={{ fontWeight: "600" }}
+            >
+              {node.label}
+            </span>
           </label>
         </div>
 
@@ -1176,7 +1300,7 @@ function BoosterSetPage() {
       };
       // put images only if they are selected, with calculated index
       if (selectedAssets["Multi Line Diagram"]) {
-        let assetIndex = 4;
+        let assetIndex = 3;
         if (selectedAssets["Data Sheet"]) {
           // shift by the number of data sheets selected
           assetIndex += Object.values(
@@ -1186,20 +1310,20 @@ function BoosterSetPage() {
 
         if (rawSvgData)
           zip.file(
-            `${numberIn3Digits(assetIndex)}_MultiLineDiagram.svg`,
+            `${numberIn3Digits(assetIndex)}_Multi_Line_Diagram.svg`,
             rawSvgData,
           );
         assetIndex++;
         addDataUrlToZip(
           zip,
-          `${numberIn3Digits(assetIndex)}_MultiLineDiagram.png`,
+          `${numberIn3Digits(assetIndex)}_Multi_Line_Diagram.png`,
           b64diagram,
         );
         assetIndex++;
         //if (refArchResult.rawSvgData) zip.file("013_ReferenceArchitecture.svg", refArchResult.rawSvgData);
         addDataUrlToZip(
           zip,
-          `${numberIn3Digits(assetIndex)}_ReferenceArchitecture.png`,
+          `${numberIn3Digits(assetIndex)}_Reference_Architecture.png`,
           refArchResult.dataURL,
         );
       }
@@ -1247,22 +1371,22 @@ function BoosterSetPage() {
     {
       key: "description",
       title: "Description",
-      content: motorStartText?.description,
+      content: staticText?.description,
     },
     {
       key: "technicalCharacteristics",
       title: "Technical Characteristics",
-      content: motorStartText?.technical_characteristics,
+      content: techCharText,
     },
     {
       key: "functions",
       title: "Functions",
-      content: motorStartText?.functions,
+      content: staticText?.functions,
     },
     {
       key: "protections",
       title: "Protections",
-      content: motorStartText?.protections,
+      content: staticText?.protections,
     },
   ];
 
@@ -1277,7 +1401,7 @@ function BoosterSetPage() {
     <div className="booster">
       <header className="booster__header fade-in">
         <div className="booster__header-left">
-          <h1 className="booster__title">Motor Control Asset Library</h1>
+          <h1 className="booster__title">Application Design Library</h1>
           <p className="booster__subtitle">
             Configure your booster set parameters and download the asset
             package.
@@ -1293,56 +1417,62 @@ function BoosterSetPage() {
         </div>
       </header>
 
-      <section className="booster__metadata glass-card fade-in">
-        <div className="booster__metadata-header">
-          <h2 className="booster__section-title">Project Metadata</h2>
-          <p className="booster__metadata-subtitle">
-            Capture the project context before configuring the booster set.
-          </p>
-        </div>
-        <div className="booster__metadata-grid">
-          {PROJECT_METADATA_FIELDS.map((field) => (
-            <div
-              className={`booster__field${field.wide ? " booster__field--wide" : ""}`}
-              key={field.key}
-            >
-              <label
-                className="booster__label"
-                htmlFor={`metadata-${field.key}`}
+      {/* Row 1: Project Metadata (Full Width) */}
+      <div className="booster__row-1 fade-in">
+        <section className="booster__metadata glass-card" style={{ margin: 0 }}>
+          <div className="booster__metadata-header">
+            <h2 className="booster__section-title">Project Metadata</h2>
+            <p className="booster__metadata-subtitle">
+              Capture project context.
+            </p>
+          </div>
+          <div className="booster__metadata-grid">
+            {PROJECT_METADATA_FIELDS.map((field) => (
+              <div
+                className={`booster__field${field.wide ? " booster__field--wide" : ""}`}
+                key={field.key}
               >
-                {field.label}
-              </label>
-              {field.type === "textarea" ? (
-                <textarea
-                  id={`metadata-${field.key}`}
-                  className="booster__text-input booster__textarea"
-                  placeholder="Add notes, assumptions, or project context"
-                  value={projectMetadata[field.key]}
-                  onChange={(e) =>
-                    handleMetadataChange(field.key, e.target.value)
-                  }
-                  rows={4}
-                />
-              ) : (
-                <input
-                  id={`metadata-${field.key}`}
-                  className="booster__text-input"
-                  type={field.type}
-                  placeholder={field.label}
-                  value={projectMetadata[field.key]}
-                  onChange={(e) =>
-                    handleMetadataChange(field.key, e.target.value)
-                  }
-                />
-              )}
-            </div>
-          ))}
-        </div>
-      </section>
+                <label
+                  className="booster__label"
+                  htmlFor={`metadata-${field.key}`}
+                >
+                  {field.label}
+                </label>
+                {field.type === "textarea" ? (
+                  <textarea
+                    id={`metadata-${field.key}`}
+                    className="booster__text-input booster__textarea"
+                    placeholder="Add notes..."
+                    value={projectMetadata[field.key]}
+                    onChange={(e) =>
+                      handleMetadataChange(field.key, e.target.value)
+                    }
+                    rows={3}
+                  />
+                ) : (
+                  <input
+                    id={`metadata-${field.key}`}
+                    className="booster__text-input"
+                    type={field.type}
+                    placeholder={field.label}
+                    value={projectMetadata[field.key]}
+                    onChange={(e) =>
+                      handleMetadataChange(field.key, e.target.value)
+                    }
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
 
-      <div className="booster__body">
+      {/* 3-Column Dashboard Body */}
+      <div className="booster__body fade-in">
+        {/* Left Column Controls Sidebar (300px wide) */}
         <aside className="booster__sidebar">
-          <section className="booster__config glass-card fade-in fade-in-delay-1">
+          {/* Configuration Selection */}
+          <section className="booster__config glass-card">
             <h2 className="booster__section-title">Configuration</h2>
             <div className="booster__fields">
               {Object.entries(CURRENT_CONFIG_OPTIONS).map(
@@ -1390,13 +1520,22 @@ function BoosterSetPage() {
             </button>
           </section>
 
-          <section className="booster__assets glass-card fade-in fade-in-delay-3">
+          {/* Asset Selection */}
+          <section className="booster__assets glass-card">
             <h2 className="booster__section-title">Assets</h2>
             <div className="booster__asset-buttons">
-              <button className="btn-secondary" onClick={selectAllAssets}>
+              <button
+                className="btn-secondary"
+                onClick={selectAllAssets}
+                style={{ padding: "0.4rem 0.8rem" }}
+              >
                 Select All
               </button>
-              <button className="btn-secondary" onClick={clearAllAssets}>
+              <button
+                className="btn-secondary"
+                onClick={clearAllAssets}
+                style={{ padding: "0.4rem 0.8rem" }}
+              >
                 Clear All
               </button>
             </div>
@@ -1409,29 +1548,68 @@ function BoosterSetPage() {
                 />
               ))}
             </div>
+            {/* Terms of Use Checkbox */}
+            <div
+              className="booster__terms-agreement"
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                gap: "8px",
+                padding: "12px 4px 4px 4px",
+              }}
+            >
+              <input
+                type="checkbox"
+                id="terms-agreement-checkbox"
+                checked={acceptedTerms}
+                onChange={(e) => setAcceptedTerms(e.target.checked)}
+                className="booster__checkbox"
+                style={{
+                  width: "16px",
+                  height: "16px",
+                  cursor: "pointer",
+                  marginTop: "2px",
+                }}
+              />
+              <label
+                htmlFor="terms-agreement-checkbox"
+                style={{
+                  fontSize: "0.82rem",
+                  cursor: "pointer",
+                  color: "var(--text-secondary)",
+                  lineHeight: "1.4",
+                }}
+              >
+                I have read and agree to the{" "}
+                <a
+                  href="/terms"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    textDecoration: "underline",
+                    color: "var(--accent)",
+                    fontWeight: "600",
+                  }}
+                >
+                  Terms of Use
+                </a>
+                <span style={{ color: "red", marginLeft: "4px" }}>*</span>
+              </label>
+            </div>
             <button
               className="btn-primary booster__download-btn"
-              disabled={!allFieldsFilled || isGenerating}
+              disabled={!allFieldsFilled || isGenerating || !acceptedTerms}
               onClick={handleDownload}
             >
-              {isGenerating
-                ? "⌛ Generating Package..."
-                : "📦 Download Package"}
+              {isGenerating ? "⌛ Generating..." : "📦 Download Package"}
             </button>
           </section>
         </aside>
 
-        <div
-          className="booster__diagrams-container"
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "2rem",
-            flex: 1,
-          }}
-        >
-          {/* ─── Diagram 1: Multi-Line Electrical Diagram ─── */}
-          <section className="booster__diagram glass-card fade-in fade-in-delay-2">
+        {/* Middle Column: Multi-Line Diagram & Reference Architecture stacked vertically */}
+        <div className="booster__diagrams-container">
+          {/* Diagram 1: Multi-Line Diagram */}
+          <section className="booster__diagram glass-card">
             <h2 className="booster__section-title">Multi-Line Diagram</h2>
             <div className="booster__diagram-canvas">
               <svg
@@ -1439,8 +1617,7 @@ function BoosterSetPage() {
                 viewBox="0 0 900 550"
                 xmlns="http://www.w3.org/2000/svg"
                 style={{
-                  width: "80%",
-                  minWidth: "600px",
+                  width: "100%",
                   backgroundColor: "white",
                   borderRadius: "8px",
                 }}
@@ -1652,147 +1829,21 @@ function BoosterSetPage() {
                       </g>
                     );
                   })}
-
-                  {/* --- Standard Title Block (Bottom Right) --- */}
-                  {/*<g transform="translate(670, 480)">
-                    <rect
-                      x="0"
-                      y="0"
-                      width="200"
-                      height="70"
-                      fill="#ffffff"
-                      stroke="#0f172a"
-                      strokeWidth="1.5"
-                    />
-                    <line
-                      x1="0"
-                      y1="25"
-                      x2="200"
-                      y2="25"
-                      stroke="#0f172a"
-                      strokeWidth="1"
-                    />
-                    <line
-                      x1="90"
-                      y1="25"
-                      x2="90"
-                      y2="75"
-                      stroke="#0f172a"
-                      strokeWidth="1"
-                    />
-                    <line
-                      x1="0"
-                      y1="48"
-                      x2="200"
-                      y2="48"
-                      stroke="#0f172a"
-                      strokeWidth="1"
-                    />
-                    <text
-                      x="8"
-                      y="16"
-                      fontSize="11"
-                      fontFamily="sans-serif"
-                      fontWeight="600"
-                      fill="#0f172a"
-                    >
-                      Schematic Diagram
-                    </text>
-                    <text
-                      x="8"
-                      y="38"
-                      fontSize="8"
-                      fill="#475569"
-                      fontFamily="sans-serif"
-                    >
-                      IP Rating:
-                    </text>
-                    <text
-                      x="50"
-                      y="38"
-                      fontSize="10"
-                      fontWeight="bold"
-                      fill="#0f172a"
-                      fontFamily="sans-serif"
-                    >
-                      {config.ipRating}
-                    </text>
-                    <text
-                      x="98"
-                      y="38"
-                      fontSize="8"
-                      fill="#475569"
-                      fontFamily="sans-serif"
-                    >
-                      Comms:
-                    </text>
-                    <text
-                      x="135"
-                      y="38"
-                      fontSize="10"
-                      fontWeight="bold"
-                      fill="#0f172a"
-                      fontFamily="sans-serif"
-                    >
-                      {config.communication !== "No"
-                        ? config.communication
-                        : "Hardwired"}
-                    </text>
-                    <text
-                      x="8"
-                      y="60"
-                      fontSize="8"
-                      fill="#475569"
-                      fontFamily="sans-serif"
-                    >
-                      SCADA:
-                    </text>
-                    <text
-                      x="50"
-                      y="60"
-                      fontSize="10"
-                      fontWeight="bold"
-                      fill="#0f172a"
-                      fontFamily="sans-serif"
-                    >
-                      {config.scada ? "Yes" : "No"}
-                    </text>
-                    <text
-                      x="98"
-                      y="60"
-                      fontSize="8"
-                      fill="#475569"
-                      fontFamily="sans-serif"
-                    >
-                      PLC:
-                    </text>
-                    <text
-                      x="135"
-                      y="60"
-                      fontSize="10"
-                      fontWeight="bold"
-                      fill="#0f172a"
-                      fontFamily="sans-serif"
-                    >
-                      {config.plc ? "Yes" : "No"}
-                    </text>
-                  </g>*/}
                 </g>
               </svg>
             </div>
           </section>
 
-          {/* ─── Diagram 2: Reference Architecture (Images) ─── */}
-          <section className="booster__diagram glass-card fade-in fade-in-delay-3">
+          {/* Diagram 2: Reference Architecture */}
+          <section className="booster__diagram glass-card">
             <h2 className="booster__section-title">Reference Architecture</h2>
             <div className="booster__diagram-canvas">
               <svg
                 ref={refArchRef}
-                viewBox="0 0 900 600"
+                viewBox="0 0 900 650"
                 xmlns="http://www.w3.org/2000/svg"
                 style={{
-                  width: "80%",
-                  minWidth: "600px",
+                  width: "100%",
                   backgroundColor: "#f8fafc",
                   borderRadius: "8px",
                 }}
@@ -1803,7 +1854,7 @@ function BoosterSetPage() {
                     hasSCADA &&
                       (hasPLC ? (
                         <path
-                          d="M 450 110 L 450 170"
+                          d="M 450 110 L 450 190"
                           stroke="#0ea5e9"
                           strokeWidth="3"
                           fill="none"
@@ -1811,7 +1862,7 @@ function BoosterSetPage() {
                         />
                       ) : hasComms ? (
                         <path
-                          d="M 450 110 L 450 280"
+                          d="M 450 110 L 450 330"
                           stroke="#0ea5e9"
                           strokeWidth="3"
                           fill="none"
@@ -1823,7 +1874,7 @@ function BoosterSetPage() {
                   {/* Remote Comms Dropdown (If Comms but no local PLC/SCADA) */}
                   {!hasSCADA && !hasPLC && hasComms && (
                     <path
-                      d="M 450 120 L 450 280"
+                      d="M 450 120 L 450 330"
                       stroke="#8b5cf6"
                       strokeWidth="3"
                       fill="none"
@@ -1833,7 +1884,7 @@ function BoosterSetPage() {
                   {/* PLC to Control Bus */}
                   {hasPLC && (hasComms || true) && (
                     <path
-                      d="M 450 250 L 450 280"
+                      d="M 450 270 L 450 330"
                       stroke={hasComms ? "#8b5cf6" : "#64748b"}
                       strokeWidth="3"
                       fill="none"
@@ -1846,16 +1897,16 @@ function BoosterSetPage() {
                       {/* Shorten the main horizontal line by the curve radius so it connects perfectly */}
                       <line
                         x1={pumpCount > 1 ? 150 + 20 : 140}
-                        y1="280"
+                        y1="330"
                         x2={pumpCount > 1 ? 750 - 20 : 760}
-                        y2="280"
+                        y2="330"
                         stroke={hasComms ? "#8b5cf6" : "#64748b"}
                         strokeWidth="3"
                         strokeDasharray={hasComms ? "" : "6 4"}
                       />
                       <text
                         x="310"
-                        y="270"
+                        y="320"
                         textAnchor="middle"
                         fontSize="12"
                         fontWeight="bold"
@@ -1885,7 +1936,7 @@ function BoosterSetPage() {
                         {(hasSCADA || hasPLC || config.communication !== "") &&
                           (pumpCount > 1 && (i === 0 || i === pumpCount - 1) ? (
                             <path
-                              d={`M ${i === 0 ? xPos + radius : xPos - radius} 280 Q ${xPos} 280 ${xPos} ${280 + radius} L ${xPos} 340`}
+                              d={`M ${i === 0 ? xPos + radius : xPos - radius} 330 Q ${xPos} 330 ${xPos} ${330 + radius} L ${xPos} 390`}
                               stroke={hasComms ? "#8b5cf6" : "#64748b"}
                               strokeWidth="3"
                               fill="none"
@@ -1894,9 +1945,9 @@ function BoosterSetPage() {
                           ) : (
                             <line
                               x1={xPos}
-                              y1="280"
+                              y1="330"
                               x2={xPos}
-                              y2="340"
+                              y2="390"
                               stroke={hasComms ? "#8b5cf6" : "#64748b"}
                               strokeWidth="3"
                               strokeDasharray={hasComms ? "" : "4 2"}
@@ -1906,9 +1957,9 @@ function BoosterSetPage() {
                         {/* Power Line from Starter to Pump */}
                         <line
                           x1={xPos}
-                          y1="440"
+                          y1="490"
                           x2={xPos}
-                          y2="480"
+                          y2="530"
                           stroke="#334155"
                           strokeWidth="4"
                         />
@@ -1916,9 +1967,7 @@ function BoosterSetPage() {
                     );
                   })}
                 </g>
-
                 {/* Physical Device Images */}
-
                 {/* SCADA Image */}
                 {hasSCADA && (
                   <image
@@ -1930,27 +1979,35 @@ function BoosterSetPage() {
                     preserveAspectRatio="xMidYMid meet"
                   />
                 )}
-
                 {/* Remote Network Gateway (If Comms only) */}
                 {!hasSCADA && !hasPLC && hasComms && (
-                  <NetworkCloud x={450} y={80} />
+                  <NetworkCloud x={450} y={130} />
                 )}
-
                 {/* PLC Image */}
                 {hasPLC && (
-                  <image
-                    href="/images/booster-set/M262.jpg"
-                    x="400"
-                    y="170"
-                    width="100"
-                    height="80"
-                    preserveAspectRatio="xMidYMid meet"
-                  />
+                  <>
+                    <image
+                      href="/images/booster-set/TM241CE40R.jpg"
+                      x="330"
+                      y="152"
+                      width="120"
+                      height="160"
+                      preserveAspectRatio="xMidYMid meet"
+                    />
+                    <image
+                      href="/images/booster-set/TM3AI4.jpg"
+                      x="450"
+                      y="190"
+                      width="60"
+                      height="80"
+                      preserveAspectRatio="xMidYMid meet"
+                    />
+                  </>
                 )}
                 {hasPLC && (
                   <text
-                    x="380"
-                    y="210"
+                    x="420"
+                    y="300"
                     textAnchor="middle"
                     fontSize="12"
                     fontWeight="bold"
@@ -1958,7 +2015,6 @@ function BoosterSetPage() {
                     PLC
                   </text>
                 )}
-
                 {/* Starters & Pumps Loop */}
                 {Array.from({ length: pumpCount || 2 }).map((_, i) => {
                   const totalWidth = 600;
@@ -1978,7 +2034,7 @@ function BoosterSetPage() {
                         <image
                           href={starterImg}
                           x={xPos - 35}
-                          y="340"
+                          y="390"
                           width="70"
                           height="100"
                           preserveAspectRatio="xMidYMid meet"
@@ -1989,17 +2045,16 @@ function BoosterSetPage() {
                       <image
                         href="/images/booster-set/pump.png"
                         x={xPos - 50}
-                        y="480"
+                        y="530"
                         width="100"
                         height="100"
                         preserveAspectRatio="xMidYMid meet"
                       />
-                      {/* <MotorImage x={xPos} y="480" width="200" height="200" /> */}
 
                       {/* Labels */}
                       <text
                         x={xPos + 50}
-                        y="380"
+                        y="430"
                         textAnchor="middle"
                         fontSize="12"
                         fontWeight="bold"
@@ -2008,55 +2063,72 @@ function BoosterSetPage() {
                         {config.motorStart === "VSD" ? "Drive" : "Starter"}{" "}
                         {i + 1}
                       </text>
-                      {/* <text x={xPos} y="590" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#334155">Pump {i + 1}</text> */}
                     </g>
                   );
-                })}
+                })}{" "}
               </svg>
             </div>
           </section>
         </div>
-        {/* Motor Start Text Bubble */}
-        <div className="booster__sidebar">
-          {motorStartText && (
-            <section className="booster__config glass-card fade-in">
-              <h2 className="booster__section-title">Technical Description</h2>
-              <div className="booster__text-accordion">
-                {motorStartTextSections.map((section) => {
-                  const isOpen = openMotorTextSections[section.key];
 
-                  return (
-                    <div className="booster__text-section" key={section.key}>
-                      <button
-                        type="button"
-                        className="booster__text-section-btn"
-                        onClick={() => toggleMotorTextSection(section.key)}
-                        aria-expanded={isOpen}
-                      >
-                        <span>{section.title}</span>
-                        {isOpen ? (
-                          <ChevronDown size={16} />
-                        ) : (
-                          <ChevronRight size={16} />
-                        )}
-                      </button>
-                      {isOpen && section.content && (
-                        <div className="booster__text-section-panel">
-                          <p>{section.content}</p>
-                        </div>
+        {/* Right Column Technical Description Accordion Sidebar */}
+        <aside className="booster__sidebar">
+          <section
+            className="booster__tech-desc-sidebar-card glass-card"
+            style={{ padding: "var(--space-md) var(--space-xl)", margin: 0 }}
+          >
+            <h2 className="booster__section-title">Technical Description</h2>
+            <div className="booster__text-accordion">
+              {motorStartTextSections.map((section) => {
+                const isOpen = openMotorTextSections[section.key];
+
+                return (
+                  <div className="booster__text-section" key={section.key}>
+                    <button
+                      type="button"
+                      className="booster__text-section-btn"
+                      onClick={() => toggleMotorTextSection(section.key)}
+                      aria-expanded={isOpen}
+                    >
+                      <span>{section.title}</span>
+                      {isOpen ? (
+                        <ChevronDown size={16} />
+                      ) : (
+                        <ChevronRight size={16} />
                       )}
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-          )}
-          {isLoadingText && (
-            <section className="booster__config glass-card fade-in">
-              <h2 className="booster__section-title">Loading...</h2>
-            </section>
-          )}
-        </div>
+                    </button>
+                    {isOpen && (
+                      <div className="booster__text-section-panel">
+                        {(
+                          section.key === "technicalCharacteristics"
+                            ? !config.motorStart ||
+                              isLoadingTech ||
+                              !techCharText ||
+                              !config.motorPower ||
+                              !config.enclosure
+                            : !config.motorStart ||
+                              isLoadingStatic ||
+                              !staticText
+                        ) ? (
+                          <div
+                            className="skeleton-placeholder"
+                            style={{ padding: 0 }}
+                          >
+                            <div className="skeleton-line" />
+                            <div className="skeleton-line" />
+                            <div className="skeleton-line" />
+                          </div>
+                        ) : (
+                          <p>{section.content}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        </aside>
       </div>
     </div>
   );

@@ -169,10 +169,16 @@ describe("BoosterSetPage", () => {
     });
 
     // 2. Select an asset
-    // First expand the group
-    fireEvent.click(screen.getByLabelText(/Expand Data Sheet/i));
+    // First expand the group if not already expanded
+    const expandBtn = screen.queryByLabelText(/Expand Data Sheet/i);
+    if (expandBtn) {
+      fireEvent.click(expandBtn);
+    }
     // Then click the child
     fireEvent.click(screen.getByLabelText(/BOM/i));
+
+    // Check terms checkbox
+    fireEvent.click(screen.getByLabelText(/I have read and agree to the/i));
 
     // 3. Trigger download
     const downloadButton = screen.getByRole("button", {
@@ -265,6 +271,9 @@ describe("BoosterSetPage", () => {
     fireEvent.change(screen.getByLabelText(/Communication/i), {
       target: { value: "No" },
     });
+
+    // Check terms checkbox
+    fireEvent.click(screen.getByLabelText(/I have read and agree to the/i));
 
     const downloadButton = screen.getByRole("button", {
       name: /download package/i,

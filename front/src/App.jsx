@@ -3,6 +3,7 @@ import LandingPage from "./pages/LandingPage";
 import WaterPage from "./pages/WaterPage";
 import BoosterSetPage from "./pages/BoosterSetPage";
 import LoginPage from "./pages/LoginPage";
+import TermsPage from "./pages/TermsPage";
 import { AuthProvider, AuthContext } from "./context/AuthContext";
 import React, { useContext } from "react";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -21,6 +22,19 @@ function TopNav() {
   );
 }
 
+function Footer() {
+  return (
+    <footer className="global-footer fade-in">
+      <p>
+        © 2026 Application Design Library. All rights reserved.
+        <a href="/terms" target="_blank" rel="noopener noreferrer">
+          Terms of Use
+        </a>
+      </p>
+    </footer>
+  );
+}
+
 function App() {
   return (
     <AuthProvider>
@@ -29,6 +43,7 @@ function App() {
         <FeedbackBubble />
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/terms" element={<TermsPage />} />
           <Route
             path="/"
             element={
@@ -54,6 +69,7 @@ function App() {
             }
           />
         </Routes>
+        <Footer />
       </BrowserRouter>
     </AuthProvider>
   );

@@ -1423,7 +1423,8 @@ function BoosterSetPage() {
           <div className="booster__metadata-header">
             <h2 className="booster__section-title">Project Metadata</h2>
             <p className="booster__metadata-subtitle">
-              Capture project context.
+              Capture project context. Note: This data is not stored in the
+              database and is used solely for the generation process.
             </p>
           </div>
           <div className="booster__metadata-grid">

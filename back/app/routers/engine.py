@@ -28,40 +28,6 @@ def _is_yes(value):
     return str(value or "").strip().upper() == "YES"
 
 
-def _save_project_metadata(
-    db: Session, request: DigitalTwinRequest, twin, current_user
-):
-    metadata = (
-        db.query(models.ProjectMetadata)
-        .filter(models.ProjectMetadata.config_id == twin.config_id)
-        .first()
-    )
-    if metadata is None:
-        metadata = models.ProjectMetadata(config_id=twin.config_id)
-
-    metadata.username = current_user.username
-    metadata.project_name = _clean_text(request.project_name)
-    metadata.client = _clean_text(request.project_client)
-    metadata.technical_manager = _clean_text(request.project_technical_manager)
-    metadata.location = _clean_text(request.project_location)
-    metadata.date = _clean_text(request.project_date)
-    metadata.notes = _clean_text(request.project_notes)
-    metadata.enclosure_ref = _clean_text(request.enclosure_ref) or getattr(
-        twin.enclosure, "catalog_ref", None
-    )
-    metadata.communication = _clean_text(request.communication)
-    metadata.plc = _is_yes(request.plc_included)
-    metadata.scada = _is_yes(request.scada_included)
-
-    try:
-        db.add(metadata)
-        db.commit()
-        db.refresh(metadata)
-    except Exception:
-        db.rollback()
-        raise
-
-
 @router.post("/configure", response_model=DigitalTwinResponse)
 def generate_digital_twin(request: DigitalTwinRequest, db: Session = Depends(get_db)):
     """
@@ -108,7 +74,7 @@ def generate_asset_package(
         twin = engine.generate_twin(request)
 
         # 2. Persist project metadata for regeneration/viewing
-        _save_project_metadata(db, request, twin, current_user)
+        # _save_project_metadata(db, request, twin, current_user)
 
         # 3. Package Twin into Zip bytes
         zip_service = ZipService()

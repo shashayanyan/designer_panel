@@ -344,7 +344,7 @@ def generate_ifc_from_twin(twin_data: dict, visualize_ports: bool = False) -> by
                 "ModelLabel": data.get("config_id", ""),
                 "ModelReference": "Booster Set Application",  # Updated to reflect system type
                 "ArticleNumber": "Configured Assembly",  # Prevents ordering an empty box
-                "Description": "Booster Set Control Panel",  # Explicitly states the function
+                "Description": "Pumping Station Control Panel",  # Explicitly states the function
                 "ManufacturerUrl": derived_url,  # Safe to keep as a reference to the core drive
             },
         )

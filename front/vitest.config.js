@@ -19,6 +19,7 @@ export default defineConfig({
         "**/node_modules/**",
         "**/dist/**",
         "src/main.jsx",
+        "src/supabase.js",
         "*.config.js",
         "*.config.ts",
       ],

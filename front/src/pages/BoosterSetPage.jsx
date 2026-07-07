@@ -24,7 +24,7 @@ const ASSET_TREE = [
     label: "Drawings",
     children: [
       { id: "Panel", label: "Panel Layout", disabled: true },
-      { id: "Components", label: "Components Drawings", disabled: true },
+      { id: "Components", label: "Components Drawings" },
     ],
   },
   { id: "Specification", label: "Specification Text" },
@@ -324,11 +324,58 @@ const StarterBlock = ({ x, y, type }) => {
   } else if (type === "") {
     symbol = null;
   } else {
+    // DOL (Contactor KM1 + Thermal Overload KK1)
     symbol = (
-      <g>
-        <rect x="-11" y="16" width="6" height="8" fill="currentColor" />
-        <rect x="-3" y="16" width="6" height="8" fill="currentColor" />
-        <rect x="5" y="16" width="6" height="8" fill="currentColor" />
+      <g stroke="currentColor" strokeWidth="1">
+        {/* Contactor (KM1) - Upper Section */}
+        {/* Incoming straight lines */}
+        <line x1="-10" y1="0" x2="-10" y2="6" />
+        <line x1="0" y1="0" x2="0" y2="6" />
+        <line x1="10" y1="0" x2="10" y2="6" />
+
+        {/* Switch Diagonals (No horizontal ganging bar) */}
+        <line x1="-10" y1="6" x2="-5" y2="16" />
+        <line x1="0" y1="6" x2="5" y2="16" />
+        <line x1="10" y1="6" x2="15" y2="16" />
+
+        {/* Lines down to Thermal Overload */}
+        <line x1="-10" y1="16" x2="-10" y2="24" />
+        <line x1="0" y1="16" x2="0" y2="24" />
+        <line x1="10" y1="16" x2="10" y2="24" />
+
+        {/* Thermal Overload (KK1) - Lower Section */}
+        <rect x="-14" y="24" width="28" height="10" fill="none" />
+
+        {/* Heating element blocks */}
+        <rect
+          x="-12"
+          y="26"
+          width="4"
+          height="6"
+          fill="currentColor"
+          stroke="none"
+        />
+        <rect
+          x="-2"
+          y="26"
+          width="4"
+          height="6"
+          fill="currentColor"
+          stroke="none"
+        />
+        <rect
+          x="8"
+          y="26"
+          width="4"
+          height="6"
+          fill="currentColor"
+          stroke="none"
+        />
+
+        {/* Lines out to the motor */}
+        <line x1="-10" y1="34" x2="-10" y2="40" />
+        <line x1="0" y1="34" x2="0" y2="40" />
+        <line x1="10" y1="34" x2="10" y2="40" />
       </g>
     );
   }
@@ -672,11 +719,14 @@ function BoosterSetPage() {
     const requestId = ++textRequestId.current;
 
     const fetchMotorStartText = async () => {
-      const currentIsAbove15 = config.motorPower ? parseFloat(config.motorPower) > 15 : false;
-      const needsStaticFetch = 
+      const currentIsAbove15 = config.motorPower
+        ? parseFloat(config.motorPower) > 15
+        : false;
+      const needsStaticFetch =
         !staticText ||
         lastStaticFetch.current.motorStart !== config.motorStart ||
-        (config.motorStart === "SS" && lastStaticFetch.current.isAbove15 !== currentIsAbove15);
+        (config.motorStart === "SS" &&
+          lastStaticFetch.current.isAbove15 !== currentIsAbove15);
 
       const needsTechFetch = !!(config.motorPower && config.enclosure);
 
@@ -695,14 +745,14 @@ function BoosterSetPage() {
 
         const pCount = config.pumps || "2";
         const mStart = config.motorStart;
-        
+
         let mPower = "15.0";
         if (config.motorPower) {
           mPower = config.motorPower;
         } else if (config.motorStart === "SS") {
           mPower = "11.0"; // default to below 15kW
         }
-        
+
         const encRef = config.enclosure || "ENC-001";
 
         const res = await fetch(
@@ -719,7 +769,10 @@ function BoosterSetPage() {
                 functions: data.functions,
                 protections: data.protections,
               });
-              lastStaticFetch.current = { motorStart: mStart, isAbove15: currentIsAbove15 };
+              lastStaticFetch.current = {
+                motorStart: mStart,
+                isAbove15: currentIsAbove15,
+              };
             }
             if (needsTechFetch) {
               setTechCharText(data.technical_characteristics);
@@ -959,9 +1012,13 @@ function BoosterSetPage() {
               ? "booster__asset-row booster__asset-row--leaf booster__page--disabled"
               : "booster__asset-row booster__asset-row--leaf"
           }
-          style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-start",
+          }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+          <div style={{ display: "flex", alignItems: "center", width: "100%" }}>
             <span className="booster__asset-spacer" aria-hidden="true" />
             <label className="booster__check-item booster__check-item--top">
               <input
@@ -979,8 +1036,16 @@ function BoosterSetPage() {
             </label>
           </div>
           {node.id === "BIM Object" && value && (
-            <div style={{ paddingLeft: '2.3rem', fontSize: '0.78rem', color: 'var(--danger)', fontWeight: '500', marginTop: '2px' }}>
-              Refer to README for instructions for IFC file
+            <div
+              style={{
+                paddingLeft: "2.3rem",
+                fontSize: "0.78rem",
+                color: "var(--danger)",
+                fontWeight: "500",
+                marginTop: "2px",
+              }}
+            >
+              Refer to README.txt for more on the IFC file
             </div>
           )}
         </div>
@@ -1012,7 +1077,12 @@ function BoosterSetPage() {
               onChange={() => toggleParentNode(node.id)}
               className="booster__checkbox"
             />
-            <span className="booster__check-label" style={{ fontWeight: '600' }}>{node.label}</span>
+            <span
+              className="booster__check-label"
+              style={{ fontWeight: "600" }}
+            >
+              {node.label}
+            </span>
           </label>
         </div>
 
@@ -1331,7 +1401,7 @@ function BoosterSetPage() {
     <div className="booster">
       <header className="booster__header fade-in">
         <div className="booster__header-left">
-          <h1 className="booster__title">Motor Control Asset Library</h1>
+          <h1 className="booster__title">Application Design Library</h1>
           <p className="booster__subtitle">
             Configure your booster set parameters and download the asset
             package.
@@ -1353,7 +1423,8 @@ function BoosterSetPage() {
           <div className="booster__metadata-header">
             <h2 className="booster__section-title">Project Metadata</h2>
             <p className="booster__metadata-subtitle">
-              Capture project context.
+              Capture project context. Note: This data is not stored in the
+              database and is used solely for the generation process.
             </p>
           </div>
           <div className="booster__metadata-grid">
@@ -1401,7 +1472,6 @@ function BoosterSetPage() {
       <div className="booster__body fade-in">
         {/* Left Column Controls Sidebar (300px wide) */}
         <aside className="booster__sidebar">
-
           {/* Configuration Selection */}
           <section className="booster__config glass-card">
             <h2 className="booster__section-title">Configuration</h2>
@@ -1455,10 +1525,18 @@ function BoosterSetPage() {
           <section className="booster__assets glass-card">
             <h2 className="booster__section-title">Assets</h2>
             <div className="booster__asset-buttons">
-              <button className="btn-secondary" onClick={selectAllAssets} style={{ padding: '0.4rem 0.8rem' }}>
+              <button
+                className="btn-secondary"
+                onClick={selectAllAssets}
+                style={{ padding: "0.4rem 0.8rem" }}
+              >
                 Select All
               </button>
-              <button className="btn-secondary" onClick={clearAllAssets} style={{ padding: '0.4rem 0.8rem' }}>
+              <button
+                className="btn-secondary"
+                onClick={clearAllAssets}
+                style={{ padding: "0.4rem 0.8rem" }}
+              >
                 Clear All
               </button>
             </div>
@@ -1472,20 +1550,51 @@ function BoosterSetPage() {
               ))}
             </div>
             {/* Terms of Use Checkbox */}
-            <div className="booster__terms-agreement" style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', padding: '12px 4px 4px 4px' }}>
+            <div
+              className="booster__terms-agreement"
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                gap: "8px",
+                padding: "12px 4px 4px 4px",
+              }}
+            >
               <input
                 type="checkbox"
                 id="terms-agreement-checkbox"
                 checked={acceptedTerms}
                 onChange={(e) => setAcceptedTerms(e.target.checked)}
                 className="booster__checkbox"
-                style={{ width: '16px', height: '16px', cursor: 'pointer', marginTop: '2px' }}
+                style={{
+                  width: "16px",
+                  height: "16px",
+                  cursor: "pointer",
+                  marginTop: "2px",
+                }}
               />
-              <label htmlFor="terms-agreement-checkbox" style={{ fontSize: '0.82rem', cursor: 'pointer', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+              <label
+                htmlFor="terms-agreement-checkbox"
+                style={{
+                  fontSize: "0.82rem",
+                  cursor: "pointer",
+                  color: "var(--text-secondary)",
+                  lineHeight: "1.4",
+                }}
+              >
                 I have read and agree to the{" "}
-                <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'underline', color: 'var(--accent)', fontWeight: '600' }}>
+                <a
+                  href="/terms"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    textDecoration: "underline",
+                    color: "var(--accent)",
+                    fontWeight: "600",
+                  }}
+                >
                   Terms of Use
                 </a>
+                <span style={{ color: "red", marginLeft: "4px" }}>*</span>
               </label>
             </div>
             <button
@@ -1493,9 +1602,7 @@ function BoosterSetPage() {
               disabled={!allFieldsFilled || isGenerating || !acceptedTerms}
               onClick={handleDownload}
             >
-              {isGenerating
-                ? "⌛ Generating..."
-                : "📦 Download Package"}
+              {isGenerating ? "⌛ Generating..." : "📦 Download Package"}
             </button>
           </section>
         </aside>
@@ -1734,7 +1841,7 @@ function BoosterSetPage() {
             <div className="booster__diagram-canvas">
               <svg
                 ref={refArchRef}
-                viewBox="0 0 900 600"
+                viewBox="0 0 900 650"
                 xmlns="http://www.w3.org/2000/svg"
                 style={{
                   width: "100%",
@@ -1748,7 +1855,7 @@ function BoosterSetPage() {
                     hasSCADA &&
                       (hasPLC ? (
                         <path
-                          d="M 450 110 L 450 170"
+                          d="M 450 110 L 450 190"
                           stroke="#0ea5e9"
                           strokeWidth="3"
                           fill="none"
@@ -1756,7 +1863,7 @@ function BoosterSetPage() {
                         />
                       ) : hasComms ? (
                         <path
-                          d="M 450 110 L 450 280"
+                          d="M 450 110 L 450 330"
                           stroke="#0ea5e9"
                           strokeWidth="3"
                           fill="none"
@@ -1768,7 +1875,7 @@ function BoosterSetPage() {
                   {/* Remote Comms Dropdown (If Comms but no local PLC/SCADA) */}
                   {!hasSCADA && !hasPLC && hasComms && (
                     <path
-                      d="M 450 120 L 450 280"
+                      d="M 450 120 L 450 330"
                       stroke="#8b5cf6"
                       strokeWidth="3"
                       fill="none"
@@ -1778,7 +1885,7 @@ function BoosterSetPage() {
                   {/* PLC to Control Bus */}
                   {hasPLC && (hasComms || true) && (
                     <path
-                      d="M 450 250 L 450 280"
+                      d="M 450 270 L 450 330"
                       stroke={hasComms ? "#8b5cf6" : "#64748b"}
                       strokeWidth="3"
                       fill="none"
@@ -1791,16 +1898,16 @@ function BoosterSetPage() {
                       {/* Shorten the main horizontal line by the curve radius so it connects perfectly */}
                       <line
                         x1={pumpCount > 1 ? 150 + 20 : 140}
-                        y1="280"
+                        y1="330"
                         x2={pumpCount > 1 ? 750 - 20 : 760}
-                        y2="280"
+                        y2="330"
                         stroke={hasComms ? "#8b5cf6" : "#64748b"}
                         strokeWidth="3"
                         strokeDasharray={hasComms ? "" : "6 4"}
                       />
                       <text
                         x="310"
-                        y="270"
+                        y="320"
                         textAnchor="middle"
                         fontSize="12"
                         fontWeight="bold"
@@ -1830,7 +1937,7 @@ function BoosterSetPage() {
                         {(hasSCADA || hasPLC || config.communication !== "") &&
                           (pumpCount > 1 && (i === 0 || i === pumpCount - 1) ? (
                             <path
-                              d={`M ${i === 0 ? xPos + radius : xPos - radius} 280 Q ${xPos} 280 ${xPos} ${280 + radius} L ${xPos} 340`}
+                              d={`M ${i === 0 ? xPos + radius : xPos - radius} 330 Q ${xPos} 330 ${xPos} ${330 + radius} L ${xPos} 390`}
                               stroke={hasComms ? "#8b5cf6" : "#64748b"}
                               strokeWidth="3"
                               fill="none"
@@ -1839,9 +1946,9 @@ function BoosterSetPage() {
                           ) : (
                             <line
                               x1={xPos}
-                              y1="280"
+                              y1="330"
                               x2={xPos}
-                              y2="340"
+                              y2="390"
                               stroke={hasComms ? "#8b5cf6" : "#64748b"}
                               strokeWidth="3"
                               strokeDasharray={hasComms ? "" : "4 2"}
@@ -1851,9 +1958,9 @@ function BoosterSetPage() {
                         {/* Power Line from Starter to Pump */}
                         <line
                           x1={xPos}
-                          y1="440"
+                          y1="490"
                           x2={xPos}
-                          y2="480"
+                          y2="530"
                           stroke="#334155"
                           strokeWidth="4"
                         />
@@ -1861,9 +1968,7 @@ function BoosterSetPage() {
                     );
                   })}
                 </g>
-
                 {/* Physical Device Images */}
-
                 {/* SCADA Image */}
                 {hasSCADA && (
                   <image
@@ -1875,27 +1980,35 @@ function BoosterSetPage() {
                     preserveAspectRatio="xMidYMid meet"
                   />
                 )}
-
                 {/* Remote Network Gateway (If Comms only) */}
                 {!hasSCADA && !hasPLC && hasComms && (
-                  <NetworkCloud x={450} y={80} />
+                  <NetworkCloud x={450} y={130} />
                 )}
-
                 {/* PLC Image */}
                 {hasPLC && (
-                  <image
-                    href="/images/booster-set/M262.jpg"
-                    x="400"
-                    y="170"
-                    width="100"
-                    height="80"
-                    preserveAspectRatio="xMidYMid meet"
-                  />
+                  <>
+                    <image
+                      href="/images/booster-set/TM241CE40R.jpg"
+                      x="330"
+                      y="152"
+                      width="120"
+                      height="160"
+                      preserveAspectRatio="xMidYMid meet"
+                    />
+                    <image
+                      href="/images/booster-set/TM3AI4.jpg"
+                      x="450"
+                      y="190"
+                      width="60"
+                      height="80"
+                      preserveAspectRatio="xMidYMid meet"
+                    />
+                  </>
                 )}
                 {hasPLC && (
                   <text
-                    x="380"
-                    y="210"
+                    x="420"
+                    y="300"
                     textAnchor="middle"
                     fontSize="12"
                     fontWeight="bold"
@@ -1903,7 +2016,6 @@ function BoosterSetPage() {
                     PLC
                   </text>
                 )}
-
                 {/* Starters & Pumps Loop */}
                 {Array.from({ length: pumpCount || 2 }).map((_, i) => {
                   const totalWidth = 600;
@@ -1923,7 +2035,7 @@ function BoosterSetPage() {
                         <image
                           href={starterImg}
                           x={xPos - 35}
-                          y="340"
+                          y="390"
                           width="70"
                           height="100"
                           preserveAspectRatio="xMidYMid meet"
@@ -1934,7 +2046,7 @@ function BoosterSetPage() {
                       <image
                         href="/images/booster-set/pump.png"
                         x={xPos - 50}
-                        y="480"
+                        y="530"
                         width="100"
                         height="100"
                         preserveAspectRatio="xMidYMid meet"
@@ -1943,7 +2055,7 @@ function BoosterSetPage() {
                       {/* Labels */}
                       <text
                         x={xPos + 50}
-                        y="380"
+                        y="430"
                         textAnchor="middle"
                         fontSize="12"
                         fontWeight="bold"
@@ -1954,7 +2066,7 @@ function BoosterSetPage() {
                       </text>
                     </g>
                   );
-                })}
+                })}{" "}
               </svg>
             </div>
           </section>
@@ -1962,7 +2074,10 @@ function BoosterSetPage() {
 
         {/* Right Column Technical Description Accordion Sidebar */}
         <aside className="booster__sidebar">
-          <section className="booster__tech-desc-sidebar-card glass-card" style={{ padding: 'var(--space-md) var(--space-xl)', margin: 0 }}>
+          <section
+            className="booster__tech-desc-sidebar-card glass-card"
+            style={{ padding: "var(--space-md) var(--space-xl)", margin: 0 }}
+          >
             <h2 className="booster__section-title">Technical Description</h2>
             <div className="booster__text-accordion">
               {motorStartTextSections.map((section) => {
@@ -1985,18 +2100,21 @@ function BoosterSetPage() {
                     </button>
                     {isOpen && (
                       <div className="booster__text-section-panel">
-                        {(section.key === "technicalCharacteristics" ? (
-                          !config.motorStart ||
-                          isLoadingTech ||
-                          !techCharText ||
-                          !config.motorPower ||
-                          !config.enclosure
-                        ) : (
-                          !config.motorStart ||
-                          isLoadingStatic ||
-                          !staticText
-                        )) ? (
-                          <div className="skeleton-placeholder" style={{ padding: 0 }}>
+                        {(
+                          section.key === "technicalCharacteristics"
+                            ? !config.motorStart ||
+                              isLoadingTech ||
+                              !techCharText ||
+                              !config.motorPower ||
+                              !config.enclosure
+                            : !config.motorStart ||
+                              isLoadingStatic ||
+                              !staticText
+                        ) ? (
+                          <div
+                            className="skeleton-placeholder"
+                            style={{ padding: 0 }}
+                          >
                             <div className="skeleton-line" />
                             <div className="skeleton-line" />
                             <div className="skeleton-line" />

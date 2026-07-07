@@ -67,7 +67,7 @@ describe("App Routing", () => {
     // 5. Navigate to Booster Set
     fireEvent.click(screen.getByText(/Booster Set/i));
     expect(
-      screen.getAllByText(/Motor Control Asset Library/i)[0],
+      screen.getAllByText(/Application Design Library/i)[0],
     ).toBeInTheDocument();
 
     // 6. Test Logout

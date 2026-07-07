@@ -26,7 +26,7 @@ function Footer() {
   return (
     <footer className="global-footer fade-in">
       <p>
-        © 2026 Motor Control Asset Library. All rights reserved.
+        © 2026 Application Design Library. All rights reserved.
         <a href="/terms" target="_blank" rel="noopener noreferrer">
           Terms of Use
         </a>

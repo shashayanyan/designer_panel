@@ -72,3 +72,36 @@ global.fetch = vi.fn((url) => {
     blob: () => Promise.resolve(new Blob([""])),
   });
 });
+
+// Mock Supabase to return verified session and allowed app permissions in tests
+vi.mock("../supabase", () => {
+  return {
+    supabase: {
+      auth: {
+        getSession: vi.fn(() =>
+          Promise.resolve({
+            data: {
+              session: {
+                user: { id: "test-user-id" },
+              },
+            },
+            error: null,
+          })
+        ),
+      },
+      from: vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn(() =>
+              Promise.resolve({
+                data: { allowed_apps: ["designer"] },
+                error: null,
+              })
+            ),
+          })),
+        })),
+      })),
+    },
+  };
+});
+

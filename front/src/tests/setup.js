@@ -73,6 +73,10 @@ global.fetch = vi.fn((url) => {
   });
 });
 
+// Configure VITE_SUPABASE_URL to prevent placeholder bypass during tests
+import.meta.env.VITE_SUPABASE_URL = "https://mock-supabase-project.supabase.co";
+import.meta.env.VITE_SUPABASE_ANON_KEY = "mock-anon-key";
+
 // Mock Supabase to return verified session and allowed app permissions in tests
 vi.mock("../supabase", () => {
   return {
@@ -104,4 +108,5 @@ vi.mock("../supabase", () => {
     },
   };
 });
+
 

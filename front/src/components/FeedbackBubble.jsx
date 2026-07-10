@@ -81,7 +81,7 @@ function FeedbackBubble() {
 
       {/* Feedback Form Modal/Popup */}
       {isOpen && (
-        <div className="feedback-popup fade-in">
+        <div className="feedback-popup">
           <div className="feedback-popup-header">
             <h3>Feedback</h3>
             <button

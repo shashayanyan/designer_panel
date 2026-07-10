@@ -75,16 +75,21 @@
 
 /* ======== Cards ======== */
 .landing__choices {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 320px));
   gap: var(--space-xl);
+  justify-content: center;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
   position: relative;
   z-index: 1;
 }
 
 .landing__card {
   position: relative;
-  width: 280px;
-  height: 320px;
+  width: 100%;
+  aspect-ratio: 7/8;
   border-radius: var(--radius-lg);
   overflow: hidden;
   cursor: pointer;
@@ -170,21 +175,6 @@
   box-shadow: var(--shadow-md);
   border-color: var(--border-glass);
 }
-
 .landing__card--disabled:hover .landing__card-bg {
   transform: none;
-}
-
-/* Responsive */
-@media (max-width: 640px) {
-  .landing__choices {
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .landing__card {
-    width: 100%;
-    max-width: 320px;
-    height: 240px;
-  }
 }

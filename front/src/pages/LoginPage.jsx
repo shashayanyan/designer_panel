@@ -51,7 +51,7 @@ function LoginPage() {
     <div className="login-page">
       <div className="glass-card login-card fade-in">
         <div>
-          <h2 className="login-title">Sign in to Designer Panel</h2>
+          <h2 className="login-title">Sign in to Application Design Library</h2>
         </div>
         <form className="login-form" onSubmit={handleSubmit}>
           <div className="login-input-group">

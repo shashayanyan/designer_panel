@@ -161,6 +161,13 @@ select {
   box-shadow: var(--shadow-sm);
 }
 
+@media (max-width: 640px) {
+  .btn-secondary {
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+  }
+}
+
 .btn-secondary:hover {
   background: var(--bg-primary);
   border-color: rgba(0, 0, 0, 0.12);

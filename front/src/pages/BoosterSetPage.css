@@ -579,10 +579,10 @@
 /* ─── 3-Column Layout ─── */
 .booster__body {
   display: grid;
-  grid-template-columns: 2fr 3fr 5fr;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: var(--space-lg);
   width: 100%;
-  height: 750px;
+  height: auto;
   min-height: 0;
 }
 
@@ -680,12 +680,5 @@
   }
   100% {
     opacity: 0.3;
-  }
-}
-
-@media (max-width: 1200px) {
-  .booster__body {
-    grid-template-columns: 1fr;
-    height: auto;
   }
 }

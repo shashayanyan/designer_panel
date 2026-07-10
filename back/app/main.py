@@ -9,7 +9,7 @@ from .routers import engine as engine_router
 from .routers import feedback
 from .routers import master_data
 
-app = FastAPI(title="Designer Panel API")
+app = FastAPI(title="Application Design Library API")
 
 # Load CORS origins from environment
 cors_origins_str = os.getenv("CORS_ORIGINS", '["*"]')
@@ -48,4 +48,4 @@ app.include_router(feedback.router)
 
 @app.get("/")
 def root():
-    return {"message": "Welcome to Designer Panel API"}
+    return {"message": "Welcome to Application Design Library API"}

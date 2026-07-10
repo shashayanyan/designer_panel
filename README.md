@@ -1,6 +1,6 @@
-# Designer Panel
+# Application Design Library
 
-The Designer Panel is an internal tool to automate the process of specification projects for design engineers and firms. It allows users to configure a project setup, select parameters (e.g., number of pumps, motor power), visualize the design instantly via a dynamic Multi Line Diagram, and download a comprehensive asset package including data sheets, engineering specifications, and BIM objects (IFC).
+The Application Design Library is an internal tool to automate the process of specification projects for design engineers and firms. It allows users to configure a project setup, select parameters (e.g., number of pumps, motor power), visualize the design instantly via a dynamic Multi Line Diagram, and download a comprehensive asset package including data sheets, engineering specifications, and BIM objects (IFC).
 
 ## Technology Stack
 - **Frontend**: React + Vite + Custom CSS

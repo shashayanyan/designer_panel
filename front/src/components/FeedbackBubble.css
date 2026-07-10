@@ -45,6 +45,18 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  animation: feedbackFadeIn 0.2s ease-out both;
+}
+
+@keyframes feedbackFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .feedback-popup-header {

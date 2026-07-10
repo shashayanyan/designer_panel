@@ -26,7 +26,9 @@ describe("App Routing", () => {
     await act(async () => {
       render(<App />);
     });
-    expect(screen.getByText(/Sign in to Designer Panel/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Sign in to Application Design Library/i),
+    ).toBeInTheDocument();
 
     // 2. Mock login
     fetch.mockImplementation((url) => {
@@ -75,6 +77,8 @@ describe("App Routing", () => {
     await act(async () => {
       fireEvent.click(logoutBtn);
     });
-    expect(screen.getByText(/Sign in to Designer Panel/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Sign in to Application Design Library/i),
+    ).toBeInTheDocument();
   });
 });
